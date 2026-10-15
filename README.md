@@ -365,7 +365,8 @@ está en [AGENTS.md](AGENTS.md).
 
 ## Licencia y créditos
 
-Nook se publica bajo la [licencia MIT](LICENSE).
+Nook se publica bajo la [licencia MIT](LICENSE). Qué datos usa y adónde van: [política de
+privacidad](PRIVACIDAD.md).
 
 Usa trabajo de otras personas: la técnica de dibujo y animación del personaje viene de
 [bloub](https://github.com/jeremy-prt/bloub), la interfaz de [Slint](https://slint.dev) y varias
