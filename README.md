@@ -100,10 +100,7 @@ También puedes recorrerlos con la rueda del ratón.
 - ⭐ **Pro** **Clic derecho en una app abierta:** abrir otra ventana, fijarla en la barra (o
   quitarla) y cerrar la ventana.
 
-<!-- IMAGEN PENDIENTE: docs/imagenes/menu-app.png -->
-> 📸 **Imagen pendiente — `docs/imagenes/menu-app.png`:** haz clic derecho sobre una app abierta
-> de la barra (por ejemplo, el navegador) y captura la barra con el menú desplegado (*Abrir otra
-> ventana*, *Fijar en la barra*, *Cerrar ventana*).
+<img src="docs/imagenes/menu-app.png" alt="El menú de una app abierta, con abrir otra ventana, fijar en la barra y cerrar ventana" width="760">
 
 ### Añadir apps
 
@@ -193,10 +190,7 @@ Música* dónde están los controles:
 
 En el reproductor ves qué suena y puedes cambiar el volumen de esa app.
 
-<!-- IMAGEN PENDIENTE: docs/imagenes/reproductor.png -->
-> 📸 **Imagen pendiente — `docs/imagenes/reproductor.png`:** pon una canción en Spotify (o en el
-> navegador) y abre el reproductor de Nook; captura la barra con el reproductor abierto
-> (portada, título y controles).
+<img src="docs/imagenes/reproductor.png" alt="El reproductor con la portada, el título y los controles" width="760">
 
 ## La hora y las notificaciones
 
@@ -218,10 +212,7 @@ En el reproductor ves qué suena y puedes cambiar el volumen de esa app.
 
 <img src="docs/imagenes/config-personaje.png" alt="La sección Personaje de la configuración" width="640">
 
-<!-- IMAGEN PENDIENTE: docs/imagenes/dos-personajes.png -->
-> 📸 **Imagen pendiente — `docs/imagenes/dos-personajes.png` (opcional):** haz cinco clics
-> seguidos en el personaje y captura la barra con los dos personajes. Si puedes, un GIF del
-> personaje bailando con música quedaría muy bien aquí.
+<img src="docs/imagenes/dos-personajes.png" alt="La barra con dos personajes tras cinco clics seguidos" width="760">
 
 ## Dónde va la barra
 
@@ -265,10 +256,7 @@ barra de Windows mientras está abierto y la devuelve como estaba al cerrarlo. C
   llega a su programa, igual que en Windows.
 - **La barra se puede poner abajo.**
 
-<!-- IMAGEN PENDIENTE: docs/imagenes/iconos-ocultos.png -->
-> 📸 **Imagen pendiente — `docs/imagenes/iconos-ocultos.png`:** con *Sustituir la barra de tareas
-> de Windows* activado, haz clic en la flecha del área de notificación y captura la barra con la
-> ventanita de los iconos ocultos abierta.
+<img src="docs/imagenes/iconos-ocultos.png" alt="La ventanita de los iconos ocultos del área de notificación" width="760">
 
 > **Iconos que no aparecen:** al abrirse, Nook les pide su icono a los programas que ya estaban
 > abiertos, pero algunos no responden (los que funcionan como administrador, por ejemplo, porque
