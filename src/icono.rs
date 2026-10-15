@@ -154,10 +154,14 @@ mod archivo {
     }
 
     fn png(imagen: &Imagen) -> windows_core::Result<Vec<u8>> {
+        png_rgba(&sin_premultiplicar(imagen), imagen.lado, imagen.lado)
+    }
+
+    /// PNG de una imagen RGBA (alfa sin premultiplicar) de `ancho` × `alto`.
+    fn png_rgba(rgba: &[u8], ancho: u32, alto: u32) -> windows_core::Result<Vec<u8>> {
         let flujo = InMemoryRandomAccessStream::new()?;
         let codificador = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, &flujo)?.join()?;
-        let lado = imagen.lado;
-        codificador.SetPixelData(BitmapPixelFormat::Rgba8, BitmapAlphaMode::Straight, lado, lado, 96.0, 96.0, &sin_premultiplicar(imagen))?;
+        codificador.SetPixelData(BitmapPixelFormat::Rgba8, BitmapAlphaMode::Straight, ancho, alto, 96.0, 96.0, rgba)?;
         codificador.FlushAsync()?.join()?;
         let largo = flujo.Size()? as u32;
         let lector = DataReader::CreateDataReader(&flujo.GetInputStreamAt(0)?)?;
@@ -264,6 +268,54 @@ mod archivo {
             let (x, y) = ((ancho - personaje.lado) / 2, alto * 2 / 5 - personaje.lado / 2);
             let rgb = sobre_fondo(&personaje, x, y, ancho, alto, FONDO_GRANDE);
             std::fs::write(carpeta.join(format!("grande-{ancho}.bmp")), bmp(&rgb, ancho, alto)).unwrap();
+        }
+    }
+
+    /// Imágenes de la ficha de la Microsoft Store, en target/imagenes-store (no se guardan en el
+    /// repositorio: se suben a mano al Partner Center). El icono de 300 × 300 sin fondo, sobre el
+    /// fondo oscuro de Nook y sobre uno claro, y el póster vertical (720 × 1080 y 1440 × 2160)
+    /// sobre el fondo oscuro.
+    #[test]
+    #[ignore]
+    fn genera_las_imagenes_de_la_store() {
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+        }
+        const LADO_ICONO: u32 = 300;
+        const CLARO: [u8; 3] = [0xF4, 0xF5, 0xFA];
+        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, accesorios: Vec::new() };
+        let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
+        let caja = caja(&grande);
+        let carpeta = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/imagenes-store");
+        std::fs::create_dir_all(&carpeta).unwrap();
+        let rgba = |rgb: Vec<u8>| rgb.chunks(3).flat_map(|p| [p[0], p[1], p[2], 255]).collect::<Vec<u8>>();
+        let guardar = |nombre: &str, rgba: &[u8], ancho: u32, alto: u32| {
+            std::fs::write(carpeta.join(nombre), png_rgba(rgba, ancho, alto).unwrap()).unwrap();
+        };
+
+        // El icono: el personaje ocupando el 78 % del lado, centrado.
+        let personaje = reducir(&grande, caja, (LADO_ICONO as f32 * 0.78).round() as u32);
+        let margen = (LADO_ICONO - personaje.lado) / 2;
+        let mut transparente = vec![0u8; (LADO_ICONO * LADO_ICONO * 4) as usize];
+        let suelto = sin_premultiplicar(&personaje);
+        for y in 0..personaje.lado {
+            let origen = (y * personaje.lado * 4) as usize;
+            let destino = (((y + margen) * LADO_ICONO + margen) * 4) as usize;
+            let largo = (personaje.lado * 4) as usize;
+            transparente[destino..destino + largo].copy_from_slice(&suelto[origen..origen + largo]);
+        }
+        guardar("icono-300-transparente.png", &transparente, LADO_ICONO, LADO_ICONO);
+        for (nombre, fondo) in [("icono-300-oscuro.png", FONDO_GRANDE), ("icono-300-claro.png", CLARO)] {
+            let rgb = sobre_fondo(&personaje, margen, margen, LADO_ICONO, LADO_ICONO, fondo);
+            guardar(nombre, &rgba(rgb), LADO_ICONO, LADO_ICONO);
+        }
+
+        // El póster: el personaje centrado, algo por encima de la mitad, sobre el fondo oscuro.
+        for (ancho, alto) in [(720, 1080), (1440, 2160)] {
+            let personaje = reducir(&grande, caja, (ancho as f32 * 0.6).round() as u32);
+            let (x, y) = ((ancho - personaje.lado) / 2, alto * 2 / 5 - personaje.lado / 2);
+            let rgb = sobre_fondo(&personaje, x, y, ancho, alto, FONDO_GRANDE);
+            guardar(&format!("poster-{ancho}x{alto}.png"), &rgba(rgb), ancho, alto);
         }
     }
 
