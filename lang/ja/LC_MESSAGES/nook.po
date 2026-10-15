@@ -542,3 +542,27 @@ msgstr "Windows では、管理者として開いたプログラムで押され�
 
 msgid "Disponible en nook Pro"
 msgstr "nook Pro で使えます"
+
+msgid "Botón de apagado"
+msgstr "電源ボタン"
+
+msgid "Batería"
+msgstr "バッテリー"
+
+msgid "Solo en los equipos con batería, como los portátiles"
+msgstr "ノートパソコンなど、バッテリーのある端末のみ"
+
+msgid "Suspender"
+msgstr "スリープ"
+
+msgid "Reiniciar"
+msgstr "再起動"
+
+msgid "Apagar"
+msgstr "シャットダウン"
+
+msgid "cargando"
+msgstr "充電中"
+
+msgid "enchufada"
+msgstr "電源に接続"

@@ -77,6 +77,8 @@ impl Ctx {
         ui.set_mostrar_hora(ajustes.mostrar_hora);
         ui.set_boton_sonido(ajustes.boton_sonido);
         ui.set_boton_microfono(ajustes.boton_microfono);
+        ui.set_boton_energia(ajustes.boton_energia);
+        ui.set_boton_bateria(ajustes.boton_bateria);
         ui.set_boton_buscar(ajustes.boton_buscar);
         ui.set_tecla_windows_abre_buscador(ajustes.tecla_windows_abre_buscador);
         ui.set_usar_boveda(ajustes.usar_boveda);

@@ -4,7 +4,7 @@
 
 import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
-import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa } from "iconos.slint";
+import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria } from "iconos.slint";
 import { Boton } from "controles.slint";
 import { PanelGrupo } from "grupo.slint";
 import { PanelConfiguracion } from "configuracion.slint";
@@ -139,6 +139,14 @@ export component Barra inherits Window {
     in property <bool> boton-microfono: true;
     in property <bool> hay-microfono;
     in property <bool> microfono-silenciado;
+    // Botón de apagado (abre su menú) y la batería: si su icono va en la tira, si el equipo tiene
+    // (los portátiles), su nivel, si está enchufada y lo que dice su cartel.
+    in property <bool> boton-energia: true;
+    in property <bool> boton-bateria: true;
+    in property <bool> hay-bateria;
+    in property <float> nivel-bateria;     // 0–1
+    in property <bool> cargando-bateria;
+    in property <string> texto-bateria;
     // Botón de la lupa (junto al de la configuración), que abre el buscador para abrir apps, y si
     // el buscador está abierto para eso (y no para añadirlas).
     in property <bool> boton-buscar: true;
@@ -222,6 +230,10 @@ export component Barra inherits Window {
     callback pulsar-bandeja(int, bool);
     callback alternar-ocultos();            // abrir o cerrar los iconos ocultos
     callback alternar-boton-microfono();
+    callback menu-energia();                // botón de apagado: suspender, reiniciar o apagar
+    callback abrir-bateria();               // clic en la batería: su configuración de Windows
+    callback alternar-boton-energia();
+    callback alternar-boton-bateria();
     callback abrir-notificaciones();        // clic en la hora
     callback alternar-lanzador();           // lupa: buscar una app y abrirla
     callback alternar-boton-buscar();
@@ -362,7 +374,13 @@ export component Barra inherits Window {
     property <length> eje-microfono: root.fin-con-bandeja + 4px;
     property <length> fin-con-microfono: root.microfono-en-tira ? root.eje-microfono + root.boton : root.fin-con-bandeja;
     property <length> eje-sonido: root.fin-con-microfono + (root.microfono-en-tira ? 2px : 4px);
-    property <length> fin-botones: root.boton-sonido ? root.eje-sonido + root.boton : root.fin-con-microfono;
+    property <length> fin-con-sonido: root.boton-sonido ? root.eje-sonido + root.boton : root.fin-con-microfono;
+    // Después, la batería (solo si el equipo tiene) y el botón de apagado.
+    property <bool> bateria-en-tira: root.boton-bateria && root.hay-bateria;
+    property <length> eje-bateria: root.fin-con-sonido + 2px;
+    property <length> fin-con-bateria: root.bateria-en-tira ? root.eje-bateria + root.boton : root.fin-con-sonido;
+    property <length> eje-energia: root.fin-con-bateria + 2px;
+    property <length> fin-botones: root.boton-energia ? root.eje-energia + root.boton : root.fin-con-bateria;
     property <length> largo-tira: root.fin-botones + 8px + root.largo-hora + 10px;
 
     property <int> columnas: root.vertical ? 4 : 6;
@@ -555,6 +573,8 @@ export component Barra inherits Window {
     property <int> bajo-cursor: -1;
     // Icono del área de notificación de la tira bajo el cursor (se muestra lo que dice).
     property <int> bandeja-encima: -1;
+    // El cursor está sobre el icono de la batería (se muestra su cartel).
+    property <bool> bateria-encima;
     // Giro de la rueda que aún no llega a un paso (los touchpads giran de poco en poco).
     property <length> giro-rueda;
 
@@ -1011,6 +1031,38 @@ export component Barra inherits Window {
             }
         }
 
+        // Batería: su nivel (con un rayo si está enchufada; casi vacía, del color de acento) y, con
+        // el cursor encima, un cartel con el porcentaje. Un clic abre su configuración de Windows.
+        if root.bateria-en-tira : Boton {
+            x: root.px(root.eje-bateria);
+            y: root.py(root.eje-bateria);
+            clicked => { root.abrir-bateria(); }
+            arrastrar => { root.mover-barra(); }
+            changed encima => { root.bateria-encima = self.encima; }
+            IconoBateria {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: Tema.texto-suave;
+                relleno: root.nivel-bateria <= 0.15 && !root.cargando-bateria ? Tema.acento : Tema.texto-suave;
+                contorno: Tema.fondo;
+                nivel: root.nivel-bateria;
+                cargando: root.cargando-bateria;
+            }
+        }
+
+        // Apagado: abre el menú para suspender, reiniciar o apagar el equipo.
+        if root.boton-energia : Boton {
+            x: root.px(root.eje-energia);
+            y: root.py(root.eje-energia);
+            clicked => { root.menu-energia(); }
+            arrastrar => { root.mover-barra(); }
+            IconoEnergia {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: Tema.texto-suave;
+            }
+        }
+
         // La hora, al final de la tira (no del borde de la ventana, para que no se mueva al
         // desplegar). Un clic abre las notificaciones y el calendario de Windows.
         if root.mostrar-hora : Boton {
@@ -1100,6 +1152,8 @@ export component Barra inherits Window {
         mostrar-hora: root.mostrar-hora;
         boton-sonido: root.boton-sonido;
         boton-microfono: root.boton-microfono;
+        boton-energia: root.boton-energia;
+        boton-bateria: root.boton-bateria;
         boton-buscar: root.boton-buscar;
         tecla-windows-abre-buscador: root.tecla-windows-abre-buscador;
         animaciones: root.animaciones;
@@ -1139,6 +1193,8 @@ export component Barra inherits Window {
         alternar-hora => { root.alternar-hora(); }
         alternar-boton-sonido => { root.alternar-boton-sonido(); }
         alternar-boton-microfono => { root.alternar-boton-microfono(); }
+        alternar-boton-energia => { root.alternar-boton-energia(); }
+        alternar-boton-bateria => { root.alternar-boton-bateria(); }
         alternar-boton-buscar => { root.alternar-boton-buscar(); }
         alternar-tecla-windows => { root.alternar-tecla-windows(); }
         alternar-usar-boveda => { root.alternar-usar-boveda(); }
@@ -1322,6 +1378,32 @@ export component Barra inherits Window {
             x: 8px;
             width: parent.width - 16px;
             text: root.bandeja[parent.i].texto;
+            color: Tema.fondo;
+            font-size: 11px;
+            font-weight: 700;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+
+    // Lo que dice la batería con el cursor encima, como el de los iconos del área de notificación.
+    Rectangle {
+        visible: root.bateria-encima && root.bateria-en-tira && root.texto-bateria != "" && !root.moviendo;
+        width: min(root.vertical ? root.zona - 8px : 240px, texto-de-la-bateria.preferred-width + 16px);
+        height: 22px;
+        x: root.caja-x - contorno.x + (root.vertical ? root.zona-x + (root.zona - self.width) / 2
+            : root.px(root.eje-bateria) + (root.boton - self.width) / 2);
+        y: root.y-caja - contorno.y + (root.vertical ? root.py(root.eje-bateria) + (root.boton - self.height) / 2
+            : root.tira-y - self.height - 2px);
+        border-radius: 9px;
+        background: Tema.texto;
+        opacity: self.visible ? 1 : 0;
+        animate opacity { duration: root.animaciones ? 120ms : 0ms; delay: 300ms; }
+
+        texto-de-la-bateria := Text {
+            x: 8px;
+            width: parent.width - 16px;
+            text: root.texto-bateria;
             color: Tema.fondo;
             font-size: 11px;
             font-weight: 700;

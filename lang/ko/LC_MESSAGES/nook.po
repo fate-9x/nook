@@ -542,3 +542,27 @@ msgstr "Windows에서는 관리자로 연 프로그램에서 누른 키를 다�
 
 msgid "Disponible en nook Pro"
 msgstr "nook Pro에서 사용할 수 있습니다"
+
+msgid "Botón de apagado"
+msgstr "전원 버튼"
+
+msgid "Batería"
+msgstr "배터리"
+
+msgid "Solo en los equipos con batería, como los portátiles"
+msgstr "노트북처럼 배터리가 있는 기기에서만"
+
+msgid "Suspender"
+msgstr "절전"
+
+msgid "Reiniciar"
+msgstr "다시 시작"
+
+msgid "Apagar"
+msgstr "시스템 종료"
+
+msgid "cargando"
+msgstr "충전 중"
+
+msgid "enchufada"
+msgstr "전원 연결됨"

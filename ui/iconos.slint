@@ -286,3 +286,63 @@ export component IconoFlecha inherits Path {
     stroke-width: 1.8px;
     fill: transparent;
 }
+
+// Botón de apagado: el círculo abierto arriba con la raya.
+export component IconoEnergia inherits Path {
+    in property <color> tono;
+    width: 14px;
+    height: 14px;
+    viewbox-width: 14;
+    viewbox-height: 14;
+    commands: "M 4.2 3.4 A 5.2 5.2 0 1 0 9.8 3.4 M 7 1.2 L 7 6.8";
+    stroke: root.tono;
+    stroke-width: 1.5px;
+    fill: transparent;
+}
+
+// Batería: el contorno con su borne, lleno según el nivel y con un rayo si está enchufada.
+export component IconoBateria inherits Rectangle {
+    in property <color> tono;
+    in property <color> relleno;
+    // Color de alrededor del rayo, para que se distinga sobre el relleno (el del fondo).
+    in property <color> contorno;
+    in property <float> nivel;      // 0–1
+    in property <bool> cargando;
+    width: 20px;
+    height: 12px;
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 17px;
+        height: 12px;
+        border-radius: 3px;
+        border-width: 1.4px;
+        border-color: root.tono;
+    }
+    Rectangle {
+        x: 17.8px;
+        y: 4px;
+        width: 1.8px;
+        height: 4px;
+        border-radius: 0.9px;
+        background: root.tono;
+    }
+    Rectangle {
+        x: 2.6px;
+        y: 2.6px;
+        width: max(1px, 11.8px * max(0, min(1, root.nivel)));
+        height: 6.8px;
+        border-radius: 1.5px;
+        background: root.relleno;
+    }
+    if root.cargando : Path {
+        width: 17px;
+        height: 12px;
+        viewbox-width: 17;
+        viewbox-height: 12;
+        commands: "M 9.6 0.8 L 5.6 6.6 L 8.2 6.6 L 7.2 11.2 L 11.4 5.2 L 8.8 5.2 Z";
+        fill: root.tono;
+        stroke: root.contorno;
+        stroke-width: 1px;
+    }
+}

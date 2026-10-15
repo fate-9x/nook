@@ -521,6 +521,8 @@ export component PanelConfiguracion inherits Rectangle {
     in property <bool> mostrar-hora;
     in property <bool> boton-sonido;
     in property <bool> boton-microfono;
+    in property <bool> boton-energia;
+    in property <bool> boton-bateria;
     in property <bool> boton-buscar;
     in property <bool> tecla-windows-abre-buscador;
     in property <bool> animaciones;
@@ -560,6 +562,8 @@ export component PanelConfiguracion inherits Rectangle {
     callback alternar-hora();
     callback alternar-boton-sonido();
     callback alternar-boton-microfono();
+    callback alternar-boton-energia();
+    callback alternar-boton-bateria();
     callback alternar-boton-buscar();
     callback alternar-tecla-windows();
     callback alternar-usar-boveda();
@@ -717,6 +721,8 @@ export component PanelConfiguracion inherits Rectangle {
                     FilaInterruptor { texto: @tr("Mostrar la hora"); activo: root.mostrar-hora; clicked => { root.alternar-hora(); } }
                     FilaInterruptor { texto: @tr("Botón de sonido"); solo-pro: true; activo: root.boton-sonido; clicked => { root.alternar-boton-sonido(); } }
                     FilaInterruptor { texto: @tr("Botón del micrófono"); solo-pro: true; activo: root.boton-microfono; clicked => { root.alternar-boton-microfono(); } }
+                    FilaInterruptor { texto: @tr("Botón de apagado"); solo-pro: true; activo: root.boton-energia; clicked => { root.alternar-boton-energia(); } }
+                    FilaInterruptor { texto: @tr("Batería"); nota: @tr("Solo en los equipos con batería, como los portátiles"); solo-pro: true; activo: root.boton-bateria; clicked => { root.alternar-boton-bateria(); } }
                     FilaInterruptor { texto: @tr("Botón para buscar y abrir aplicaciones"); solo-pro: true; activo: root.boton-buscar; clicked => { root.alternar-boton-buscar(); } }
                     FilaInterruptor { texto: @tr("Bóveda de textos"); activo: root.usar-boveda; clicked => { root.alternar-usar-boveda(); } }
                     FilaInterruptor { texto: @tr("Animaciones"); activo: root.animaciones; clicked => { root.alternar-animaciones(); } }

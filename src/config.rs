@@ -116,6 +116,10 @@ pub struct Ajustes {
     pub boton_sonido: bool,
     /// Botón para silenciar el micrófono en la tira.
     pub boton_microfono: bool,
+    /// Botón para apagar, reiniciar o suspender el equipo en la tira.
+    pub boton_energia: bool,
+    /// Icono de la batería en la tira (solo se ve en los equipos con batería, como los portátiles).
+    pub boton_bateria: bool,
     /// Botón de la lupa en la tira, para buscar una app instalada y abrirla.
     pub boton_buscar: bool,
     /// La tecla Windows sola abre ese buscador en vez del menú Inicio.
@@ -329,6 +333,8 @@ impl Default for Ajustes {
             reproductor_en_barra: false,
             boton_sonido: true,
             boton_microfono: true,
+            boton_energia: true,
+            boton_bateria: true,
             boton_buscar: true,
             tecla_windows_abre_buscador: false,
             ocultar_en_pantalla_completa: true,
@@ -430,6 +436,8 @@ impl Ajustes {
         self.reproductor_en_barra = false;
         self.boton_sonido = false;
         self.boton_microfono = false;
+        self.boton_energia = false;
+        self.boton_bateria = false;
         self.atajo_microfono = None;
     }
 
@@ -734,6 +742,7 @@ mod tests {
         assert!(!ajustes.boton_buscar && !ajustes.tecla_windows_abre_buscador && ajustes.atajo_buscar.is_none());
         assert!(!ajustes.reproductor_en_barra);
         assert!(!ajustes.boton_sonido && !ajustes.boton_microfono && ajustes.atajo_microfono.is_none());
+        assert!(!ajustes.boton_energia && !ajustes.boton_bateria);
         // Sin la barra de Windows sustituida, la barra no puede ir abajo.
         assert_eq!(ajustes.borde(), Posicion::Arriba);
         // Lo demás no cambia.

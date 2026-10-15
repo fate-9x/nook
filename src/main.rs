@@ -27,6 +27,9 @@ mod ventana;
 #[cfg_attr(pro, path = "pro/abiertas.rs")]
 #[cfg_attr(not(pro), path = "gratis/abiertas.rs")]
 mod abiertas;
+#[cfg_attr(pro, path = "pro/energia.rs")]
+#[cfg_attr(not(pro), path = "gratis/energia.rs")]
+mod energia;
 #[cfg_attr(pro, path = "pro/notificacion.rs")]
 #[cfg_attr(not(pro), path = "gratis/notificacion.rs")]
 mod notificacion;
@@ -52,6 +55,7 @@ mod barra {
     pub mod buscador;
     pub mod colocacion;
     pub mod configuracion;
+    pub mod energia;
     pub mod menus;
     pub mod notificacion;
     pub mod personaje;
@@ -346,15 +350,16 @@ impl Ctx {
 
     /// Mira lo que puede cambiar fuera del programa, cada `SONDEO` (lo que corre menos prisa,
     /// cada `VUELTAS_LENTAS` veces): la ventana activa, si hay algo a pantalla completa, las apps
-    /// abiertas (salvo con algo a pantalla completa, que no se ven), el micrófono y el volumen
-    /// general (este, cada vez con su panel abierto).
+    /// abiertas (salvo con algo a pantalla completa, que no se ven), el micrófono, la batería y el
+    /// volumen general (este, cada vez con su panel abierto).
     fn sondear(&self) {
         let vuelta = self.vueltas.get().wrapping_add(1);
         self.vueltas.set(vuelta);
         let lenta = vuelta % VUELTAS_LENTAS == 0;
-        let (modo, boton_sonido, boton_microfono) = {
+        let (modo, boton_sonido, boton_microfono, boton_bateria) = {
             let e = self.estado.borrow();
-            (e.modo, e.config.ajustes.boton_sonido, e.config.ajustes.boton_microfono)
+            let a = &e.config.ajustes;
+            (e.modo, a.boton_sonido, a.boton_microfono, a.boton_bateria)
         };
         if ventana::primer_plano_es_de_otro_proceso() {
             self.estado.borrow_mut().ultima_ajena = Some(ventana::en_primer_plano());
@@ -369,6 +374,9 @@ impl Ctx {
         }
         if modo == Modo::Sonido || (lenta && boton_sonido && modo != Modo::Oculta) {
             self.mostrar_sonido();
+        }
+        if lenta && boton_bateria && modo != Modo::Oculta {
+            self.mostrar_bateria();
         }
         if lenta && boton_microfono && modo != Modo::Oculta {
             self.mostrar_microfono();
@@ -576,6 +584,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     barra::buscador::conectar(&ui, &ctx);
     barra::colocacion::conectar(&ui, &ctx);
     barra::configuracion::conectar(&ui, &ctx);
+    barra::energia::conectar(&ui, &ctx);
     barra::menus::conectar(&ui, &ctx);
     barra::menus::conectar_emergente(&emergente, &ctx);
     barra::notificacion::conectar(&ui, &ctx);
@@ -634,6 +643,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ctx.poner_icono(true);
     ctx.mostrar_sonido();
     ctx.mostrar_microfono();
+    ctx.mostrar_bateria();
     let c = ctx.clone();
     ctx.sondeo.start(TimerMode::Repeated, SONDEO, move || c.sondear());
     // Las apps instaladas, para que el buscador se abra ya con ellas.

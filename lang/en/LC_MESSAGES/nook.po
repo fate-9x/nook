@@ -542,3 +542,27 @@ msgstr "Windows doesn't let a program see the keys pressed in programs opened as
 
 msgid "Disponible en nook Pro"
 msgstr "Available in nook Pro"
+
+msgid "Botón de apagado"
+msgstr "Power button"
+
+msgid "Batería"
+msgstr "Battery"
+
+msgid "Solo en los equipos con batería, como los portátiles"
+msgstr "Only on devices with a battery, like laptops"
+
+msgid "Suspender"
+msgstr "Sleep"
+
+msgid "Reiniciar"
+msgstr "Restart"
+
+msgid "Apagar"
+msgstr "Shut down"
+
+msgid "cargando"
+msgstr "charging"
+
+msgid "enchufada"
+msgstr "plugged in"
