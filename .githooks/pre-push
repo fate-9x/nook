@@ -1,6 +1,7 @@
 #!/bin/sh
-# Que nada de nook Pro se suba al repositorio público (fate-9x/nook): ni src/pro/ ni un commit de
-# la rama pro. Se comprueban todos los commits que se van a subir. Ver AGENTS.md.
+# Que nada de nook Pro se suba al repositorio público (fate-9x/nook): ni src/pro/, ni un commit de
+# la rama pro, ni el historial anterior a la separación. Se comprueban todos los commits que se van
+# a subir. Ver AGENTS.md.
 remoto="$1"
 url="$2"
 case "$url" in
@@ -9,8 +10,16 @@ case "$url" in
     *) exit 0 ;;
 esac
 cero=0000000000000000000000000000000000000000
+# Primer commit del historial anterior a la separación (hasta la v0.2.0, con el código de las
+# funciones Pro): ese historial solo está en nook-pro.
+historial_antiguo=566f8af542e383e2c4160e3260ceb209c0fe08d9
 while read -r ref_local sha_local ref_remoto sha_remoto; do
     [ "$sha_local" = "$cero" ] && continue
+    if git merge-base --is-ancestor "$historial_antiguo" "$sha_local" 2>/dev/null; then
+        echo "error: $ref_local lleva el historial anterior a la separación (hasta la v0.2.0) y $remoto es el repositorio público." >&2
+        echo "Ese historial solo va en nook-pro: git push pro pro:main" >&2
+        exit 1
+    fi
     if [ "$sha_remoto" = "$cero" ]; then
         commits=$(git rev-list "$sha_local" --not --remotes="$remoto")
     else

@@ -35,8 +35,10 @@ cambios pasan de una a otra sin subir ni bajar nada.
   dos líneas `#[cfg_attr(…, path = …)]` en `src/main.rs`. Sus ajustes se apagan en la gratuita en
   `Ajustes::quitar_funciones_pro` (`src/config.rs`) y sus opciones de la configuración llevan
   `solo-pro: true` (`ui/configuracion.slint`), que en la gratuita las muestra con la marca "PRO".
+- **El historial anterior a la separación** (hasta la v0.2.0, con sus tags y releases) solo está
+  en `nook-pro`: `main` empieza en un commit nuevo, y `pro` está enlazada a él con un merge.
 - **Protección:** los hooks de `.githooks/` no dejan hacer un commit de `src/pro/` en `main` ni
-  subir al repositorio público nada que lo lleve. Se activan una vez por copia del repositorio con
+  subir al repositorio público nada que lo lleve, ni el historial anterior a la separación. Se activan una vez por copia del repositorio con
   `git config core.hooksPath .githooks`.
 - **Subir:** `main` con `git push origin main`; `pro` con `git push pro pro:main`.
 
