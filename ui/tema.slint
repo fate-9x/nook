@@ -1,0 +1,95 @@
+// Colores y datos que comparten todas las partes de la interfaz.
+
+// Colores. `fondo` y `acento` los elige el usuario en la configuración; el resto se
+// calcula para que el texto se lea bien tanto sobre fondos oscuros como claros.
+export global Tema {
+    in-out property <color> fondo: #111318;
+    in-out property <color> acento: #2E8B57;
+    in-out property <bool> claro: false;
+    in-out property <bool> acento-claro: false;
+    // Opacidad del fondo: menos de 1 con transparencia (detrás se ve desenfocado).
+    in-out property <float> opacidad: 1;
+    out property <color> texto: claro ? #0B1230 : #FFFFFF;
+    // Texto e iconos sobre el color de acento (botones, selección, interruptores).
+    out property <color> sobre-acento: acento-claro ? #0B1230 : #FFFFFF;
+    // Textos secundarios (títulos de sección, subtítulos, pistas). Con transparencia lo de detrás
+    // puede ser de cualquier color y estos grises dejarían de leerse: cuanto más transparente es
+    // el fondo, más se acercan al texto de máximo contraste.
+    out property <color> texto-suave: (claro ? #4A5470 : #C3CAE6).mix(texto, opacidad);
+    out property <color> texto-tenue: (claro ? #6B7390 : #8F99C7).mix(texto, opacidad);
+    out property <color> capa: claro ? #0B123012 : #FFFFFF12;
+    out property <color> capa-fuerte: claro ? #0B123024 : #FFFFFF24;
+    out property <color> linea: claro ? #0B123024 : #FFFFFF1F;
+    // Si esto es nook Pro (en la versión gratuita, sus opciones salen con la marca "Pro").
+    in-out property <bool> pro;
+    // Fuente de la interfaz: depende del idioma (idioma::fuente).
+    in-out property <string> fuente: "Segoe UI";
+}
+
+// Botón de la tira: un grupo o una app suelta.
+export struct ElementoItem {
+    nombre: string,
+    inicial: string,
+    icono: image,
+    tiene-icono: bool,
+    es-app: bool,
+    atajo: string,
+    atajo-ok: bool,
+    tiene-atajo: bool,
+    // El mismo icono dibujado al tamaño que alcanza con el efecto lupa (para que no se vea borroso).
+    icono-grande: image,
+    // Tiene ventanas abiertas (lleva un punto debajo, como en la barra de tareas).
+    abierta: bool,
+    // Es de la barra y no está abierto: se puede cambiar de sitio arrastrándolo.
+    fija: bool,
+}
+
+// Tarjeta de la bóveda: un grupo de textos o un texto.
+export struct ItemBoveda {
+    es-grupo: bool,
+    titulo: string,     // nombre del grupo o lo que se ve del texto
+    detalle: string,    // en los grupos, cuántos textos tienen
+    etiqueta: string,   // etiqueta del texto ("" sin etiqueta)
+}
+
+// Accesorio del personaje en la personalización: si lo lleva puesto y de qué color.
+export struct AccesorioItem {
+    nombre: string,
+    puesto: bool,
+    color: color,
+}
+
+// Combinación de colores guardada.
+export struct PresetItem {
+    fondo: color,
+    acento: color,
+}
+
+export struct AppItem {
+    nombre: string,
+    inicial: string,
+    icono: image,
+    tiene-icono: bool,
+    es-icono-grupo: bool,
+}
+
+// Opción de un menú emergente (separador: línea fina).
+export struct OpcionMenu {
+    id: int,
+    texto: string,
+    separador: bool,
+}
+
+// Fondo de la barra y de las emergentes: con transparencia, translúcido (detrás se ve
+// desenfocado, ver el "cristal" de plataforma.rs), también mientras aparece y en la línea del
+// modo oculto.
+export component Fondo inherits Rectangle {
+    background: Tema.fondo.with-alpha(Tema.opacidad);
+}
+
+// Icono del área de notificación de otro programa.
+export struct IconoBandejaItem {
+    icono: image,
+    tiene-icono: bool,
+    texto: string,      // lo que dice al pasar por encima
+}

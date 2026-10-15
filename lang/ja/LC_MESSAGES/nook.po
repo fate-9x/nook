@@ -1,0 +1,544 @@
+# Traducción de nook al japonés (Japanese).
+# El texto original (msgid) es el español del código; ver src/idioma.rs.
+msgid ""
+msgstr ""
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+# ---- Interfaz (ui/barra.slint) ----
+
+msgid "Escribe o pega un texto y pulsa Intro para guardarlo"
+msgstr "テキストを入力するか貼り付けて、Enter で保存"
+
+msgid "Arrastra aquí una app o pulsa E para editar"
+msgstr "ここにアプリをドラッグするか、E で編集"
+
+msgid "abrir"
+msgstr "開く"
+
+msgid "grupo"
+msgstr "グループ"
+
+msgid "editar"
+msgstr "編集"
+
+msgid "Nombre del grupo"
+msgstr "グループ名"
+
+msgid "Eliminar"
+msgstr "削除"
+
+msgid "Listo"
+msgstr "完了"
+
+msgid "Atajos"
+msgstr "ショートカット"
+
+msgid "Comportamiento"
+msgstr "動作"
+
+msgid "Colores"
+msgstr "色"
+
+msgid "Apariencia"
+msgstr "外観"
+
+msgid "Personaje"
+msgstr "キャラクター"
+
+msgid "Acerca de"
+msgstr "情報"
+
+msgid "Cerrar aplicación"
+msgstr "アプリを終了"
+
+msgid "ATAJOS"
+msgstr "ショートカット"
+
+msgid "Pulsa una combinación…"
+msgstr "キーの組み合わせを押してください…"
+
+msgid "Mostrar u ocultar"
+msgstr "表示／非表示"
+
+msgid "Bóveda de textos"
+msgstr "テキスト保管庫"
+
+msgid "COMPORTAMIENTO"
+msgstr "動作"
+
+msgid "Ocultar en reposo"
+msgstr "使っていないときは隠す"
+
+msgid "Iniciar con Windows"
+msgstr "Windows の起動時に開く"
+
+msgid "Mostrar la hora"
+msgstr "時刻を表示"
+
+msgid "Animaciones"
+msgstr "アニメーション"
+
+msgid "CUENTA"
+msgstr "アカウント"
+
+msgid "Conectada como {}"
+msgstr "{} としてログイン中"
+
+msgid "Código: {}"
+msgstr "コード: {}"
+
+msgid "Conectando con GitHub…"
+msgstr "GitHub に接続中…"
+
+msgid "Sincronizar la bóveda"
+msgstr "保管庫を同期"
+
+msgid "No se pudo: {}"
+msgstr "失敗しました: {}"
+
+msgid "Se guarda en un Gist secreto de tu GitHub"
+msgstr "GitHub のシークレット Gist に保存されます"
+
+msgid "Ya está copiado: pégalo en GitHub"
+msgstr "コピーしました。GitHub に貼り付けてください"
+
+msgid "Pidiendo un código a GitHub"
+msgstr "GitHub にコードを要求中"
+
+msgid "Úsala en varios PCs con tu GitHub"
+msgstr "GitHub で複数の PC から使えます"
+
+msgid "Desconectar"
+msgstr "切断"
+
+msgid "Conectar"
+msgstr "接続"
+
+msgid "Cancelar"
+msgstr "キャンセル"
+
+msgid "COLORES"
+msgstr "色"
+
+msgid "Fondo"
+msgstr "背景"
+
+msgid "Acento"
+msgstr "アクセント"
+
+msgid "Presets"
+msgstr "プリセット"
+
+msgid "APARIENCIA"
+msgstr "外観"
+
+msgid "Transparencia"
+msgstr "透明効果"
+
+msgid "Opacidad"
+msgstr "不透明度"
+
+msgid "Tamaño"
+msgstr "サイズ"
+
+msgid "POSICIÓN"
+msgstr "位置"
+
+msgid "Arriba"
+msgstr "上"
+
+msgid "Abajo"
+msgstr "下"
+
+msgid "Izquierda"
+msgstr "左"
+
+msgid "Derecha"
+msgstr "右"
+
+msgid "IDIOMA"
+msgstr "言語"
+
+msgid "Sistema"
+msgstr "システム"
+
+msgid "FIGURA"
+msgstr "種類"
+
+msgid "Limón"
+msgstr "レモン"
+
+msgid "ACCESORIOS"
+msgstr "アクセサリー"
+
+msgid "ACERCA DE"
+msgstr "情報"
+
+msgid "Descargando {}… {} %"
+msgstr "{} をダウンロード中… {} %"
+
+msgid "No se pudo actualizar: {}"
+msgstr "更新できませんでした: {}"
+
+msgid "Hay una versión nueva: {}"
+msgstr "新しいバージョンがあります: {}"
+
+msgid "Reintentar"
+msgstr "再試行"
+
+msgid "Actualizar"
+msgstr "更新"
+
+msgid "Ver licencias completas"
+msgstr "ライセンス全文を表示"
+
+msgid "CRÉDITOS"
+msgstr "クレジット"
+
+msgid "El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:"
+msgstr "バーのキャラクターはオリジナルです。描画とアニメーションには別のプロジェクトの技法を使っており、バーは次のライブラリを利用しています:"
+
+msgid "Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
+msgstr "キャラクターの描画とアニメーションの技法: 補間される放射状プロファイルとしてのシルエット、球面に描かれた目、視線の揺らぎ、まばたき、遷移カーブ。"
+
+msgid "Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones."
+msgstr "Slint (slint.dev) で作成: バーのレイアウト、描画、アニメーション。"
+
+msgid "El rasterizado de las formas del personaje."
+msgstr "キャラクターの形のラスタライズ。"
+
+msgid "El acceso a Windows: ventanas, iconos, atajos, desenfoque, notificaciones y música."
+msgstr "Windows へのアクセス: ウィンドウ、アイコン、ショートカット、ぼかし、通知、音楽。"
+
+msgid "La lectura y el guardado de la configuración."
+msgstr "設定の読み込みと保存。"
+
+msgid "La hora de la barra."
+msgstr "バーの時計。"
+
+msgid "serde y serde_json"
+msgstr "serde と serde_json"
+
+msgid "Erick Tryzelaar y David Tolnay"
+msgstr "Erick Tryzelaar、David Tolnay"
+
+msgid "Kang Seonghoon y colaboradores"
+msgstr "Kang Seonghoon ほか"
+
+msgid "La bóveda está vacía.\nGuarda aquí los textos que copias a menudo."
+msgstr "保管庫は空です。\nよくコピーするテキストをここに保存しましょう。"
+
+msgid "No se encontró ninguna aplicación"
+msgstr "アプリが見つかりません"
+
+msgid "Intro"
+msgstr "Enter"
+
+msgid "añadir"
+msgstr "追加"
+
+msgid "Añadir"
+msgstr "追加"
+
+msgid "No se está reproduciendo nada"
+msgstr "何も再生されていません"
+
+msgid "Sin título"
+msgstr "タイトルなし"
+
+msgid "No se puede cambiar el volumen de esta app"
+msgstr "このアプリの音量は変更できません"
+
+msgid "Música"
+msgstr "音楽"
+
+msgid "REPRODUCTOR"
+msgstr "プレーヤー"
+
+msgid "Reproductor en la barra"
+msgstr "バーにプレーヤーを表示"
+
+msgid "Los controles se quedan en la barra mientras haya algo reproduciéndose"
+msgstr "何かを再生している間、コントロールがバーに表示されます"
+
+msgid "Haz clic en el personaje mientras suena algo para abrir el reproductor"
+msgstr "何かを再生中にキャラクターをクリックするとプレーヤーが開きます"
+
+msgid "Funciona con Spotify, el navegador y cualquier app que salga en los controles multimedia de Windows."
+msgstr "Spotify、ブラウザー、Windows のメディアコントロールに表示されるすべてのアプリで使えます。"
+
+# ---- Menús y mensajes (src/) ----
+
+msgid "Escribe o pega un texto para guardarlo en este grupo"
+msgstr "このグループに保存するテキストを入力するか貼り付け"
+
+msgid "Nueva etiqueta (ahora «{}»)"
+msgstr "新しいラベル（現在は「{}」）"
+
+msgid "Etiqueta para el texto"
+msgstr "テキストのラベル"
+
+msgid "Nuevo nombre (ahora «{}»)"
+msgstr "新しい名前（現在は「{}」）"
+
+msgid "Abrir"
+msgstr "開く"
+
+msgid "Cambiar nombre…"
+msgstr "名前を変更…"
+
+msgid "Deshacer grupo"
+msgstr "グループを解除"
+
+msgid "Eliminar grupo y sus textos"
+msgstr "グループとテキストを削除"
+
+msgid "Copiar"
+msgstr "コピー"
+
+msgid "Cambiar etiqueta…"
+msgstr "ラベルを変更…"
+
+msgid "Poner etiqueta…"
+msgstr "ラベルを付ける…"
+
+msgid "Quitar etiqueta"
+msgstr "ラベルを外す"
+
+msgid "Sacar del grupo"
+msgstr "グループから出す"
+
+msgid "Nuevo grupo"
+msgstr "新しいグループ"
+
+msgid "Grupo nuevo"
+msgstr "新しいグループ"
+
+msgid "Busca una aplicación para la barra"
+msgstr "バーに追加するアプリを検索"
+
+msgid "Busca una aplicación para abrirla"
+msgstr "開くアプリを検索"
+
+msgid "Busca una aplicación para «{}»"
+msgstr "「{}」に追加するアプリを検索"
+
+msgid "Añadir aplicación…"
+msgstr "アプリを追加…"
+
+msgid "Editar grupo"
+msgstr "グループを編集"
+
+msgid "Eliminar grupo"
+msgstr "グループを削除"
+
+msgid "Quitar de la barra"
+msgstr "バーから外す"
+
+msgid "NUEVO COLOR DE ACENTO"
+msgstr "新しいアクセントカラー"
+
+msgid "NUEVO COLOR DE FONDO"
+msgstr "新しい背景色"
+
+msgid "ACENTO DEL PRESET"
+msgstr "プリセットのアクセント"
+
+msgid "FONDO DEL PRESET"
+msgstr "プリセットの背景"
+
+msgid "COLOR DE {}"
+msgstr "{}の色"
+
+msgid "Quitar color"
+msgstr "色を削除"
+
+msgid "Aplicar"
+msgstr "適用"
+
+msgid "Cambiar el fondo…"
+msgstr "背景を変更…"
+
+msgid "Cambiar el acento…"
+msgstr "アクセントを変更…"
+
+msgid "Guardar aquí los colores actuales"
+msgstr "現在の色をここに保存"
+
+msgid "Eliminar preset"
+msgstr "プリセットを削除"
+
+msgid "Configuración"
+msgstr "設定"
+
+msgid "Sin atajo"
+msgstr "ショートカットなし"
+
+msgid "Espacio"
+msgstr "Space"
+
+msgid "Audífonos"
+msgstr "ヘッドホン"
+
+msgid "Corona"
+msgstr "王冠"
+
+msgid "Gorro de lana"
+msgstr "ニット帽"
+
+msgid "Cuernos"
+msgstr "ツノ"
+
+msgid "Gafas de sol"
+msgstr "サングラス"
+
+msgid "Monóculo"
+msgstr "片眼鏡"
+
+msgid "Antifaz"
+msgstr "仮面"
+
+msgid "Mascarilla"
+msgstr "マスク"
+
+msgid "Corbatín"
+msgstr "蝶ネクタイ"
+
+msgid "Capa de vampiro"
+msgstr "ヴァンパイアのマント"
+
+msgid "Explorador"
+msgstr "エクスプローラー"
+
+msgid "Bloc de notas"
+msgstr "メモ帳"
+
+msgid "Terminal"
+msgstr "ターミナル"
+
+msgid "Tareas"
+msgstr "タスク マネージャー"
+
+msgid "no se pudo descargar: {}"
+msgstr "ダウンロードできませんでした: {}"
+
+msgid "lo descargado no es un ejecutable"
+msgstr "ダウンロードしたファイルは実行ファイルではありません"
+
+msgid "no se pudo guardar: {}"
+msgstr "保存できませんでした: {}"
+
+msgid "no se pudo apartar la versión actual: {}"
+msgstr "現在のバージョンを退避できませんでした: {}"
+
+msgid "no se pudo colocar la versión nueva: {}"
+msgstr "新しいバージョンを配置できませんでした: {}"
+
+msgid "no se pudo abrir la versión nueva: {}"
+msgstr "新しいバージョンを開けませんでした: {}"
+
+msgid "GitHub ya no da permiso"
+msgstr "GitHub の許可がなくなりました"
+
+msgid "no se encontró en GitHub"
+msgstr "GitHub で見つかりません"
+
+msgid "falta el identificador de la app de GitHub"
+msgstr "GitHub アプリの ID がありません"
+
+msgid "no se pudo leer la cuenta: {}"
+msgstr "アカウントを読み込めませんでした: {}"
+
+msgid "no se pudo hablar con GitHub: {}"
+msgstr "GitHub と通信できませんでした: {}"
+
+msgid "GitHub no dio ningún código"
+msgstr "GitHub からコードが届きませんでした"
+
+msgid "el código caducó"
+msgstr "コードの有効期限が切れました"
+
+msgid "se rechazó el permiso en GitHub"
+msgstr "GitHub で許可が拒否されました"
+
+msgid "GitHub no dio permiso"
+msgstr "GitHub が許可しませんでした"
+
+msgid "GitHub retiró el permiso: vuelve a conectar la cuenta"
+msgstr "GitHub の許可が取り消されました。アカウントを接続し直してください"
+
+msgid "no se pudo bajar la bóveda"
+msgstr "保管庫をダウンロードできませんでした"
+
+msgid "no se pudo subir la bóveda"
+msgstr "保管庫をアップロードできませんでした"
+
+msgid "el Gist no tiene dirección"
+msgstr "Gist に URL がありません"
+
+msgid "GitHub no devolvió el Gist creado"
+msgstr "GitHub が作成した Gist を返しませんでした"
+
+msgid "GitHub respondió {}"
+msgstr "GitHub の応答: {}"
+
+msgid "Botón de sonido"
+msgstr "サウンドボタン"
+
+msgid "No hay ninguna salida de audio"
+msgstr "オーディオ出力がありません"
+
+msgid "Salida de audio"
+msgstr "オーディオ出力"
+
+msgid "Ocultar con juegos y apps a pantalla completa"
+msgstr "全画面のゲームやアプリでは隠す"
+
+msgid "Abrir otra ventana"
+msgstr "別のウィンドウを開く"
+
+msgid "Fijar en la barra"
+msgstr "バーにピン留め"
+
+msgid "Cerrar todas las ventanas"
+msgstr "すべてのウィンドウを閉じる"
+
+msgid "Cerrar ventana"
+msgstr "ウィンドウを閉じる"
+
+msgid "Mostrar las apps abiertas"
+msgstr "開いているアプリを表示"
+
+msgid "Botón del micrófono"
+msgstr "マイクボタン"
+
+msgid "Botón para buscar y abrir aplicaciones"
+msgstr "アプリを検索して開くボタン"
+
+msgid "Silenciar el micrófono"
+msgstr "マイクをミュート"
+
+msgid "Buscar y abrir una aplicación"
+msgstr "アプリを検索して開く"
+
+msgid "Sustituir la barra de tareas de Windows"
+msgstr "Windows のタスクバーを置き換える"
+
+msgid "La tecla Windows abre el buscador de Nook"
+msgstr "Windows キーで Nook の検索を開く"
+
+msgid "Pide permisos de administrador"
+msgstr "管理者権限を求めます"
+
+msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
+msgstr "Windows では、管理者として開いたプログラムで押されたキーを他のプログラムが見ることはできません。そのため Nook は小さなヘルパーを用意します。Program Files の「Nook Ayudante」フォルダーにある Nook のコピーで、タスク スケジューラが管理者権限で起動します。Windows キーを監視して Nook に知らせるだけで、Nook を閉じると終了し、アンインストール時に削除されます。権限を求められるのはオプションをオンにしたときの一度だけです。許可しなくても、それらのプログラム以外では同じように動作します。"
+
+
+
+
+msgid "Disponible en nook Pro"
+msgstr "nook Pro で使えます"

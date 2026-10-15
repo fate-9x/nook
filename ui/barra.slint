@@ -1,0 +1,1333 @@
+// Diseño de la barra estilo "notch": la tira de iconos, el personaje y, al desplegarla, el panel
+// que toca (cada uno en su archivo de ui/). Aquí se personaliza lo visual: colores, tamaños, qué
+// elementos aparecen y en qué orden. Cada vez que guardes y hagas `cargo run` verás los cambios.
+
+import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem } from "tema.slint";
+import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
+import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa } from "iconos.slint";
+import { Boton } from "controles.slint";
+import { PanelGrupo } from "grupo.slint";
+import { PanelConfiguracion } from "configuracion.slint";
+import { PanelBoveda } from "boveda.slint";
+import { PanelReproductor } from "reproductor.slint";
+import { PanelBuscador } from "buscador.slint";
+import { PanelSonido } from "sonido.slint";
+
+// Lo que usa Rust (src/main.rs y src/barra/): los colores, los datos de las listas y las dos ventanas.
+export { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, IconoBandejaItem }
+export { Emergente } from "emergente.slint";
+
+export component Barra inherits Window {
+    // ---- Estado que llega desde Rust (src/main.rs y src/barra/) ----
+    in property <int> posicion;          // 0 arriba, 1 izquierda, 2 derecha, 3 abajo
+    in property <int> modo;              // 0 oculta, 1 reposo, 2 grupo abierto, 3 configuración, 4 buscador, 5 bóveda, 6 reproductor, 7 sonido
+    in property <[ElementoItem]> elementos;    // los de la barra (para la lista de atajos)
+    // Lo que se ve en la tira: primero las apps abiertas (las de la barra que lo están, también) y
+    // luego los demás elementos de la barra. Los callbacks de la tira dan la posición en ella.
+    in property <[ElementoItem]> tira;
+    in property <bool> apps-abiertas: true;
+    in property <bool> sustituir-barra-de-windows;
+    in property <int> grupo-activo: -1;
+    in property <[AppItem]> apps;
+    in-out property <bool> editando;
+    in-out property <string> nombre-grupo;
+    in property <string> hora: "--:--";
+    in property <string> hora-vertical: "--\n--";
+    in property <bool> mostrar-hora: true;
+    in property <bool> usar-boveda: true;
+    in property <bool> arrastrando;
+    in property <length> arrastre-x;
+    in property <length> arrastre-y;
+    in property <bool> ocultar-en-reposo;
+    in property <bool> ocultar-en-pantalla-completa: true;
+    in property <bool> animaciones: true;
+    // Cambio de borde: la forma pasa directamente a la nueva disposición (lo que se anima es
+    // el deslizamiento de la ventana, desde Rust).
+    in property <bool> saltar;
+    in property <bool> iniciar-con-windows;
+    in property <string> atajo-mostrar;
+    in property <bool> atajo-mostrar-ok: true;
+    in property <bool> atajo-mostrar-definido;
+    in property <int> grabando-atajo: -2;   // -2 ninguno, -1 mostrar/ocultar, n = grupo n
+    in property <[color]> fondos;
+    in property <[color]> acentos;
+    in property <string> version;           // se muestra en el pie de la configuración
+    in property <string> actualizacion;     // versión nueva disponible ("" si no hay)
+    in property <bool> actualizando;        // descargando e instalando la versión nueva
+    in property <float> progreso-actualizacion; // 0–1
+    in property <string> error-actualizacion;
+    // Cuenta de GitHub con la que se sincroniza la bóveda: 0 sin conectar, 1 pidiendo el código,
+    // 2 esperando a que se escriba el código en GitHub, 3 conectada.
+    in property <int> cuenta-estado;
+    in property <string> cuenta-usuario;
+    in property <string> cuenta-codigo;
+    in property <string> cuenta-error;
+    in property <int> colores-base: 4;      // los primeros de cada fila no se pueden quitar
+    in property <[PresetItem]> presets;
+    in property <bool> preset-guardado;     // la combinación actual ya es un preset
+    in property <bool> transparencia;
+    in property <float> opacidad-elegida: 1;    // de 0,3 a 1
+    // Tamaño de la barra mientras se arrastra su deslizador (se aplica al soltarlo: si cambiara
+    // antes, el propio deslizador se movería bajo el cursor).
+    in-out property <float> tamano-provisional: 1;
+    in property <[AppItem]> resultados;     // apps encontradas en el buscador
+    in-out property <int> seleccion;        // resultado marcado (se elige con Intro)
+    in-out property <string> texto-busqueda;
+    in property <string> lugar-busqueda;    // texto de ayuda del buscador
+    in property <image> personaje;          // cuadro actual del personaje (lo dibuja Rust)
+    // Segundo personaje (aparece con 5 clics seguidos en el primero): su cuadro y si está.
+    in property <image> personaje-2;
+    in property <bool> hay-segundo;
+    in property <bool> aviso;               // el personaje cuenta una notificación
+    // Arrastrando la barra para llevarla a otro sitio: solo se ve el personaje.
+    in property <bool> moviendo;
+    in property <[ItemBoveda]> boveda;      // tarjetas de la vista de la bóveda que se ve
+    in property <bool> en-grupo-boveda;     // se ve un grupo (si no, la vista de arriba)
+    in property <string> nombre-grupo-boveda;
+    in-out property <int> seleccion-boveda; // tarjeta marcada (se copia o abre con Intro o con el atajo)
+    in-out property <string> texto-boveda;  // lo que se está escribiendo en el campo
+    // Para qué es el campo: 0 guardar un texto nuevo, 1 la etiqueta de un texto, 2 el nombre de
+    // un grupo. Con 1 y 2, Intro guarda aunque esté vacío y Esc cancela.
+    in property <int> entrada-boveda;
+    in property <string> pista-entrada-boveda: @tr("Escribe o pega un texto y pulsa Intro para guardarlo");
+    in property <string> atajo-boveda;
+    in property <bool> atajo-boveda-ok: true;
+    in property <bool> atajo-boveda-definido;
+    in property <string> atajo-microfono;
+    in property <bool> atajo-microfono-ok: true;
+    in property <bool> atajo-microfono-definido;
+    in property <string> atajo-buscar;
+    in property <bool> atajo-buscar-ok: true;
+    in property <bool> atajo-buscar-definido;
+    // Sección de la configuración que se ve: 0 atajos, 1 comportamiento, 2 colores,
+    // 3 apariencia, 4 personaje, 5 acerca de.
+    in-out property <int> seccion;
+    // Personalización del personaje: su vista previa (la dibuja Rust), los accesorios y la fila
+    // de colores para ellos (los primeros no se pueden quitar).
+    in property <image> personaje-muestra;
+    in property <int> figura;               // 0 Nook, 1 Limón (config::Figura::TODAS)
+    in property <int> idioma;               // 0 el del sistema, 1 español, 2 inglés, 3 japonés, 4 coreano (config::Idioma::TODOS)
+    in property <[AccesorioItem]> accesorios;
+    in property <[color]> colores-accesorios;
+    in property <int> colores-accesorios-base: 6;
+    // Reproductor: lo que suena (o está en pausa) en cualquier app que salga en los controles
+    // multimedia de Windows.
+    in property <bool> hay-musica;
+    in property <bool> reproduciendo;
+    in property <string> cancion;
+    in property <string> artista;
+    in property <image> portada;
+    in property <bool> tiene-portada;
+    in property <bool> puede-anterior;
+    in property <bool> puede-siguiente;
+    in-out property <float> volumen;        // 0–1, el de la app en el mezclador de Windows
+    in property <bool> hay-volumen;         // se encontró el audio de la app
+    in property <bool> reproductor-en-barra;    // en la tira (si no, se abre con el personaje)
+    // Volumen general de Windows: si su botón va en la tira, y cómo está la salida de audio.
+    in property <bool> boton-sonido: true;
+    in property <bool> hay-sonido;
+    in property <string> nombre-salida;
+    in property <bool> silencio;
+    in-out property <float> volumen-sistema;    // 0–1
+    // Área de notificación (con la barra de Windows sustituida): los iconos a la vista, que van en
+    // la tira, cuántos hay ocultos (se ven con la flecha) y si están abiertos.
+    in property <[IconoBandejaItem]> bandeja;
+    in property <int> iconos-ocultos;
+    in property <bool> ocultos-abiertos;
+    in property <bool> area-notificacion;
+    // Micrófono: si su botón va en la tira, si hay alguno y si está silenciado.
+    in property <bool> boton-microfono: true;
+    in property <bool> hay-microfono;
+    in property <bool> microfono-silenciado;
+    // Botón de la lupa (junto al de la configuración), que abre el buscador para abrir apps, y si
+    // el buscador está abierto para eso (y no para añadirlas).
+    in property <bool> boton-buscar: true;
+    in property <bool> tecla-windows-abre-buscador;
+    in property <bool> buscando-para-abrir;
+
+    // ---- Eventos que se envían a Rust ----
+    callback recolocar();
+    callback mover-barra();
+    callback revelar();
+    callback clic-personaje(int);           // 0 el personaje, 1 el segundo
+    callback menu-personaje();              // clic derecho en un personaje: el menú de Nook
+    callback abrir-elemento(int);
+    callback agregar-a-barra();     // clic en "+": añadir apps sueltas
+    callback menu-mas();            // clic derecho en "+": app o grupo
+    callback menu-elemento(int);
+    callback mover-elemento(int, int);  // cambiar un elemento de la tira de sitio (desde, hasta)    // clic derecho en un elemento de la tira
+    callback alternar-config();
+    callback lanzar(int);
+    callback quitar-app(int);
+    callback usar-como-icono(int);
+    callback agregar-apps();
+    callback renombrar(string);
+    callback eliminar-grupo();
+    callback cerrar();
+    callback tecla-pulsada(string) -> bool;
+    callback elegir-fondo(color);
+    callback elegir-acento(color);
+    callback elegir-posicion(int);
+    callback alternar-ocultar();
+    callback alternar-pantalla-completa();
+    callback alternar-apps-abiertas();
+    callback alternar-sustituir-barra-de-windows();
+    callback alternar-iniciar();
+    callback alternar-hora();
+    callback alternar-usar-boveda();
+    callback alternar-animaciones();
+    callback agregar-color(int);            // "+" de la fila: 0 fondo, 1 acento
+    callback menu-color(int, int);          // clic derecho en un color propio: fila, índice
+    callback guardar-preset();
+    callback alternar-transparencia();
+    callback elegir-opacidad(float);
+    callback elegir-tamano(float);
+    callback aplicar-preset(int);
+    callback menu-preset(int);
+    callback grabar-atajo(int);
+    callback quitar-atajo(int);
+    callback salir();
+    callback actualizar();
+    callback boton-cuenta();                // conectar, cancelar o desconectar la cuenta
+    callback novedades-cuenta();            // (desde Rust) hay eventos de la cuenta que recoger
+    callback buscar(string);
+    callback elegir-resultado(int);
+    callback salir-del-buscador();
+    callback ver-licencias();
+    callback alternar-boveda();             // botón del rombo
+    callback guardar-en-boveda(string);     // Intro en el campo (según `entrada-boveda`)
+    callback elegir-en-boveda(int);         // copiar un texto o entrar en un grupo
+    callback quitar-de-boveda(int);
+    callback menu-boveda(int);              // clic derecho en una tarjeta de la bóveda
+    callback juntar-en-boveda(int, int);    // soltar un texto sobre otro o sobre un grupo
+    callback volver-en-boveda();            // salir del grupo a la vista de arriba
+    callback cancelar-entrada-boveda();
+    callback elegir-figura(int);
+    callback elegir-idioma(int);
+    callback alternar-accesorio(int);               // poner o quitar el accesorio n
+    callback elegir-color-accesorio(int, color);
+    callback agregar-color-accesorio(int);          // "+" de la fila de colores del accesorio n
+    callback menu-color-accesorio(int);             // clic derecho en un color propio: índice
+    callback orden-musica(int);             // 0 anterior, 1 pausa o reproducir, 2 siguiente
+    callback elegir-volumen(float);
+    callback alternar-reproductor();        // abrir o cerrar el reproductor (portada de la tira)
+    callback alternar-reproductor-en-barra();
+    callback alternar-sonido();             // abrir o cerrar el panel del volumen general
+    callback elegir-volumen-sistema(float);
+    callback alternar-silencio();
+    callback rueda-sonido(float);           // giro de la rueda sobre el botón o el panel del volumen
+    callback alternar-boton-sonido();
+    callback alternar-microfono();          // silenciar o activar el micrófono
+    // Clic en un icono del área de notificación de la tira: su índice y si es con el botón derecho.
+    callback pulsar-bandeja(int, bool);
+    callback alternar-ocultos();            // abrir o cerrar los iconos ocultos
+    callback alternar-boton-microfono();
+    callback abrir-notificaciones();        // clic en la hora
+    callback alternar-lanzador();           // lupa: buscar una app y abrirla
+    callback alternar-boton-buscar();
+    callback alternar-tecla-windows();
+
+    // Da el foco del teclado a la barra (para los atajos 1–9, Tab, E, Esc), o al campo del
+    // buscador si está abierto.
+    public function enfocar() {
+        if (root.modo == 4) {
+            // Pasando por la barra: si el campo ya tenía el foco (de la vez anterior, aunque
+            // estuviera oculto), así lo vuelve a recibir de verdad.
+            teclado.focus();
+            buscador.enfocar();
+        } else if (root.modo == 5) {
+            panel-boveda.enfocar();
+        } else {
+            teclado.focus();
+        }
+    }
+
+    // Desplaza las tarjetas de la bóveda para que se vea la marcada.
+    public function mostrar-seleccion-boveda() {
+        panel-boveda.mostrar-seleccion();
+    }
+
+    // ---- Medidas ----
+    property <bool> vertical: root.posicion == 1 || root.posicion == 2;
+    property <length> grosor: 44px;       // grosor de la tira de iconos
+    // Zona del personaje: arriba, entre el borde de la pantalla y la tira; en los laterales, junto
+    // a la tira hacia el centro. Con la barra oculta, el personaje se asoma `asomo` desde el borde.
+    property <length> zona: 64px;
+    // Al contar una notificación se asoma más, para que se vea.
+    property <length> asomo: root.aviso ? 44px : 26px;
+    property <length> grosor-total: root.grosor + root.zona;
+    out property <length> lado-personaje: root.zona;
+    property <length> boton: 30px;
+    property <length> hueco: 6px;
+    property <length> inicio: 7px;
+    property <int> n: root.tira.length;
+    // Los que se pueden cambiar de sitio (los de la barra que no están abiertos) van al final.
+    property <int> primera-fija: root.n - root.fijas;
+    in property <int> fijas;
+    property <length> largo-hora: !root.mostrar-hora ? 0px : root.vertical ? 28px : 40px;
+    // Tras el botón de la configuración, el de la lupa (si está) y una línea antes de las apps.
+    property <length> eje-lupa: root.inicio + root.boton + 2px;
+    property <length> linea-inicio: root.boton-buscar ? root.eje-lupa + root.boton + root.hueco : root.inicio + root.boton + root.hueco;
+    property <length> primer-grupo: root.linea-inicio + 1px + root.hueco;
+    // El botón "+" (añadir apps) solo ocupa su hueco cuando se ve: al acercar el cursor a la
+    // mitad final del último icono o al hueco que lo sigue, mientras el cursor siga en él, al
+    // arrastrar archivos hasta ahí y siempre que la tira está vacía. Al salir el cursor tarda un
+    // momento en irse (`reteniendo-mas`), así no se cierra si se pasa un poco de largo. El hueco
+    // se abre y se cierra poco a poco para que los iconos no salten.
+    property <bool> en-borde-del-ultimo;
+    // Arrastrando archivos hasta el "+" (se anota al cambiar `destino-arrastre`, que depende de
+    // dónde están los botones, que a su vez dependen de si se ve el "+").
+    property <bool> arrastre-al-final;
+    property <bool> pide-mas: root.n == 0 || root.en-borde-del-ultimo || zona-nuevo.has-hover
+        || root.arrastre-al-final;
+    property <bool> reteniendo-mas;
+    property <bool> mas-visible: root.pide-mas || root.reteniendo-mas;
+    changed pide-mas => {
+        if (!self.pide-mas) {
+            root.reteniendo-mas = true;
+            retener-mas.stop();
+            retener-mas.start();
+        }
+    }
+    retener-mas := Timer {
+        interval: 300ms;
+        running: false;
+        triggered => {
+            self.stop();
+            root.reteniendo-mas = false;
+        }
+    }
+    property <length> espacio-mas: root.mas-visible ? root.boton + root.hueco : 0px;
+    animate espacio-mas { duration: root.animaciones ? 160ms : 0ms; easing: ease-out; }
+    // Mientras se abre o se cierra el hueco del "+" en reposo, el contorno lo sigue sin su
+    // propia animación: con ella iba por detrás y la hora, que se mueve con el hueco, se salía
+    // un momento del borde y se veía cortada. No mientras la barra se despliega o se recoge
+    // (`cambiando-modo`): esa animación sigue entera.
+    property <bool> siguiendo-mas;
+    property <bool> cambiando-modo;
+    changed modo => {
+        root.cambiando-modo = true;
+        fin-cambio-modo.stop();
+        fin-cambio-modo.start();
+    }
+    fin-cambio-modo := Timer {
+        interval: 450ms;
+        running: false;
+        triggered => {
+            self.stop();
+            root.cambiando-modo = false;
+        }
+    }
+    changed mas-visible => {
+        root.siguiendo-mas = true;
+        fin-hueco-mas.stop();
+        fin-hueco-mas.start();
+    }
+    fin-hueco-mas := Timer {
+        interval: 220ms;
+        running: false;
+        triggered => {
+            self.stop();
+            root.siguiendo-mas = false;
+        }
+    }
+    // Lo que crece la tira al verse el "+" (con la tira vacía se ve siempre: es parte de ella), y
+    // su largo sin eso, que es el que se centra en la pantalla: el hueco del "+" se abre hacia
+    // el final de la tira sin mover los demás botones.
+    property <length> extra-mas: root.n == 0 ? 0px : root.espacio-mas;
+    property <length> largo-sin-mas: root.largo-tira - root.extra-mas;
+    // Tras el "+" va el botón de la bóveda (justo antes de la hora), si está activada. El hueco
+    // hasta él es también la zona en la que aparece el "+": lo bastante ancho para acertarle.
+    property <length> hueco-mas: 8px;
+    property <length> eje-boveda: root.eje-grupo(root.n) + root.espacio-mas + root.hueco-mas;
+    property <length> fin-sin-musica: root.usar-boveda ? root.eje-boveda + root.boton : root.eje-grupo(root.n) + root.espacio-mas;
+    // Luego, si el reproductor va en la barra y hay algo sonando o en pausa, tras una línea: la
+    // portada (abre el reproductor) y los botones de anterior, pausa y siguiente.
+    property <bool> musica-en-tira: root.reproductor-en-barra && root.hay-musica;
+    property <length> linea-musica: root.fin-sin-musica + root.hueco;
+    property <length> eje-musica: root.linea-musica + 1px + root.hueco;
+    property <length> paso-musica: root.boton + 2px;
+    property <length> fin-con-musica: root.musica-en-tira ? root.eje-musica + 3 * root.paso-musica + root.boton : root.fin-sin-musica;
+    // Por último, justo antes de la hora, el botón del micrófono (si hay alguno) y el del volumen
+    // general.
+    // Antes, el área de notificación: los iconos a la vista y la flecha que abre los ocultos.
+    property <bool> hay-bandeja: root.area-notificacion && (root.bandeja.length > 0 || root.iconos-ocultos > 0);
+    property <bool> hay-flecha: root.area-notificacion && root.iconos-ocultos > 0;
+    property <length> eje-bandeja: root.fin-con-musica + 4px;
+    property <length> paso-bandeja: root.boton - 2px;
+    property <length> eje-flecha: root.eje-bandeja + root.bandeja.length * root.paso-bandeja;
+    property <length> fin-con-bandeja: !root.hay-bandeja ? root.fin-con-musica
+        : root.hay-flecha ? root.eje-flecha + root.boton : root.eje-flecha - root.paso-bandeja + root.boton;
+    property <bool> microfono-en-tira: root.boton-microfono && root.hay-microfono;
+    property <length> eje-microfono: root.fin-con-bandeja + 4px;
+    property <length> fin-con-microfono: root.microfono-en-tira ? root.eje-microfono + root.boton : root.fin-con-bandeja;
+    property <length> eje-sonido: root.fin-con-microfono + (root.microfono-en-tira ? 2px : 4px);
+    property <length> fin-botones: root.boton-sonido ? root.eje-sonido + root.boton : root.fin-con-microfono;
+    property <length> largo-tira: root.fin-botones + 8px + root.largo-hora + 10px;
+
+    property <int> columnas: root.vertical ? 4 : 6;
+    property <length> celda-ancho: 64px;
+    property <length> celda-alto: 60px;
+    property <length> margen: 16px;
+    property <int> total: root.apps.length + (root.editando ? 1 : 0);
+    property <int> filas: max(1, ceil(root.total / root.columnas));
+    property <length> pie: root.editando ? 50px : 34px;
+    property <length> ancho-grupo: root.columnas * root.celda-ancho + (root.columnas - 1) * root.hueco + 2 * root.margen;
+    property <length> alto-grupo: 14px + root.filas * root.celda-alto + (root.filas - 1) * root.hueco + 10px + root.pie;
+    // Configuración: la columna de secciones y, al lado, los ajustes de la elegida. El alto es el
+    // de la sección más alta salvo atajos y acerca de, que se desplazan si no caben.
+    property <length> ancho-config: 520px;
+    property <length> alto-config: 320px;
+    property <int> filas-busqueda: 8;   // buscador::MAX_RESULTADOS
+    property <length> fila-busqueda: 40px;
+    property <length> ancho-buscar: 440px;
+    property <length> alto-buscar: 14px + 36px + 8px + root.filas-busqueda * root.fila-busqueda + 10px;
+    // Bóveda (ver ui/boveda.slint).
+    property <length> zona-boveda: 280px;   // alto de lo que hay bajo el campo (cabecera y tarjetas)
+    property <length> alto-boveda: 14px + 36px + 8px + root.zona-boveda + 12px;
+    // Reproductor: la portada a la izquierda, con el título y los botones a su lado, y el
+    // volumen debajo.
+    property <length> lado-portada: 72px;
+    property <length> ancho-musica: 340px;
+    property <length> alto-musica: 16px + root.lado-portada + 12px + 30px + 14px;
+    // Volumen general: el nombre de la salida y, debajo, el volumen.
+    property <length> ancho-sonido: 300px;
+    property <length> alto-sonido: 14px + 16px + 8px + 30px + 14px;
+    property <bool> abierto: root.modo >= 2;
+    property <length> ancho-contenido: root.modo == 2 ? root.ancho-grupo : root.modo == 3 ? root.ancho-config
+        : root.modo == 4 || root.modo == 5 ? root.ancho-buscar : root.modo == 6 ? root.ancho-musica
+        : root.modo == 7 ? root.ancho-sonido : 0px;
+    property <length> alto-contenido: root.modo == 2 ? root.alto-grupo : root.modo == 3 ? root.alto-config
+        : root.modo == 4 ? root.alto-buscar : root.modo == 5 ? root.alto-boveda : root.modo == 6 ? root.alto-musica
+        : root.modo == 7 ? root.alto-sonido : 0px;
+
+    out property <length> ancho: root.modo == 0 ? (root.vertical ? root.asomo : root.zona + root.separacion-personajes)
+        : root.vertical ? root.grosor-total + (root.abierto ? 1px + root.ancho-contenido : 0px)
+        : max(root.largo-tira, root.ancho-contenido);
+    out property <length> alto: root.modo == 0 ? (root.vertical ? root.zona + root.separacion-personajes : root.asomo)
+        : root.vertical ? max(root.largo-tira, root.alto-contenido)
+        : root.grosor-total + (root.abierto ? 1px + root.alto-contenido : 0px);
+
+    // Dónde va la tira de iconos y dónde el contenido según el borde elegido.
+    // `ancho`/`alto` son el tamaño final que se pide a Rust; `width`/`height` el tamaño real de
+    // la ventana. Durante una animación la ventana abarca el estado anterior y el nuevo, y Rust
+    // recorta su contorno visible; por eso todo se coloca respecto a los bordes que no se
+    // mueven: la tira de iconos queda siempre en el mismo sitio de la pantalla.
+    //   Arriba: la tira va centrada (la ventana también), bajo la zona del personaje, y el panel
+    //   crece a ambos lados. Abajo: la tira pegada al borde de abajo, la zona del personaje
+    //   encima de ella y el panel encima de todo.
+    //   Izquierda / derecha: la tira va pegada al borde de la pantalla, desde arriba, y la zona
+    //   del personaje a su lado.
+    // Arriba, la caja se corre a la derecha lo justo para que quepa el hueco del "+" (Rust la
+    // coloca igual, ver `recolocar`).
+    out property <length> desvio-caja: root.vertical || root.modo == 0 ? 0px
+        : max(0px, root.largo-sin-mas / 2 + root.extra-mas - root.ancho / 2);
+    property <length> desfase-tira: !root.vertical ? (root.ancho - root.largo-sin-mas) / 2 - root.desvio-caja : 0px;
+    property <length> tira-x: root.posicion == 2 ? root.ancho - root.grosor : 0px;
+    property <length> tira-y: root.posicion == 0 ? root.zona : root.posicion == 3 ? root.alto - root.grosor : 0px;
+    // Donde empieza la zona del personaje (a lo alto): abajo, sobre la tira.
+    property <length> zona-y: root.posicion == 3 ? root.alto - root.grosor-total : 0px;
+    property <length> zona-x: root.posicion == 1 ? root.grosor
+        : root.posicion == 2 ? root.ancho - root.grosor-total : root.desfase-tira;
+    property <length> contenido-x: root.posicion == 1 ? root.grosor-total + 1px
+        : root.posicion == 2 ? root.ancho - root.grosor-total - 1px - root.ancho-contenido
+        : (root.ancho - root.ancho-contenido) / 2;
+    property <length> contenido-y: root.posicion == 0 ? root.grosor-total + 1px : 0px;
+    // Ancho de la zona de contenido (sin la tira de iconos en los laterales).
+    // Largo de la barra en reposo: en los laterales, su borde superior se mantiene fijo
+    // al desplegarla para que crezca hacia abajo.
+    out property <length> largo-reposo: root.largo-sin-mas;
+    // Forma visible en cada momento (también durante las animaciones): Rust pone debajo el
+    // desenfoque de lo de detrás, para que solo se vea dentro de la barra.
+    // Con la barra oculta solo se asoma el personaje, sin fondo ni desenfoque.
+    out property <length> forma-x: contorno.x;
+    out property <length> forma-y: contorno.y;
+    out property <length> forma-ancho: root.modo == 0 || root.moviendo ? 0px : contorno.width;
+    out property <length> forma-alto: root.modo == 0 || root.moviendo ? 0px : contorno.height;
+    out property <length> forma-radio: contorno.border-radius;
+
+    // La ventana real ("lienzo") es transparente, tiene el tamaño máximo que puede ocupar la
+    // barra y no cambia al abrir y cerrar: así nunca hay que mover la ventana (eso causaba
+    // parpadeos). Lo visible es la "caja" (ancho × alto) dentro de ella, dibujada como un
+    // contorno redondeado que Slint anima. La caja se ancla para que la tira de iconos quede
+    // siempre en el mismo sitio de la pantalla.
+    property <length> ancho-maximo: max(max(max(root.ancho-grupo, root.ancho-musica), root.ancho-sonido), max(root.ancho-config, root.ancho-buscar));
+    property <length> alto-maximo: max(max(max(root.alto-grupo, root.alto-boveda), max(root.alto-musica, root.alto-sonido)), max(root.alto-config, root.alto-buscar));
+    out property <length> lienzo-ancho: root.vertical
+        ? root.grosor-total + 1px + root.ancho-maximo
+        : max(root.largo-tira, root.ancho-maximo);
+    out property <length> lienzo-alto: root.vertical
+        ? max(root.largo-tira, root.alto-maximo)
+        : root.grosor-total + 1px + root.alto-maximo;
+    // Posición vertical de la caja dentro del lienzo (la calcula Rust en los laterales). Abajo va
+    // pegada al borde de abajo del lienzo: se calcula aquí, para que se mueva a la vez que cambia
+    // su alto (si no, su borde de abajo bailaría un instante en cada animación).
+    in property <length> caja-y;
+    property <length> y-caja: root.posicion == 3 ? root.height - root.alto : root.caja-y;
+    property <length> caja-x: !root.vertical ? (root.width - root.ancho) / 2 + root.desvio-caja
+        : root.posicion == 2 ? root.width - root.ancho : 0px;
+
+    // Centro del personaje en el lienzo: en medio de su zona o, con la barra oculta, asomando
+    // desde el borde (con el cuerpo a 3 px del final de lo que se asoma; arriba, el fondo del
+    // cuerpo queda a 1,08 radios del centro: personaje::dibujo::BAJADA más su alto, 39/49). Se
+    // anima como el contorno, así sale de su escondite al desplegarse la barra. Rust lo lee para
+    // saber hacia dónde queda el cursor.
+    property <length> radio-personaje: root.zona * 0.34;   // personaje::dibujo::RADIO
+    // Con el segundo personaje, los dos se reparten el sitio, uno al lado del otro a lo largo
+    // del borde (en horizontal arriba y en vertical en los laterales).
+    property <length> separacion-personajes: root.hay-segundo ? root.zona * 0.85 : 0px;
+    animate separacion-personajes { duration: root.animaciones ? 300ms : 0ms; easing: ease-out; }
+    // En reposo va en medio de la tira, así que se corre un poco cuando se abre el hueco del "+";
+    // con un panel abierto (la configuración, un grupo…) se queda quieto, en medio de la tira sin
+    // ese hueco.
+    property <length> largo-centrado: root.abierto ? root.largo-sin-mas : root.largo-tira;
+    property <length> centro-x: root.modo != 0
+        ? root.caja-x + root.zona-x + (root.vertical ? root.zona : root.largo-centrado) / 2
+        : !root.vertical ? root.caja-x + root.ancho / 2
+        : root.posicion == 1 ? root.caja-x + root.asomo - 3px - root.radio-personaje
+        : root.caja-x + root.ancho - root.asomo + 3px + root.radio-personaje;
+    // Abajo, con la barra oculta asoma desde el borde de abajo lo alto del cuerpo, que queda a
+    // 0,52 radios del centro (BAJADA menos su alto).
+    property <length> centro-y: root.modo != 0
+        ? root.y-caja + root.zona-y + (root.vertical ? root.largo-centrado : root.zona) / 2
+        : root.posicion == 0 ? root.y-caja + root.asomo - 3px - root.radio-personaje * 1.08
+        : root.posicion == 3 ? root.y-caja + 3px + root.radio-personaje * 0.52
+        : root.y-caja + root.alto / 2;
+    out property <length> centro-personaje-x: root.centro-x - (root.vertical ? 0px : root.separacion-personajes / 2);
+    out property <length> centro-personaje-y: root.centro-y - (root.vertical ? root.separacion-personajes / 2 : 0px);
+    out property <length> centro-personaje-2-x: root.centro-x + (root.vertical ? 0px : root.separacion-personajes / 2);
+    out property <length> centro-personaje-2-y: root.centro-y + (root.vertical ? root.separacion-personajes / 2 : 0px);
+    animate centro-personaje-x, centro-personaje-y, centro-personaje-2-x, centro-personaje-2-y {
+        duration: !root.animaciones || root.saltar ? 0ms : root.abierto ? 420ms : 340ms;
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+    }
+
+    // Personaje en el punto (x, y) de la ventana: 0 el primero, 1 el segundo, -1 ninguno.
+    pure function personaje-en(x: length, y: length) -> int {
+        let cerca = root.radio-personaje * 1.15 / 1px;
+        let dx = (x - root.centro-personaje-x) / 1px;
+        let dy = (y - root.centro-personaje-y) / 1px;
+        let dx2 = (x - root.centro-personaje-2-x) / 1px;
+        let dy2 = (y - root.centro-personaje-2-y) / 1px;
+        if (root.hay-segundo && dx2 * dx2 + dy2 * dy2 <= cerca * cerca) {
+            return 1;
+        }
+        if (dx * dx + dy * dy <= cerca * cerca) {
+            return 0;
+        }
+        return -1;
+    }
+    // Personaje que tiene el cursor encima (-1 ninguno) y el último que lo tuvo (para que su
+    // nombre se desvanezca donde estaba).
+    property <int> personaje-encima: !zona-personaje.has-hover || root.moviendo ? -1
+        : root.personaje-en(root.caja-x + zona-personaje.x + zona-personaje.mouse-x,
+            root.y-caja + zona-personaje.y + zona-personaje.mouse-y);
+    property <int> nombre-de: 0;
+    changed personaje-encima => {
+        if (self.personaje-encima >= 0) {
+            root.nombre-de = self.personaje-encima;
+        }
+    }
+
+    // Coordenadas de un botón de la tira a una distancia `a` del inicio.
+    pure function px(a: length) -> length {
+        return root.vertical ? root.tira-x + (root.grosor - root.boton) / 2 : root.desfase-tira + a;
+    }
+    pure function py(a: length) -> length {
+        return root.vertical ? a : root.tira-y + (root.grosor - root.boton) / 2;
+    }
+    pure function eje-grupo(i: int) -> length {
+        return root.primer-grupo + i * (root.boton + root.hueco);
+    }
+
+    // Cambiar de sitio un elemento de la tira arrastrándolo: cuál (-1 ninguno), cuánto se ha
+    // desplazado y el hueco en el que caería; los demás se apartan para dejárselo libre.
+    property <int> reordenando: -1;
+    property <length> desplazamiento-reorden;
+    property <int> destino-reorden: root.reordenando < 0 ? -1
+        : max(root.primera-fija, min(root.n - 1, round(root.reordenando + root.desplazamiento-reorden / (root.boton + root.hueco))));
+    // Efecto lupa: el icono de la app o grupo que tiene el cursor encima crece, y vuelve a su
+    // tamaño al salir el cursor.
+    property <float> lupa-maxima: 1.45;     // LUPA_MAXIMA en src/barra/tira.rs
+    // Elemento de la tira con la lupa (-1 ninguno): el que tiene el cursor encima o, al girar la
+    // rueda del ratón sobre la tira, el siguiente o el anterior. Un clic abre el que tiene la lupa.
+    property <int> lupa: -1;
+    property <int> bajo-cursor: -1;
+    // Icono del área de notificación de la tira bajo el cursor (se muestra lo que dice).
+    property <int> bandeja-encima: -1;
+    // Giro de la rueda que aún no llega a un paso (los touchpads giran de poco en poco).
+    property <length> giro-rueda;
+
+    // Eje de cada elemento de la tira teniendo en cuenta el que se está arrastrando.
+    pure function eje-elemento(i: int) -> length {
+        if (i == root.reordenando) {
+            return root.eje-grupo(i) + root.desplazamiento-reorden;
+        }
+        if (root.reordenando >= 0 && i > root.reordenando && i <= root.destino-reorden) {
+            return root.eje-grupo(i - 1);
+        }
+        if (root.reordenando >= 0 && i < root.reordenando && i >= root.destino-reorden) {
+            return root.eje-grupo(i + 1);
+        }
+        return root.eje-grupo(i);
+    }
+
+    // Arrastrar archivos: sobre qué grupo está el cursor (n = el botón "+", -1 ninguno; las
+    // apps sueltas no admiten archivos).
+    property <length> eje-arrastre: root.vertical ? root.arrastre-y : root.arrastre-x - root.desfase-tira;
+    property <length> cruz-arrastre: root.vertical ? root.arrastre-x - root.tira-x : root.arrastre-y - root.tira-y;
+    property <int> indice-arrastre: floor((root.eje-arrastre - root.primer-grupo + root.hueco / 2) / (root.boton + root.hueco));
+    out property <int> destino-arrastre: !root.arrastrando ? -1
+        : root.cruz-arrastre >= 0px && root.cruz-arrastre <= root.grosor && root.indice-arrastre >= 0 && root.indice-arrastre <= root.n
+            ? (root.indice-arrastre < root.n && root.tira[root.indice-arrastre].es-app ? -1 : root.indice-arrastre)
+        : root.modo == 2 ? root.grupo-activo : -1;
+
+
+    title: "Nook";
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    default-font-size: 13px;
+    default-font-family: Tema.fuente;
+    changed ancho => { root.recolocar(); }
+    changed desvio-caja => { root.recolocar(); }
+    changed n => { root.en-borde-del-ultimo = false; }
+    changed destino-arrastre => { root.arrastre-al-final = root.destino-arrastre == root.n; }
+    changed alto => { root.recolocar(); }
+
+    teclado := FocusScope {
+        key-pressed(evento) => {
+            if (root.tecla-pulsada(evento.text)) {
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    // Contorno visible: crece y encoge con una animación; su contenido (la caja) queda fijo en
+    // la posición final y el contorno lo va descubriendo o tapando.
+    contorno := Rectangle {
+    x: root.caja-x;
+    y: root.y-caja;
+    width: root.ancho;
+    height: root.alto;
+    // Como en Coucou: al abrir, una curva que se pasa un poco y vuelve (imita un muelle);
+    // al cerrar, una curva de 340 ms que arranca suave y frena al final, sin rebote.
+    animate x, y, width, height {
+        duration: !root.animaciones || root.saltar || (root.siguiendo-mas && root.modo == 1 && !root.cambiando-modo) ? 0ms
+            : root.abierto ? 420ms : 340ms;
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    border-radius: root.modo == 0 ? 3px : 18px;
+    background: transparent;
+    clip: true;
+
+    Fondo {
+        width: parent.width;
+        height: parent.height;
+        border-radius: parent.border-radius;
+        // Oculta, casi invisible: lo justo para que pasar el ratón por la zona la despliegue.
+        // Con opacidad 0 Windows dejaría pasar el ratón; con la mínima (2 de 255) no se ve.
+        background: root.modo == 0 ? Tema.fondo.with-alpha(2 / 255) : Tema.fondo.with-alpha(Tema.opacidad);
+        opacity: root.moviendo ? 0 : 1;
+        animate opacity { duration: root.animaciones ? 150ms : 0ms; }
+    }
+
+    caja := Rectangle {
+    x: root.caja-x - contorno.x;
+    y: root.y-caja - contorno.y;
+    width: root.ancho;
+    height: root.alto;
+    // Mientras se arrastra la barra, el fondo y los iconos se ocultan y queda el personaje.
+    opacity: root.moviendo ? 0 : 1;
+    animate opacity { duration: root.animaciones ? 150ms : 0ms; }
+
+    // ---- Oculta: solo una línea fina que se despliega al pasar el ratón ----
+    TouchArea {
+        visible: root.modo == 0;
+        changed has-hover => {
+            if (self.has-hover) {
+                root.revelar();
+            }
+        }
+        clicked => { root.revelar(); }
+    }
+
+    // ---- Tira de iconos ----
+    Rectangle {
+        visible: root.modo >= 1;
+
+        // Zona del personaje: arrastrándola también se mueve la barra. Un clic sobre el
+        // personaje lo hace rebotar. Va pegada al borde de la caja (sin `y`, Slint la centraría
+        // en ella y no cubriría lo alto del personaje: ahí no se podía arrastrar la barra).
+        zona-personaje := TouchArea {
+            x: root.zona-x;
+            y: root.zona-y;
+            width: root.vertical ? root.zona : root.largo-tira;
+            height: root.vertical ? root.largo-tira : root.zona;
+            clicked => {
+                let cual = root.personaje-en(root.caja-x + self.x + self.mouse-x, root.y-caja + self.y + self.mouse-y);
+                if (cual >= 0) {
+                    root.clic-personaje(cual);
+                }
+            }
+            // Clic derecho: el mismo menú que el icono del área de notificación (que no se ve si
+            // Nook sustituye a la barra de tareas de Windows).
+            pointer-event(evento) => {
+                if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up
+                    && root.personaje-en(root.caja-x + self.x + self.mouse-x, root.y-caja + self.y + self.mouse-y) >= 0) {
+                    root.menu-personaje();
+                }
+            }
+            moved => {
+                if (abs(self.mouse-x - self.pressed-x) > 5px || abs(self.mouse-y - self.pressed-y) > 5px) {
+                    root.mover-barra();
+                }
+            }
+        }
+
+        // Fondo de la tira: arrastrándolo desde un hueco se mueve la barra por la pantalla.
+        TouchArea {
+            x: root.vertical ? root.tira-x : root.desfase-tira;
+            y: root.tira-y;
+            width: root.vertical ? root.grosor : root.largo-tira;
+            height: root.vertical ? root.largo-tira : root.grosor;
+            moved => {
+                if (abs(self.mouse-x - self.pressed-x) > 5px || abs(self.mouse-y - self.pressed-y) > 5px) {
+                    root.mover-barra();
+                }
+            }
+        }
+
+        Boton {
+            x: root.px(root.inicio);
+            y: root.py(root.inicio);
+            activo: root.modo == 3;
+            fondo-activo: Tema.acento;
+            clicked => { root.alternar-config(); }
+            arrastrar => { root.mover-barra(); }
+            IconoPersonaje {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                // Con la configuración abierta el botón es del color de acento: se invierte.
+                cuerpo: root.modo == 3 ? Tema.sobre-acento : Tema.acento;
+                ojos: root.modo == 3 ? Tema.acento : Tema.sobre-acento;
+            }
+            // Aviso de que hay una versión nueva.
+            if root.actualizacion != "" && root.modo != 3 : Rectangle {
+                x: parent.width - self.width - 4px;
+                y: 4px;
+                width: 7px;
+                height: 7px;
+                border-radius: 3.5px;
+                background: Tema.acento;
+                border-width: 1.5px;
+                border-color: Tema.fondo;
+            }
+        }
+
+        // Lupa: buscar una app instalada y abrirla.
+        if root.boton-buscar : Boton {
+            x: root.px(root.eje-lupa);
+            y: root.py(root.eje-lupa);
+            activo: root.modo == 4 && root.buscando-para-abrir;
+            clicked => { root.alternar-lanzador(); }
+            arrastrar => { root.mover-barra(); }
+            IconoLupa {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                color: Tema.texto-suave;
+            }
+        }
+
+        Rectangle {
+            x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-inicio;
+            y: root.vertical ? root.linea-inicio : root.tira-y + (root.grosor - 18px) / 2;
+            width: root.vertical ? 18px : 1px;
+            height: root.vertical ? 1px : 18px;
+            background: Tema.linea;
+        }
+
+        for g[i] in root.tira : Boton {
+            // Efecto lupa: solo crece el dibujo del icono, desde su centro; el botón (la zona
+            // en la que se detecta el cursor) no cambia, para no quitarle el cursor al de al lado.
+            property <float> aumento: i == root.lupa && root.reordenando < 0 && root.modo != 0 ? root.lupa-maxima : 1;
+            animate aumento { duration: root.animaciones ? 120ms : 0ms; easing: ease-out; }
+            x: root.px(root.eje-elemento(i));
+            y: root.py(root.eje-elemento(i));
+            // El icono agrandado ya marca dónde está el cursor: sin el fondo de "encima".
+            fondo-encima: false;
+            // El que se arrastra sigue al cursor; los demás se apartan con suavidad.
+            animate x, y { duration: i == root.reordenando || root.reordenando < 0 || !root.animaciones ? 0ms : 140ms; }
+            z: i == root.reordenando ? 1 : 0;
+            activo: root.modo == 2 && i == root.grupo-activo;
+            resaltado: root.destino-arrastre == i || i == root.reordenando;
+            reordenable: g.fija && root.fijas > 1;
+            vertical: root.vertical;
+            clicked => { root.abrir-elemento(root.lupa >= 0 ? root.lupa : i); }
+            arrastrar => { root.mover-barra(); }
+            menu => { root.menu-elemento(root.lupa >= 0 ? root.lupa : i); }
+            // Cursor en el final del último icono: se abre el hueco del "+".
+            property <bool> en-su-borde: i == root.n - 1 && self.encima && root.reordenando < 0
+                && self.raton-a-lo-largo > root.boton * 0.5;
+            changed en-su-borde => { root.en-borde-del-ultimo = self.en-su-borde; }
+            changed encima => {
+                if (self.encima) {
+                    root.bajo-cursor = i;
+                    root.lupa = i;
+                    root.giro-rueda = 0;
+                } else if (root.bajo-cursor == i) {
+                    root.bajo-cursor = -1;
+                    root.lupa = -1;
+                }
+            }
+            rueda(giro) => {
+                root.giro-rueda += giro;
+                if (abs(root.giro-rueda) < 40px) {
+                    return true;
+                }
+                // Hacia delante, el anterior (a la izquierda o arriba); hacia atrás, el siguiente.
+                let paso = root.giro-rueda > 0 ? -1 : 1;
+                root.giro-rueda = 0;
+                root.lupa = max(0, min(root.n - 1, (root.lupa < 0 ? i : root.lupa) + paso));
+                return true;
+            }
+            reordenar(d) => {
+                // Sin salirse de la tira: así, al volver con el cursor, el botón lo sigue enseguida.
+                root.reordenando = i;
+                root.desplazamiento-reorden = max(root.eje-grupo(root.primera-fija) - root.eje-grupo(i),
+                    min(root.eje-grupo(root.n - 1) - root.eje-grupo(i), root.desplazamiento-reorden + d));
+            }
+            soltar-reorden => {
+                let hasta = root.destino-reorden;
+                root.reordenando = -1;
+                root.desplazamiento-reorden = 0;
+                if (hasta >= 0 && hasta != i) {
+                    root.mover-elemento(i, hasta);
+                }
+            }
+
+            IconoApp {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 22px * parent.aumento;
+                height: 22px * parent.aumento;
+                // A su tamaño normal, el icono dibujado a ese tamaño exacto; al crecer, el grande.
+                icono: parent.aumento > 1.01 ? g.icono-grande : g.icono;
+                tiene-icono: g.tiene-icono;
+                inicial: g.inicial;
+                opacity: root.modo == 2 && i != root.grupo-activo ? 0.5 : 1.0;
+            }
+
+            // Punto de las apps abiertas, del lado de dentro de la pantalla.
+            Rectangle {
+                visible: g.abierta;
+                x: !root.vertical ? (parent.width - self.width) / 2 : root.posicion == 1 ? 29px : -3px;
+                y: !root.vertical ? (root.posicion == 3 ? -3px : 29px) : (parent.height - self.height) / 2;
+                width: 4px;
+                height: 4px;
+                border-radius: 2px;
+                background: Tema.texto-suave;
+            }
+
+            // Marca roja del grupo abierto.
+            Rectangle {
+                visible: root.modo == 2 && i == root.grupo-activo;
+                x: !root.vertical ? 8px : root.posicion == 1 ? 33px : -6px;
+                y: !root.vertical ? (root.posicion == 3 ? -6px : 33px) : 8px;
+                width: root.vertical ? 3px : 14px;
+                height: root.vertical ? 14px : 3px;
+                border-radius: 2px;
+                background: Tema.acento;
+            }
+        }
+
+        // Botón "+": no ocupa sitio hasta que se ve (ver `mas-visible`); mientras, su zona es
+        // solo el hueco que sigue al último icono. Clic: añadir apps sueltas; clic derecho: menú
+        // para elegir entre app y grupo.
+        zona-nuevo := TouchArea {
+            property <length> largo: root.hueco + root.espacio-mas + root.hueco-mas;
+            x: root.px(root.eje-grupo(root.n)) - (root.vertical ? (root.grosor - root.boton) / 2 : root.hueco);
+            y: root.py(root.eje-grupo(root.n)) - (root.vertical ? root.hueco : (root.grosor - root.boton) / 2);
+            width: root.vertical ? root.grosor : self.largo;
+            height: root.vertical ? self.largo : root.grosor;
+            moved => {
+                if (abs(self.mouse-x - self.pressed-x) > 5px || abs(self.mouse-y - self.pressed-y) > 5px) {
+                    root.mover-barra();
+                }
+            }
+
+            // Crece con su hueco, desde el último icono.
+            Boton {
+                property <length> lado: max(0px, root.espacio-mas - root.hueco);
+                visible: self.lado > 0px;
+                x: root.vertical ? (parent.width - self.width) / 2 : root.hueco;
+                y: root.vertical ? root.hueco : (parent.height - self.height) / 2;
+                width: root.vertical ? root.boton : self.lado;
+                height: root.vertical ? self.lado : root.boton;
+                opacity: self.lado / root.boton;
+                resaltado: root.destino-arrastre == root.n;
+                clicked => { root.agregar-a-barra(); }
+                arrastrar => { root.mover-barra(); }
+                menu => { root.menu-mas(); }
+                IconoMas {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    color: Tema.texto-suave;
+                }
+            }
+        }
+
+        // Bóveda de textos: antes de la hora (en los laterales, encima de ella).
+        if root.usar-boveda : Boton {
+            x: root.px(root.eje-boveda);
+            y: root.py(root.eje-boveda);
+            activo: root.modo == 5;
+            fondo-activo: Tema.acento;
+            clicked => { root.alternar-boveda(); }
+            arrastrar => { root.mover-barra(); }
+            IconoTarjetas {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                color: root.modo == 5 ? Tema.sobre-acento : Tema.acento;
+            }
+        }
+
+        // Reproductor.
+        if root.musica-en-tira : Rectangle {
+            x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica;
+            y: root.vertical ? root.linea-musica : root.tira-y + (root.grosor - 18px) / 2;
+            width: root.vertical ? 18px : 1px;
+            height: root.vertical ? 1px : 18px;
+            background: Tema.linea;
+        }
+        if root.musica-en-tira : Boton {
+            x: root.px(root.eje-musica);
+            y: root.py(root.eje-musica);
+            activo: root.modo == 6;
+            clicked => { root.alternar-reproductor(); }
+            arrastrar => { root.mover-barra(); }
+            if root.tiene-portada : Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 22px;
+                height: 22px;
+                source: root.portada;
+            }
+            if !root.tiene-portada : IconoNota {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: Tema.acento;
+            }
+        }
+        // 0 anterior, 1 pausa o reproducir y 2 siguiente.
+        if root.musica-en-tira : Rectangle {
+            for i in 3 : Boton {
+                x: root.px(root.eje-musica + (i + 1) * root.paso-musica);
+                y: root.py(root.eje-musica + (i + 1) * root.paso-musica);
+                opacity: (i == 0 && !root.puede-anterior) || (i == 2 && !root.puede-siguiente) ? 0.4 : 1;
+                clicked => { root.orden-musica(i); }
+                arrastrar => { root.mover-barra(); }
+                IconoMusica {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    tipo: i == 0 ? 0 : i == 2 ? 3 : root.reproduciendo ? 2 : 1;
+                    color: i == 1 ? Tema.acento : Tema.texto-suave;
+                }
+            }
+        }
+
+        // Área de notificación: los iconos a la vista (un clic o un clic derecho le llegan a su
+        // programa) y la flecha que abre el panel con todos.
+        for icono[i] in root.bandeja : Boton {
+            x: root.px(root.eje-bandeja + i * root.paso-bandeja);
+            y: root.py(root.eje-bandeja + i * root.paso-bandeja);
+            clicked => { root.pulsar-bandeja(i, false); }
+            menu => { root.pulsar-bandeja(i, true); }
+            arrastrar => { root.mover-barra(); }
+            changed encima => {
+                if (self.encima) {
+                    root.bandeja-encima = i;
+                } else if (root.bandeja-encima == i) {
+                    root.bandeja-encima = -1;
+                }
+            }
+            if icono.tiene-icono : Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 20px;
+                height: 20px;
+                source: icono.icono;
+            }
+        }
+        if root.hay-flecha : Boton {
+            x: root.px(root.eje-flecha);
+            y: root.py(root.eje-flecha);
+            activo: root.ocultos-abiertos;
+            clicked => { root.alternar-ocultos(); }
+            arrastrar => { root.mover-barra(); }
+            IconoFlecha {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: Tema.texto-suave;
+                hacia: root.posicion;
+            }
+        }
+
+        // Micrófono: un clic lo silencia o lo vuelve a activar; silenciado, el botón es del color
+        // de acento, para que se note.
+        if root.microfono-en-tira : Boton {
+            x: root.px(root.eje-microfono);
+            y: root.py(root.eje-microfono);
+            activo: root.microfono-silenciado;
+            fondo-activo: Tema.acento;
+            clicked => { root.alternar-microfono(); }
+            arrastrar => { root.mover-barra(); }
+            IconoMicrofono {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: root.microfono-silenciado ? Tema.sobre-acento : Tema.texto-suave;
+                silencio: root.microfono-silenciado;
+            }
+        }
+
+        // Volumen general: un clic abre su panel y la rueda lo sube o lo baja.
+        if root.boton-sonido : Boton {
+            x: root.px(root.eje-sonido);
+            y: root.py(root.eje-sonido);
+            activo: root.modo == 7;
+            clicked => { root.alternar-sonido(); }
+            arrastrar => { root.mover-barra(); }
+            rueda(giro) => {
+                root.rueda-sonido(giro / 1px);
+                return true;
+            }
+            IconoSonido {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: root.silencio ? Tema.texto-tenue : Tema.texto-suave;
+                nivel: root.volumen-sistema;
+                silencio: root.silencio;
+            }
+        }
+
+        // La hora, al final de la tira (no del borde de la ventana, para que no se mueva al
+        // desplegar). Un clic abre las notificaciones y el calendario de Windows.
+        if root.mostrar-hora : Boton {
+            property <length> sobra: 4px;
+            x: root.vertical ? root.px(0) : root.desfase-tira + root.largo-tira - 10px - root.largo-hora - self.sobra;
+            y: root.vertical ? root.largo-tira - 10px - root.largo-hora - self.sobra : root.py(0);
+            width: root.vertical ? root.boton : root.largo-hora + 2 * self.sobra;
+            height: root.vertical ? root.largo-hora + 2 * self.sobra : root.boton;
+            clicked => { root.abrir-notificaciones(); }
+            arrastrar => { root.mover-barra(); }
+            Text {
+                text: root.vertical ? root.hora-vertical : root.hora;
+                color: Tema.texto;
+                font-size: root.vertical ? 12px : 13px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    // Línea que separa la tira del contenido.
+    Rectangle {
+        visible: root.abierto;
+        x: !root.vertical ? 16px : root.posicion == 1 ? root.grosor-total : root.ancho - root.grosor-total - 1px;
+        y: root.posicion == 0 ? root.grosor-total : root.posicion == 3 ? root.alto - root.grosor-total - 1px : 14px;
+        width: !root.vertical ? root.ancho - 32px : 1px;
+        height: !root.vertical ? 1px : root.alto - 28px;
+        background: Tema.linea;
+    }
+
+    // ---- Grupo abierto: cuadrícula de apps ----
+    grupo := PanelGrupo {
+        visible: root.modo == 2;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-grupo;
+        // Hasta el final de la caja: en los laterales, el pie va abajo del todo.
+        height: root.alto - root.contenido-y;
+        columnas: root.columnas;
+        celda-ancho: root.celda-ancho;
+        celda-alto: root.celda-alto;
+        hueco: root.hueco;
+        margen: root.margen;
+        pie: root.pie;
+        desde-x: root.contenido-x;
+        ancho-caja: root.ancho;
+        listo => { root.enfocar(); }
+        apps: root.apps;
+        editando <=> root.editando;
+        nombre-grupo <=> root.nombre-grupo;
+        lanzar(a) => { root.lanzar(a); }
+        quitar-app(a) => { root.quitar-app(a); }
+        usar-como-icono(a) => { root.usar-como-icono(a); }
+        agregar-apps => { root.agregar-apps(); }
+        renombrar(a) => { root.renombrar(a); }
+        eliminar-grupo => { root.eliminar-grupo(); }
+    }
+
+    // ---- Configuración ----
+    configuracion := PanelConfiguracion {
+        visible: root.modo == 3;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-config;
+        height: root.alto-config;
+        elementos: root.elementos;
+        grabando-atajo: root.grabando-atajo;
+        atajo-mostrar: root.atajo-mostrar;
+        atajo-mostrar-ok: root.atajo-mostrar-ok;
+        atajo-mostrar-definido: root.atajo-mostrar-definido;
+        usar-boveda: root.usar-boveda;
+        atajo-boveda: root.atajo-boveda;
+        atajo-boveda-ok: root.atajo-boveda-ok;
+        atajo-boveda-definido: root.atajo-boveda-definido;
+        atajo-microfono: root.atajo-microfono;
+        atajo-microfono-ok: root.atajo-microfono-ok;
+        atajo-microfono-definido: root.atajo-microfono-definido;
+        atajo-buscar: root.atajo-buscar;
+        atajo-buscar-ok: root.atajo-buscar-ok;
+        atajo-buscar-definido: root.atajo-buscar-definido;
+        ocultar-en-reposo: root.ocultar-en-reposo;
+        ocultar-en-pantalla-completa: root.ocultar-en-pantalla-completa;
+        apps-abiertas: root.apps-abiertas;
+        sustituir-barra-de-windows: root.sustituir-barra-de-windows;
+        iniciar-con-windows: root.iniciar-con-windows;
+        mostrar-hora: root.mostrar-hora;
+        boton-sonido: root.boton-sonido;
+        boton-microfono: root.boton-microfono;
+        boton-buscar: root.boton-buscar;
+        tecla-windows-abre-buscador: root.tecla-windows-abre-buscador;
+        animaciones: root.animaciones;
+        cuenta-estado: root.cuenta-estado;
+        cuenta-usuario: root.cuenta-usuario;
+        cuenta-codigo: root.cuenta-codigo;
+        cuenta-error: root.cuenta-error;
+        fondos: root.fondos;
+        acentos: root.acentos;
+        colores-base: root.colores-base;
+        presets: root.presets;
+        preset-guardado: root.preset-guardado;
+        transparencia: root.transparencia;
+        opacidad-elegida: root.opacidad-elegida;
+        posicion: root.posicion;
+        idioma: root.idioma;
+        personaje-muestra: root.personaje-muestra;
+        figura: root.figura;
+        accesorios: root.accesorios;
+        colores-accesorios: root.colores-accesorios;
+        colores-accesorios-base: root.colores-accesorios-base;
+        reproductor-en-barra: root.reproductor-en-barra;
+        version: root.version;
+        actualizacion: root.actualizacion;
+        actualizando: root.actualizando;
+        progreso-actualizacion: root.progreso-actualizacion;
+        error-actualizacion: root.error-actualizacion;
+        seccion <=> root.seccion;
+        tamano-provisional <=> root.tamano-provisional;
+        grabar-atajo(a) => { root.grabar-atajo(a); }
+        quitar-atajo(a) => { root.quitar-atajo(a); }
+        alternar-ocultar => { root.alternar-ocultar(); }
+        alternar-pantalla-completa => { root.alternar-pantalla-completa(); }
+        alternar-apps-abiertas => { root.alternar-apps-abiertas(); }
+        alternar-sustituir-barra-de-windows => { root.alternar-sustituir-barra-de-windows(); }
+        alternar-iniciar => { root.alternar-iniciar(); }
+        alternar-hora => { root.alternar-hora(); }
+        alternar-boton-sonido => { root.alternar-boton-sonido(); }
+        alternar-boton-microfono => { root.alternar-boton-microfono(); }
+        alternar-boton-buscar => { root.alternar-boton-buscar(); }
+        alternar-tecla-windows => { root.alternar-tecla-windows(); }
+        alternar-usar-boveda => { root.alternar-usar-boveda(); }
+        alternar-animaciones => { root.alternar-animaciones(); }
+        boton-cuenta => { root.boton-cuenta(); }
+        elegir-fondo(a) => { root.elegir-fondo(a); }
+        elegir-acento(a) => { root.elegir-acento(a); }
+        agregar-color(a) => { root.agregar-color(a); }
+        menu-color(a, b) => { root.menu-color(a, b); }
+        aplicar-preset(a) => { root.aplicar-preset(a); }
+        menu-preset(a) => { root.menu-preset(a); }
+        guardar-preset => { root.guardar-preset(); }
+        alternar-transparencia => { root.alternar-transparencia(); }
+        elegir-opacidad(a) => { root.elegir-opacidad(a); }
+        elegir-tamano(a) => { root.elegir-tamano(a); }
+        elegir-posicion(a) => { root.elegir-posicion(a); }
+        elegir-idioma(a) => { root.elegir-idioma(a); }
+        elegir-figura(a) => { root.elegir-figura(a); }
+        alternar-accesorio(a) => { root.alternar-accesorio(a); }
+        elegir-color-accesorio(a, b) => { root.elegir-color-accesorio(a, b); }
+        agregar-color-accesorio(a) => { root.agregar-color-accesorio(a); }
+        menu-color-accesorio(a) => { root.menu-color-accesorio(a); }
+        alternar-reproductor-en-barra => { root.alternar-reproductor-en-barra(); }
+        actualizar => { root.actualizar(); }
+        ver-licencias => { root.ver-licencias(); }
+        salir => { root.salir(); }
+    }
+
+    // ---- Bóveda de textos ----
+    panel-boveda := PanelBoveda {
+        visible: root.modo == 5;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-buscar;
+        height: root.alto-boveda;
+        zona-boveda: root.zona-boveda;
+        boveda: root.boveda;
+        en-grupo-boveda: root.en-grupo-boveda;
+        nombre-grupo-boveda: root.nombre-grupo-boveda;
+        entrada-boveda: root.entrada-boveda;
+        pista-entrada-boveda: root.pista-entrada-boveda;
+        seleccion-boveda <=> root.seleccion-boveda;
+        texto-boveda <=> root.texto-boveda;
+        guardar-en-boveda(a) => { root.guardar-en-boveda(a); }
+        elegir-en-boveda(a) => { root.elegir-en-boveda(a); }
+        quitar-de-boveda(a) => { root.quitar-de-boveda(a); }
+        menu-boveda(a) => { root.menu-boveda(a); }
+        juntar-en-boveda(a, b) => { root.juntar-en-boveda(a, b); }
+        volver-en-boveda => { root.volver-en-boveda(); }
+        cancelar-entrada-boveda => { root.cancelar-entrada-boveda(); }
+        alternar-boveda => { root.alternar-boveda(); }
+    }
+
+    // ---- Reproductor ----
+    reproductor := PanelReproductor {
+        visible: root.modo == 6;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-musica;
+        height: root.alto-musica;
+        hay-musica: root.hay-musica;
+        reproduciendo: root.reproduciendo;
+        cancion: root.cancion;
+        artista: root.artista;
+        portada: root.portada;
+        tiene-portada: root.tiene-portada;
+        puede-anterior: root.puede-anterior;
+        puede-siguiente: root.puede-siguiente;
+        hay-volumen: root.hay-volumen;
+        lado-portada: root.lado-portada;
+        volumen <=> root.volumen;
+        orden-musica(a) => { root.orden-musica(a); }
+        elegir-volumen(a) => { root.elegir-volumen(a); }
+    }
+
+    // ---- Buscador de aplicaciones ----
+    buscador := PanelBuscador {
+        visible: root.modo == 4;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-buscar;
+        height: root.alto-buscar;
+        resultados: root.resultados;
+        lugar-busqueda: root.lugar-busqueda;
+        para-abrir: root.buscando-para-abrir;
+        fila-busqueda: root.fila-busqueda;
+        seleccion <=> root.seleccion;
+        texto-busqueda <=> root.texto-busqueda;
+        buscar(a) => { root.buscar(a); }
+        elegir-resultado(a) => { root.elegir-resultado(a); }
+        salir-del-buscador => { root.salir-del-buscador(); }
+    }
+
+    // ---- Volumen general ----
+    PanelSonido {
+        visible: root.modo == 7;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-sonido;
+        height: root.alto-sonido;
+        hay-sonido: root.hay-sonido;
+        nombre-salida: root.nombre-salida;
+        silencio: root.silencio;
+        volumen-sistema <=> root.volumen-sistema;
+        elegir-volumen-sistema(a) => { root.elegir-volumen-sistema(a); }
+        alternar-silencio => { root.alternar-silencio(); }
+        rueda-sonido(a) => { root.rueda-sonido(a); }
+    }
+
+    } // fin de la caja
+
+    // Personaje: Rust dibuja cada cuadro al tamaño en píxeles de la pantalla.
+    Image {
+        x: root.centro-personaje-x - contorno.x - self.width / 2;
+        y: root.centro-personaje-y - contorno.y - self.height / 2;
+        width: root.lado-personaje;
+        height: root.lado-personaje;
+        source: root.personaje;
+    }
+    // El segundo, a su lado; aparece y se va desvaneciéndose.
+    Image {
+        x: root.centro-personaje-2-x - contorno.x - self.width / 2;
+        y: root.centro-personaje-2-y - contorno.y - self.height / 2;
+        width: root.lado-personaje;
+        height: root.lado-personaje;
+        source: root.personaje-2;
+        opacity: root.hay-segundo ? 1 : 0;
+        animate opacity { duration: root.animaciones ? 250ms : 0ms; }
+    }
+
+    // Nombre del programa al pasar el cursor por encima del personaje: arriba, a su lado; en los
+    // laterales, debajo. Con los dos personajes, hacia fuera (el primero a la izquierda o arriba).
+    Rectangle {
+        property <length> centro-x: root.nombre-de == 1 ? root.centro-personaje-2-x : root.centro-personaje-x;
+        property <length> centro-y: root.nombre-de == 1 ? root.centro-personaje-2-y : root.centro-personaje-y;
+        property <bool> antes: root.hay-segundo && root.nombre-de == 0;
+        property <length> separacion: root.radio-personaje * 1.3 + 2px;
+        x: (root.vertical ? self.centro-x - self.width / 2
+            : self.antes ? self.centro-x - self.separacion - self.width : self.centro-x + self.separacion) - contorno.x;
+        y: (!root.vertical ? self.centro-y - self.height / 2
+            : self.antes ? self.centro-y - self.separacion - self.height : self.centro-y + self.separacion) - contorno.y;
+        width: nombre-nook.preferred-width + 16px;
+        height: 22px;
+        border-radius: 9px;
+        background: Tema.texto;
+        // Aparece tras un momento con el cursor encima (no al pasar de largo) y se va enseguida.
+        opacity: root.personaje-encima >= 0 ? 1 : 0;
+        animate opacity {
+            duration: root.animaciones ? 150ms : 0ms;
+            delay: root.personaje-encima >= 0 ? 350ms : 0ms;
+        }
+
+        nombre-nook := Text {
+            text: "Nook";
+            color: Tema.fondo;
+            font-size: 11px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    // Lo que dice el icono del área de notificación bajo el cursor: arriba (o abajo), en la zona
+    // del personaje, sobre el icono; en los laterales, a su lado.
+    Rectangle {
+        property <int> i: root.bandeja-encima;
+        property <length> eje: root.eje-bandeja + max(0, i) * root.paso-bandeja;
+        visible: i >= 0 && i < root.bandeja.length && root.bandeja[i].texto != "" && !root.moviendo;
+        width: min(root.vertical ? root.zona - 8px : 240px, texto-bandeja.preferred-width + 16px);
+        height: 22px;
+        x: root.caja-x - contorno.x + (root.vertical ? root.zona-x + (root.zona - self.width) / 2
+            : root.px(self.eje) + (root.boton - self.width) / 2);
+        y: root.y-caja - contorno.y + (root.vertical ? root.py(self.eje) + (root.boton - self.height) / 2
+            : root.tira-y - self.height - 2px);
+        border-radius: 9px;
+        background: Tema.texto;
+        opacity: self.visible ? 1 : 0;
+        animate opacity { duration: root.animaciones ? 120ms : 0ms; delay: 300ms; }
+
+        texto-bandeja := Text {
+            x: 8px;
+            width: parent.width - 16px;
+            text: root.bandeja[parent.i].texto;
+            color: Tema.fondo;
+            font-size: 11px;
+            font-weight: 700;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    } // fin del contorno
+}

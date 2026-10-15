@@ -1,0 +1,75 @@
+# Publica una release cada vez que se sube un tag de versión (por ejemplo v0.2.0):
+#   git tag v0.2.0
+#   git push origin v0.2.0
+# No pasa los tests (tardan demasiado en el runner): hay que pasarlos en local antes del tag.
+# Compila nook.exe con esa versión (la que se ve en la configuración) y su instalador
+# (nook-setup.exe, ver instalador/nook.iss), escribe las notas con los commits desde el tag
+# anterior y lo sube todo a GitHub Releases. La app se actualiza sola con el nook.exe.
+name: release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # todo el historial y los tags, para las notas
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Compilar
+        run: NOOK_VERSION="${TAG#v}" cargo build --release
+
+      - name: Instalador
+        run: |
+          iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          if [ ! -f "$iscc" ]; then choco install innosetup -y --no-progress; fi
+          # Sin convertir "/DVersion" en una ruta de Windows.
+          MSYS_NO_PATHCONV=1 "$iscc" /DVersion="${TAG#v}" instalador/nook.iss
+
+      - name: Notas de la release
+        run: |
+          previo=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "$TAG^" 2>/dev/null || true)
+          rango="${previo:+$previo..}$TAG"
+          # Commits de un tipo (feat, fix…) como lista, sin el prefijo "tipo:".
+          lista() {
+            git log --no-merges --format='%s' "$rango" \
+              | { grep -E "^($1)(\(.+\))?!?: " || true; } \
+              | sed -E "s/^($1)(\(.+\))?!?: /- /"
+          }
+          seccion() {
+            local cambios
+            cambios=$(lista "$2")
+            if [ -n "$cambios" ]; then
+              printf '## %s\n\n%s\n\n' "$1" "$cambios"
+            fi
+          }
+          {
+            seccion "Novedades" "feat"
+            seccion "Correcciones" "fix"
+            seccion "Otros cambios" "refactor|style|perf"
+            if [ -n "$previo" ]; then
+              echo "**Todos los cambios**: https://github.com/${{ github.repository }}/compare/$previo...$TAG"
+            fi
+          } > notas.md
+          if [ ! -s notas.md ]; then echo "Sin cambios destacados." > notas.md; fi
+          cat notas.md
+
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$TAG" target/release/nook.exe target/instalador/nook-setup.exe --title "nook $TAG" --notes-file notas.md

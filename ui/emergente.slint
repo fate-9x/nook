@@ -1,0 +1,351 @@
+// Ventana emergente: los menús del clic derecho, el selector de color y los iconos ocultos del
+// área de notificación.
+
+import { Tema, OpcionMenu, Fondo, IconoBandejaItem } from "tema.slint";
+import { BotonTexto } from "controles.slint";
+
+// Ventana emergente con el mismo aspecto que la barra: los menús del clic derecho (también el
+// del icono del área de notificación), el selector de color y los iconos ocultos del área de
+// notificación. Rust la coloca junto al cursor (o a la flecha de los iconos ocultos) y la oculta
+// cuando pierde el foco.
+export component Emergente inherits Window {
+    in property <int> tipo;                 // 0 menú, 1 selector de color, 2 iconos ocultos
+    in property <[OpcionMenu]> opciones;
+    in-out property <int> marcada: -1;      // opción resaltada (con el ratón o las flechas)
+    // Medidas del menú. Las filas se crean al dibujarlo, así que su tamaño no se conoce antes de
+    // mostrarlo: Rust da el alto y el texto más largo, que se mide aquí para el ancho.
+    in property <length> alto-menu;
+    in property <string> texto-mas-largo;
+
+    // Selector de color.
+    in property <string> titulo-color;
+    in property <image> cuadro;             // saturación y brillo del tono actual (dibujo.rs)
+    in property <image> franja;             // todos los tonos
+    in-out property <float> tono;           // 0–360
+    in-out property <float> saturacion;     // 0–1
+    in-out property <float> valor;          // 0–1
+    in-out property <string> texto-hex;
+    out property <color> color-actual: Colors.hsv(root.tono, root.saturacion, root.valor);
+
+    callback elegida(int);                  // id de la opción
+    callback cancelar();
+    callback tono-cambiado(float);          // para volver a dibujar el cuadro
+    callback color-cambiado(color);
+    callback hex-editado(string);
+    callback color-elegido(color);
+
+    // Iconos ocultos del área de notificación: en filas de hasta 5. Un clic o un clic derecho le
+    // llegan a su programa (índice y si es con el botón derecho).
+    in property <[IconoBandejaItem]> iconos-ocultos;
+    callback pulsar-icono(int, bool);
+    property <length> celda-icono: 32px;
+    property <length> relleno-iconos: 6px;
+    property <int> columnas-iconos: max(1, min(5, root.iconos-ocultos.length));
+    property <int> filas-iconos: max(1, ceil(root.iconos-ocultos.length / root.columnas-iconos));
+
+    // Tamaño que pide a Rust (en píxeles lógicos).
+    property <length> ancho-color: 260px;
+    property <length> lado-cuadro: root.ancho-color - 32px;
+    property <length> alto-cuadro: 150px;
+    out property <length> ancho: root.tipo == 0 ? max(184px, medidor.preferred-width + 2 * 6px + 12px + 20px)
+        : root.tipo == 2 ? 2 * root.relleno-iconos + root.columnas-iconos * root.celda-icono : root.ancho-color;
+    out property <length> alto: root.tipo == 0 ? root.alto-menu
+        : root.tipo == 2 ? 2 * root.relleno-iconos + root.filas-iconos * root.celda-icono
+        : 14px + 20px + root.alto-cuadro + 14px + 14px + 14px + 30px + 14px + 30px + 14px;
+
+    public function enfocar() {
+        if (root.tipo == 1) {
+            entrada-hex.focus();
+        } else {
+            teclado.focus();
+        }
+    }
+
+    // Opción siguiente (o anterior) saltando los separadores.
+    pure function limitar(i: int) -> int {
+        return max(0, min(root.opciones.length - 1, i));
+    }
+    pure function paso(desde: int, d: int) -> int {
+        return root.opciones[root.limitar(desde + d)].separador ? root.limitar(desde + 2 * d) : root.limitar(desde + d);
+    }
+
+    function mover-cuadro(x: length, y: length) {
+        root.saturacion = max(0, min(1, x / root.lado-cuadro));
+        root.valor = 1 - max(0, min(1, y / root.alto-cuadro));
+    }
+    function mover-tono(x: length) {
+        root.tono = max(0, min(359.9, x / root.lado-cuadro * 360));
+        root.tono-cambiado(root.tono);
+    }
+
+    changed color-actual => { root.color-cambiado(self.color-actual); }
+
+    title: "Nook";
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    default-font-size: 13px;
+    default-font-family: Tema.fuente;
+
+    Fondo {
+        width: root.width;
+        height: root.height;
+        border-radius: 18px;
+    }
+
+    teclado := FocusScope {
+        key-pressed(evento) => {
+            if (evento.text == Key.Escape) {
+                root.cancelar();
+                return accept;
+            }
+            if (root.tipo != 0) {
+                return reject;
+            }
+            if (evento.text == Key.DownArrow) {
+                root.marcada = root.paso(root.marcada, 1);
+                return accept;
+            }
+            if (evento.text == Key.UpArrow) {
+                root.marcada = root.paso(root.marcada < 0 ? root.opciones.length : root.marcada, -1);
+                return accept;
+            }
+            if (evento.text == Key.Return && root.marcada >= 0) {
+                root.elegida(root.opciones[root.marcada].id);
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    // ---- Menú ----
+    medidor := Text {
+        visible: false;
+        text: root.texto-mas-largo;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    Rectangle {
+        visible: root.tipo == 0;
+
+        VerticalLayout {
+            padding: 6px;
+
+            for o[i] in root.opciones : Rectangle {
+                height: o.separador ? 9px : 32px;
+                border-radius: 11px;
+                background: !o.separador && i == root.marcada ? Tema.capa-fuerte : transparent;
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 20px;
+                    Text {
+                        text: o.texto;
+                        color: Tema.texto;
+                        font-size: 13px;
+                        font-weight: i == 0 ? 600 : 400;
+                        vertical-alignment: center;
+                    }
+                }
+
+                if o.separador : Rectangle {
+                    x: 10px;
+                    y: 4px;
+                    width: parent.width - 20px;
+                    height: 1px;
+                    background: Tema.linea;
+                }
+
+                TouchArea {
+                    enabled: !o.separador;
+                    clicked => { root.elegida(o.id); }
+                    changed has-hover => {
+                        if (self.has-hover) {
+                            root.marcada = i;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- Iconos ocultos ----
+    Rectangle {
+        visible: root.tipo == 2;
+
+        for icono[i] in root.iconos-ocultos : Rectangle {
+            x: root.relleno-iconos + mod(i, root.columnas-iconos) * root.celda-icono;
+            y: root.relleno-iconos + floor(i / root.columnas-iconos) * root.celda-icono;
+            width: root.celda-icono;
+            height: root.celda-icono;
+            border-radius: 10px;
+            background: zona-icono.has-hover ? Tema.capa-fuerte : transparent;
+
+            if icono.tiene-icono : Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 20px;
+                height: 20px;
+                source: icono.icono;
+            }
+
+            zona-icono := TouchArea {
+                clicked => { root.pulsar-icono(i, false); }
+                pointer-event(evento) => {
+                    if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up) {
+                        root.pulsar-icono(i, true);
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- Selector de color ----
+    Rectangle {
+        visible: root.tipo == 1;
+
+        Text {
+            x: 16px;
+            y: 14px;
+            height: 20px;
+            text: root.titulo-color;
+            color: Tema.texto-tenue;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            vertical-alignment: center;
+        }
+
+        // Saturación (hacia la derecha) y brillo (hacia arriba).
+        Image {
+            x: 16px;
+            y: 34px;
+            width: root.lado-cuadro;
+            height: root.alto-cuadro;
+            source: root.cuadro;
+
+            Rectangle {
+                x: root.saturacion * parent.width - 8px;
+                y: (1 - root.valor) * parent.height - 8px;
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                border-width: 2px;
+                border-color: #FFFFFF;
+                background: root.color-actual;
+            }
+
+            TouchArea {
+                pointer-event(evento) => {
+                    if (evento.kind == PointerEventKind.down && evento.button == PointerEventButton.left) {
+                        root.mover-cuadro(self.mouse-x, self.mouse-y);
+                    }
+                }
+                moved => { root.mover-cuadro(self.mouse-x, self.mouse-y); }
+            }
+        }
+
+        // Tonos.
+        Image {
+            x: 16px;
+            y: 34px + root.alto-cuadro + 14px;
+            width: root.lado-cuadro;
+            height: 14px;
+            source: root.franja;
+
+            Rectangle {
+                x: root.tono / 360 * parent.width - 9px;
+                y: -2px;
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                border-width: 2px;
+                border-color: #FFFFFF;
+                background: Colors.hsv(root.tono, 1, 1);
+            }
+
+            TouchArea {
+                pointer-event(evento) => {
+                    if (evento.kind == PointerEventKind.down && evento.button == PointerEventButton.left) {
+                        root.mover-tono(self.mouse-x);
+                    }
+                }
+                moved => { root.mover-tono(self.mouse-x); }
+            }
+        }
+
+        // Muestra del color y su código.
+        HorizontalLayout {
+            x: 16px;
+            y: 34px + root.alto-cuadro + 14px + 14px + 14px;
+            width: root.lado-cuadro;
+            height: 30px;
+            spacing: 10px;
+
+            Rectangle {
+                width: 30px;
+                border-radius: 15px;
+                background: root.color-actual;
+                border-width: 1px;
+                border-color: Tema.linea;
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+                border-radius: 11px;
+                background: Tema.capa;
+                border-width: 1px;
+                border-color: entrada-hex.has-focus ? Tema.acento : Tema.linea;
+
+                // Esc cierra el selector también desde el campo del código.
+                FocusScope {
+                    x: 12px;
+                    width: parent.width - 24px;
+                    height: parent.height;
+                    capture-key-pressed(evento) => {
+                        if (evento.text == Key.Escape) {
+                            root.cancelar();
+                            return accept;
+                        }
+                        return reject;
+                    }
+
+                    entrada-hex := TextInput {
+                        width: parent.width;
+                        height: parent.height;
+                        text <=> root.texto-hex;
+                        color: Tema.texto;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                        single-line: true;
+                        selection-background-color: Tema.acento;
+                        selection-foreground-color: Tema.sobre-acento;
+                        edited => { root.hex-editado(self.text); }
+                        accepted => { root.color-elegido(root.color-actual); }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            x: 16px;
+            y: root.alto - 14px - 30px;
+            width: root.lado-cuadro;
+            height: 30px;
+            spacing: 8px;
+            alignment: end;
+
+            BotonTexto {
+                texto: @tr("Cancelar");
+                clicked => { root.cancelar(); }
+            }
+            BotonTexto {
+                texto: @tr("Añadir");
+                peligro: true;
+                clicked => { root.color-elegido(root.color-actual); }
+            }
+        }
+
+    }
+}

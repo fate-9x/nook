@@ -1,0 +1,10 @@
+#!/bin/sh
+# Que el código de nook Pro (src/pro/) no acabe en la rama de la versión gratuita (main), que se
+# publica en el repositorio público. Ver AGENTS.md.
+rama=$(git symbolic-ref --short -q HEAD)
+[ "$rama" = "main" ] || exit 0
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '^src/pro/'; then
+    echo "error: estás en main (la versión gratuita, pública) y el commit lleva archivos de src/pro/." >&2
+    echo "El código de nook Pro va en la rama pro (carpeta nook-pro). Quítalos con: git restore --staged src/pro" >&2
+    exit 1
+fi

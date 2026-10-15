@@ -1,0 +1,288 @@
+// Iconos dibujados (no son imágenes: se ven nítidos a cualquier tamaño).
+
+import { Tema } from "tema.slint";
+
+// Icono de una app (o su inicial si no tiene).
+export component IconoApp inherits Rectangle {
+    in property <image> icono;
+    in property <bool> tiene-icono;
+    in property <string> inicial;
+
+    border-radius: self.height * 0.27;
+    background: root.tiene-icono ? transparent : Tema.capa-fuerte;
+
+    if root.tiene-icono : Image {
+        width: root.width;
+        height: root.height;
+        source: root.icono;
+    }
+    if !root.tiene-icono : Text {
+        text: root.inicial;
+        color: Tema.texto;
+        font-weight: 800;
+        font-size: root.height * 0.45;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Cabeza del personaje (botón de la configuración): su cuerpo, algo más ancho que alto, con el
+// rulo encima y los dos ojos. Las medidas son las del dibujo del personaje (src/personaje/motor.rs),
+// centrado en el cuerpo.
+export component IconoPersonaje inherits Rectangle {
+    in property <color> cuerpo;
+    in property <color> ojos;
+    width: 20px;
+    height: 20px;
+
+    for trazo in [
+        { commands: "M 0 -36 C -4 -56 14 -64 20 -54 C 25 -45 12 -40 10 -48", rulo: true },
+        { commands: "M -40 -30 C -20 -42 20 -42 40 -30 C 52 -20 52 20 40 30 C 20 40 -20 40 -40 30 C -52 20 -52 -20 -40 -30 Z", rulo: false },
+    ] : Path {
+        width: root.width;
+        height: root.height;
+        viewbox-x: -52;
+        viewbox-y: -63;
+        viewbox-width: 104;
+        viewbox-height: 104;
+        commands: trazo.commands;
+        fill: trazo.rulo ? transparent : root.cuerpo;
+        stroke: trazo.rulo ? root.cuerpo : transparent;
+        stroke-width: trazo.rulo ? root.width * 6 / 104 : 0px;
+        stroke-line-cap: round;
+    }
+    Path {
+        width: root.width;
+        height: root.height;
+        viewbox-x: -52;
+        viewbox-y: -63;
+        viewbox-width: 104;
+        viewbox-height: 104;
+        commands: "M -17 0 C -17 -3.87 -15.21 -7 -13 -7 C -10.79 -7 -9 -3.87 -9 0 C -9 3.87 -10.79 7 -13 7 C -15.21 7 -17 3.87 -17 0 Z M 9 0 C 9 -3.87 10.79 -7 13 -7 C 15.21 -7 17 -3.87 17 0 C 17 3.87 15.21 7 13 7 C 10.79 7 9 3.87 9 0 Z";
+        fill: root.ojos;
+    }
+}
+
+// Flecha "‹" para volver atrás.
+export component IconoAtras inherits Path {
+    in property <color> color;
+    width: 8px;
+    height: 12px;
+    viewbox-width: 8;
+    viewbox-height: 12;
+    commands: "M 5.5 1.5 L 2 6 L 5.5 10.5";
+    stroke: root.color;
+    stroke-width: 1.8px;
+    fill: transparent;
+}
+
+// Tarjetas apiladas del botón de la bóveda de textos.
+export component IconoCarpeta inherits Path {
+    in property <color> color;
+    width: 14px;
+    height: 12px;
+    viewbox-width: 14;
+    viewbox-height: 12;
+    commands: "M 1 2.5 Q 1 1 2.5 1 L 5 1 L 6.5 2.5 L 11.5 2.5 Q 13 2.5 13 4 L 13 9.5 Q 13 11 11.5 11 L 2.5 11 Q 1 11 1 9.5 Z";
+    stroke: root.color;
+    stroke-width: 1.4px;
+    fill: transparent;
+}
+
+export component IconoTarjetas inherits Path {
+    in property <color> color;
+    width: 16px;
+    height: 16px;
+    viewbox-x: 3;
+    viewbox-y: 3;
+    viewbox-width: 18;
+    viewbox-height: 18;
+    commands: "M 12 4 L 4 8 L 12 12 L 20 8 Z M 4 12 L 12 16 L 20 12 M 4 16 L 12 20 L 20 16";
+    stroke: root.color;
+    stroke-width: 1.6px;
+    fill: transparent;
+}
+
+// Signo "+" dibujado (no como texto, para que quede centrado de verdad).
+export component IconoMas inherits Path {
+    in property <color> color;
+    width: 12px;
+    height: 12px;
+    viewbox-width: 12;
+    viewbox-height: 12;
+    commands: "M 6 1 L 6 11 M 1 6 L 11 6";
+    stroke: root.color;
+    stroke-width: 1.8px;
+    fill: transparent;
+}
+
+// Lupa del buscador.
+export component IconoLupa inherits Path {
+    in property <color> color;
+    width: 14px;
+    height: 14px;
+    viewbox-width: 14;
+    viewbox-height: 14;
+    commands: "M 6 1.2 A 4.8 4.8 0 1 0 6 10.8 A 4.8 4.8 0 1 0 6 1.2 M 9.5 9.5 L 13 13";
+    stroke: root.color;
+    stroke-width: 1.8px;
+    fill: transparent;
+}
+
+// Signo "×" dibujado.
+export component IconoX inherits Path {
+    in property <color> color;
+    width: 8px;
+    height: 8px;
+    viewbox-width: 8;
+    viewbox-height: 8;
+    commands: "M 1 1 L 7 7 M 7 1 L 1 7";
+    stroke: root.color;
+    stroke-width: 1.6px;
+    fill: transparent;
+}
+
+// Botones del reproductor: 0 anterior, 1 reproducir, 2 pausa, 3 siguiente.
+export component IconoMusica inherits Path {
+    in property <int> tipo;
+    in property <color> color;
+    width: 14px;
+    height: 14px;
+    viewbox-width: 14;
+    viewbox-height: 14;
+    commands: root.tipo == 0 ? "M 2.5 2.5 L 4.3 2.5 L 4.3 11.5 L 2.5 11.5 Z M 11.5 2.5 L 5.5 7 L 11.5 11.5 Z"
+        : root.tipo == 1 ? "M 4 2 L 12 7 L 4 12 Z"
+        : root.tipo == 2 ? "M 3.5 2.5 L 6 2.5 L 6 11.5 L 3.5 11.5 Z M 8 2.5 L 10.5 2.5 L 10.5 11.5 L 8 11.5 Z"
+        : "M 11.5 2.5 L 9.7 2.5 L 9.7 11.5 L 11.5 11.5 Z M 2.5 2.5 L 8.5 7 L 2.5 11.5 Z";
+    fill: root.color;
+    stroke: root.color;
+    stroke-width: 1px;
+}
+
+// Nota musical (lo que se ve si lo que suena no tiene portada).
+export component IconoNota inherits Rectangle {
+    in property <color> tono;
+    width: 14px;
+    height: 14px;
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 14;
+        viewbox-height: 14;
+        commands: "M 3.6 10.5 A 2.2 2.2 0 1 0 8 10.5 A 2.2 2.2 0 1 0 3.6 10.5 Z";
+        fill: root.tono;
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 14;
+        viewbox-height: 14;
+        commands: "M 7.6 10.5 L 7.6 1.8 Q 10.6 2.4 11.4 5";
+        stroke: root.tono;
+        stroke-width: 1.6px;
+        fill: transparent;
+    }
+}
+
+// Altavoz del volumen, con las ondas si suena (`silencio`: sin ellas).
+export component IconoVolumen inherits Rectangle {
+    in property <color> tono;
+    in property <bool> silencio;
+    width: 16px;
+    height: 14px;
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 16;
+        viewbox-height: 14;
+        commands: "M 1.5 5 L 4.5 5 L 8 2 L 8 12 L 4.5 9 L 1.5 9 Z";
+        fill: root.tono;
+        stroke: root.tono;
+        stroke-width: 1px;
+    }
+    if !root.silencio : Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 16;
+        viewbox-height: 14;
+        commands: "M 10.5 4.5 Q 11.8 7 10.5 9.5 M 12.6 2.6 Q 15 7 12.6 11.4";
+        stroke: root.tono;
+        stroke-width: 1.4px;
+        fill: transparent;
+    }
+}
+
+// Altavoz del volumen general: una onda con poco volumen, dos con más y una cruz en silencio.
+export component IconoSonido inherits Rectangle {
+    in property <color> tono;
+    in property <float> nivel;      // 0–1
+    in property <bool> silencio;
+    width: 16px;
+    height: 14px;
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 16;
+        viewbox-height: 14;
+        commands: "M 1.5 5 L 4.5 5 L 8 2 L 8 12 L 4.5 9 L 1.5 9 Z";
+        fill: root.tono;
+        stroke: root.tono;
+        stroke-width: 1px;
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 16;
+        viewbox-height: 14;
+        commands: root.silencio ? "M 10.5 4.8 L 14.5 9.2 M 14.5 4.8 L 10.5 9.2"
+            : root.nivel < 0.005 ? "" : root.nivel < 0.5 ? "M 10.5 4.5 Q 11.8 7 10.5 9.5"
+            : "M 10.5 4.5 Q 11.8 7 10.5 9.5 M 12.6 2.6 Q 15 7 12.6 11.4";
+        stroke: root.tono;
+        stroke-width: 1.4px;
+        fill: transparent;
+    }
+}
+
+// Micrófono, tachado si está silenciado.
+export component IconoMicrofono inherits Rectangle {
+    in property <color> tono;
+    in property <bool> silencio;
+    width: 14px;
+    height: 14px;
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 14;
+        viewbox-height: 14;
+        commands: "M 5 3 A 2 2 0 0 1 9 3 L 9 6.8 A 2 2 0 0 1 5 6.8 Z";
+        fill: root.tono;
+    }
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 14;
+        viewbox-height: 14;
+        commands: root.silencio
+            ? "M 3 6.5 Q 3 10.3 7 10.3 Q 11 10.3 11 6.5 M 7 10.3 L 7 12.6 M 4.8 12.6 L 9.2 12.6 M 2 1.5 L 12 12.5"
+            : "M 3 6.5 Q 3 10.3 7 10.3 Q 11 10.3 11 6.5 M 7 10.3 L 7 12.6 M 4.8 12.6 L 9.2 12.6";
+        stroke: root.tono;
+        stroke-width: 1.4px;
+        fill: transparent;
+    }
+}
+
+// Flecha "⌄" del botón del área de notificación, hacia donde se abre su panel: 0 abajo, 1 a la
+// derecha, 2 a la izquierda.
+export component IconoFlecha inherits Path {
+    in property <color> tono;
+    in property <int> hacia;
+    width: 12px;
+    height: 12px;
+    viewbox-width: 12;
+    viewbox-height: 12;
+    commands: root.hacia == 1 ? "M 4.5 2 L 8.5 6 L 4.5 10" : root.hacia == 2 ? "M 7.5 2 L 3.5 6 L 7.5 10"
+        : root.hacia == 3 ? "M 2 7.5 L 6 3.5 L 10 7.5" : "M 2 4.5 L 6 8.5 L 10 4.5";
+    stroke: root.tono;
+    stroke-width: 1.8px;
+    fill: transparent;
+}

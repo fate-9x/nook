@@ -1,0 +1,1112 @@
+// Configuración: a la izquierda, las secciones; a la derecha, los ajustes de la elegida (con la
+// rueda se desplazan si no caben).
+
+import { Tema, ElementoItem, PresetItem, AccesorioItem } from "tema.slint";
+import { IconoApp, IconoPersonaje, IconoTarjetas, IconoX, IconoMas, IconoMicrofono, IconoLupa } from "iconos.slint";
+import { BotonTexto, Tecla, Titulo, Deslizador } from "controles.slint";
+
+// Una entrada de los créditos: qué proyecto, de quién, con qué licencia y qué se usa de él.
+struct Credito {
+    nombre: string,
+    autor: string,
+    licencia: string,
+    uso: string,
+}
+
+// Entrada de la lista de créditos.
+component FilaCredito inherits VerticalLayout {
+    in property <Credito> credito;
+    spacing: 1px;
+
+    HorizontalLayout {
+        alignment: start;
+        spacing: 8px;
+        Text {
+            text: root.credito.nombre;
+            color: Tema.texto;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        Text {
+            text: root.credito.autor + " · " + root.credito.licencia;
+            color: Tema.texto-tenue;
+            font-size: 11px;
+            vertical-alignment: center;
+        }
+    }
+    Text {
+        text: root.credito.uso;
+        color: Tema.texto-suave;
+        font-size: 12px;
+        wrap: word-wrap;
+    }
+}
+
+// Marca de las opciones de nook Pro en la versión gratuita (en lugar del interruptor o del atajo).
+component MarcaPro inherits Rectangle {
+    width: etiqueta.preferred-width + 12px;
+    height: 18px;
+    border-radius: 9px;
+    background: Tema.acento;
+
+    etiqueta := Text {
+        text: "PRO";
+        color: Tema.sobre-acento;
+        font-size: 9px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Fila de la lista de atajos en la configuración.
+component FilaAtajo inherits Rectangle {
+    in property <image> icono;
+    in property <bool> tiene-icono;
+    in property <string> inicial;
+    in property <bool> es-mostrar;
+    in property <bool> es-boveda;
+    in property <bool> es-microfono;
+    in property <bool> es-buscar;
+    in property <string> nombre;
+    in property <string> atajo;
+    in property <bool> ok: true;
+    in property <bool> grabando;
+    in property <bool> tiene-atajo: true;
+    // Atajo de nook Pro: en la versión gratuita no se puede cambiar.
+    in property <bool> solo-pro;
+    property <bool> bloqueada: root.solo-pro && !Tema.pro;
+    callback clicked();
+    callback quitar();
+
+    height: 34px;
+    border-radius: 11px;
+    background: root.grabando ? Tema.capa-fuerte : area.has-hover && !root.bloqueada ? Tema.capa : transparent;
+
+    area := TouchArea {
+        clicked => {
+            if (!root.bloqueada) {
+                root.clicked();
+            }
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 10px;
+
+        VerticalLayout {
+            alignment: center;
+            if root.es-boveda : Rectangle {
+                width: 22px;
+                height: 22px;
+                IconoTarjetas {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: 15px;
+                    height: 15px;
+                    color: Tema.acento;
+                }
+            }
+            if root.es-microfono : Rectangle {
+                width: 22px;
+                height: 22px;
+                IconoMicrofono {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    tono: Tema.acento;
+                }
+            }
+            if root.es-buscar : Rectangle {
+                width: 22px;
+                height: 22px;
+                IconoLupa {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    color: Tema.acento;
+                }
+            }
+            if !root.es-mostrar && !root.es-boveda && !root.es-microfono && !root.es-buscar : IconoApp {
+                width: 22px;
+                height: 22px;
+                icono: root.icono;
+                tiene-icono: root.tiene-icono;
+                inicial: root.inicial;
+            }
+            if root.es-mostrar : Rectangle {
+                width: 20px;
+                height: 20px;
+                IconoPersonaje {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: 16px;
+                    height: 16px;
+                    cuerpo: Tema.acento;
+                    ojos: Tema.sobre-acento;
+                }
+            }
+        }
+
+        Text {
+            text: root.nombre;
+            color: Tema.texto;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+
+        VerticalLayout {
+            alignment: center;
+            if !root.bloqueada : Tecla {
+                texto: root.atajo;
+                marcada: root.grabando || !root.ok;
+            }
+            if root.bloqueada : MarcaPro {}
+        }
+
+        // Quitar el atajo (dejarlo sin definir). Se ve al pasar por encima de la fila.
+        if root.tiene-atajo && !root.grabando && !root.bloqueada : VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                background: quitar.has-hover ? Tema.acento : area.has-hover || quitar.has-hover ? Tema.capa-fuerte : transparent;
+                IconoX {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    color: quitar.has-hover ? Tema.sobre-acento : area.has-hover ? Tema.texto : transparent;
+                }
+                quitar := TouchArea {
+                    clicked => { root.quitar(); }
+                }
+            }
+        }
+    }
+}
+
+// Círculo de color para elegir el tema. Clic derecho: menú (para quitar los colores propios).
+component Muestra inherits Rectangle {
+    in property <brush> tono;
+    in property <bool> elegido;
+    callback clicked();
+    callback menu();
+
+    width: 24px;
+    height: 24px;
+
+    // Efecto lupa, como los iconos de la barra: con el cursor encima, el círculo crece desde su
+    // centro hasta llenar la muestra (la zona del clic no cambia).
+    property <float> aumento: area.has-hover ? 1.2 : 1;
+    animate aumento { duration: 120ms; easing: ease-out; }
+
+    // El aro de la muestra elegida es el propio borde del círculo: si fueran círculos de distinto
+    // tamaño, al escalar se redondearían cada uno por su lado y el aro quedaría descentrado,
+    // con un hueco por donde se ve el fondo (y el color asomaría por fuera).
+    circulo := Rectangle {
+        width: 20px * root.aumento;
+        height: self.width;
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        border-radius: self.width / 2;
+        background: root.tono;
+        border-width: root.elegido ? 2.5px : 1px;
+        border-color: root.elegido ? Tema.texto : Tema.linea;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+        pointer-event(evento) => {
+            if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up) {
+                root.menu();
+            }
+        }
+    }
+}
+
+// Barra de progreso (la descarga de una actualización).
+component BarraProgreso inherits Rectangle {
+    in property <float> valor;  // 0–1
+
+    height: 6px;
+    border-radius: 3px;
+    background: Tema.capa-fuerte;
+
+    Rectangle {
+        x: 0px;
+        width: max(0, min(1, root.valor)) * parent.width;
+        height: parent.height;
+        border-radius: parent.border-radius;
+        background: Tema.acento;
+        animate width { duration: 120ms; }
+    }
+}
+
+// Botón "+" redondo de las filas de colores y presets.
+component MuestraMas inherits Rectangle {
+    callback clicked();
+
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: area.has-hover ? Tema.acento : Tema.linea;
+    background: area.has-hover ? Tema.capa : transparent;
+
+    IconoMas {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 10px;
+        height: 10px;
+        color: area.has-hover ? Tema.acento : Tema.texto-suave;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Preset: círculo con el fondo y un punto con el acento. Clic: aplicarlo; clic derecho: menú.
+component MuestraPreset inherits Rectangle {
+    in property <color> fondo;
+    in property <color> acento;
+    in property <bool> elegido;
+    callback clicked();
+    callback menu();
+
+    width: 24px;
+    height: 24px;
+
+    // Un solo círculo: el acento de fondo y un borde grueso del color de fondo, así el punto del
+    // acento queda centrado por construcción (un círculo dentro de otro se descentraba al
+    // escalar). El aro va encima con las mismas medidas, como en `Muestra`.
+    circulo := Rectangle {
+        x: 2px;
+        y: 2px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: root.acento;
+        border-width: 6px;
+        border-color: root.fondo;
+    }
+    Rectangle {
+        x: circulo.x;
+        y: circulo.y;
+        width: circulo.width;
+        height: circulo.height;
+        border-radius: circulo.border-radius;
+        border-width: root.elegido ? 2.5px : area.has-hover ? 2px : 1px;
+        border-color: root.elegido ? Tema.texto : area.has-hover ? Tema.capa-fuerte : Tema.linea;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+        pointer-event(evento) => {
+            if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up) {
+                root.menu();
+            }
+        }
+    }
+}
+
+// Opción de la columna de secciones de la configuración. La elegida va resaltada, con una marca
+// del color de acento; `aviso` pone un punto (hay una versión nueva).
+component OpcionSeccion inherits Rectangle {
+    in property <string> texto;
+    in property <bool> elegida;
+    in property <bool> aviso;
+    callback clicked();
+
+    height: 30px;
+    border-radius: 10px;
+    background: root.elegida ? Tema.capa-fuerte : area.has-hover ? Tema.capa : transparent;
+
+    if root.elegida : Rectangle {
+        x: 0px;
+        y: (parent.height - self.height) / 2;
+        width: 3px;
+        height: 14px;
+        border-radius: 1.5px;
+        background: Tema.acento;
+    }
+    Text {
+        x: 12px;
+        width: parent.width - 30px;
+        height: parent.height;
+        text: root.texto;
+        color: root.elegida ? Tema.texto : Tema.texto-suave;
+        font-size: 12px;
+        font-weight: root.elegida ? 700 : 500;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    if root.aviso : Rectangle {
+        x: parent.width - self.width - 10px;
+        y: (parent.height - self.height) / 2;
+        width: 7px;
+        height: 7px;
+        border-radius: 3.5px;
+        background: Tema.acento;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Nombre de una fila de la configuración (Fondo, Acento, Presets).
+component Subtitulo inherits Text {
+    color: Tema.texto-suave;
+    font-size: 11px;
+    height: 18px;
+    vertical-alignment: center;
+}
+
+component OpcionSegmento inherits Rectangle {
+    in property <string> texto;
+    in property <bool> elegida;
+    callback clicked();
+
+    border-radius: 11px;
+    background: root.elegida ? Tema.texto : area.has-hover ? Tema.capa : transparent;
+
+    Text {
+        text: root.texto;
+        color: root.elegida ? Tema.fondo : Tema.texto-suave;
+        font-size: 12px;
+        font-weight: root.elegida ? 800 : 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component Interruptor inherits Rectangle {
+    in property <bool> activo;
+    callback clicked();
+
+    width: 34px;
+    height: 20px;
+    border-radius: 10px;
+    background: root.activo ? Tema.acento : Tema.capa-fuerte;
+
+    Rectangle {
+        x: root.activo ? 16px : 2px;
+        y: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: root.activo ? Tema.sobre-acento : Tema.texto-suave;
+        animate x { duration: 120ms; }
+    }
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component FilaInterruptor inherits VerticalLayout {
+    in property <string> texto;
+    // Aclaración debajo, más pequeña (opcional).
+    in property <string> nota;
+    // Explicación más larga, que se despliega debajo con el botón "?" (opcional).
+    in property <string> ayuda;
+    in property <bool> activo;
+    // Opción de nook Pro: en la versión gratuita sale con su marca, sin interruptor.
+    in property <bool> solo-pro;
+    callback clicked();
+    property <bool> viendo-ayuda;
+    property <bool> bloqueada: root.solo-pro && !Tema.pro;
+    property <string> nota-vista: root.bloqueada ? @tr("Disponible en nook Pro") : root.nota;
+
+    spacing: 4px;
+
+    HorizontalLayout {
+        height: root.nota-vista == "" ? 32px : 40px;
+        spacing: 10px;
+
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            spacing: 2px;
+            HorizontalLayout {
+                alignment: start;
+                spacing: 6px;
+                Text {
+                    text: root.texto;
+                    color: Tema.texto;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                }
+                if root.ayuda != "" : VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 8px;
+                        background: root.viendo-ayuda ? Tema.acento : zona-ayuda.has-hover ? Tema.capa-fuerte : Tema.capa;
+                        Text {
+                            text: "?";
+                            color: root.viendo-ayuda ? Tema.sobre-acento : Tema.texto-suave;
+                            font-size: 10px;
+                            font-weight: 800;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        zona-ayuda := TouchArea {
+                            clicked => { root.viendo-ayuda = !root.viendo-ayuda; }
+                        }
+                    }
+                }
+            }
+            if root.nota-vista != "" : Text {
+                text: root.nota-vista;
+                color: Tema.texto-tenue;
+                font-size: 10px;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            if !root.bloqueada : Interruptor {
+                activo: root.activo;
+                clicked => { root.clicked(); }
+            }
+            if root.bloqueada : MarcaPro {}
+        }
+    }
+
+    if root.viendo-ayuda : Rectangle {
+        border-radius: 10px;
+        background: Tema.capa;
+        VerticalLayout {
+            padding: 10px;
+            Text {
+                text: root.ayuda;
+                color: Tema.texto-suave;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component PanelConfiguracion inherits Rectangle {
+    in property <[ElementoItem]> elementos;
+    in property <int> grabando-atajo;
+    in property <string> atajo-mostrar;
+    in property <bool> atajo-mostrar-ok;
+    in property <bool> atajo-mostrar-definido;
+    in property <bool> usar-boveda;
+    in property <string> atajo-boveda;
+    in property <bool> atajo-boveda-ok;
+    in property <bool> atajo-boveda-definido;
+    in property <string> atajo-microfono;
+    in property <bool> atajo-microfono-ok;
+    in property <bool> atajo-microfono-definido;
+    in property <string> atajo-buscar;
+    in property <bool> atajo-buscar-ok;
+    in property <bool> atajo-buscar-definido;
+    in property <bool> ocultar-en-reposo;
+    in property <bool> ocultar-en-pantalla-completa;
+    in property <bool> apps-abiertas;
+    in property <bool> sustituir-barra-de-windows;
+    in property <bool> iniciar-con-windows;
+    in property <bool> mostrar-hora;
+    in property <bool> boton-sonido;
+    in property <bool> boton-microfono;
+    in property <bool> boton-buscar;
+    in property <bool> tecla-windows-abre-buscador;
+    in property <bool> animaciones;
+    in property <int> cuenta-estado;
+    in property <string> cuenta-usuario;
+    in property <string> cuenta-codigo;
+    in property <string> cuenta-error;
+    in property <[color]> fondos;
+    in property <[color]> acentos;
+    in property <int> colores-base;
+    in property <[PresetItem]> presets;
+    in property <bool> preset-guardado;
+    in property <bool> transparencia;
+    in property <float> opacidad-elegida;
+    in property <int> posicion;
+    in property <int> idioma;
+    in property <image> personaje-muestra;
+    in property <int> figura;
+    in property <[AccesorioItem]> accesorios;
+    in property <[color]> colores-accesorios;
+    in property <int> colores-accesorios-base;
+    in property <bool> reproductor-en-barra;
+    in property <string> version;
+    in property <string> actualizacion;
+    in property <bool> actualizando;
+    in property <float> progreso-actualizacion;
+    in property <string> error-actualizacion;
+    in-out property <int> seccion;
+    in-out property <float> tamano-provisional;
+    callback grabar-atajo(int);
+    callback quitar-atajo(int);
+    callback alternar-ocultar();
+    callback alternar-pantalla-completa();
+    callback alternar-apps-abiertas();
+    callback alternar-sustituir-barra-de-windows();
+    callback alternar-iniciar();
+    callback alternar-hora();
+    callback alternar-boton-sonido();
+    callback alternar-boton-microfono();
+    callback alternar-boton-buscar();
+    callback alternar-tecla-windows();
+    callback alternar-usar-boveda();
+    callback alternar-animaciones();
+    callback boton-cuenta();
+    callback elegir-fondo(color);
+    callback elegir-acento(color);
+    callback agregar-color(int);
+    callback menu-color(int, int);
+    callback aplicar-preset(int);
+    callback menu-preset(int);
+    callback guardar-preset();
+    callback alternar-transparencia();
+    callback elegir-opacidad(float);
+    callback elegir-tamano(float);
+    callback elegir-posicion(int);
+    callback elegir-idioma(int);
+    callback elegir-figura(int);
+    callback alternar-accesorio(int);
+    callback elegir-color-accesorio(int, color);
+    callback agregar-color-accesorio(int);
+    callback menu-color-accesorio(int);
+    callback alternar-reproductor-en-barra();
+    callback actualizar();
+    callback ver-licencias();
+    callback salir();
+
+    property <length> ancho-secciones: 152px;
+    property <length> lado-muestra: 120px;  // vista previa del personaje (LADO_MUESTRA en src/barra/personaje.rs)
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+
+        VerticalLayout {
+            width: root.ancho-secciones;
+            padding: 10px;
+            padding-right: 8px;
+            spacing: 2px;
+
+            for nombre[i] in [@tr("Atajos"), @tr("Comportamiento"), @tr("Colores"), @tr("Apariencia"), @tr("Personaje"), @tr("Música"), @tr("Acerca de")] : OpcionSeccion {
+                texto: nombre;
+                elegida: root.seccion == i;
+                // Hay una versión nueva: se avisa en "Acerca de".
+                aviso: i == 6 && root.actualizacion != "";
+                clicked => {
+                    root.seccion = i;
+                    ajustes.content-y = 0px;
+                }
+            }
+            Rectangle { vertical-stretch: 1; }
+            // Al final, siempre a mano: cerrar la aplicación.
+            Rectangle {
+                height: 1px;
+                background: Tema.linea;
+            }
+            Rectangle { height: 4px; }
+            OpcionSeccion {
+                texto: @tr("Cerrar aplicación");
+                clicked => { root.salir(); }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Tema.linea;
+        }
+
+        ajustes := Flickable {
+            horizontal-stretch: 1;
+            content-width: self.width;
+            content-height: max(self.height, seccion.preferred-height);
+
+            seccion := VerticalLayout {
+                width: ajustes.width;
+                padding-top: 12px;
+                padding-bottom: 14px;
+                padding-left: 16px;
+                padding-right: 16px;
+                alignment: start;
+
+                if root.seccion == 0 : VerticalLayout {
+                    Titulo { text: @tr("ATAJOS"); }
+                    for g[i] in root.elementos : FilaAtajo {
+                        icono: g.icono;
+                        tiene-icono: g.tiene-icono;
+                        inicial: g.inicial;
+                        nombre: g.nombre;
+                        atajo: root.grabando-atajo == i ? @tr("Pulsa una combinación…") : g.atajo;
+                        ok: g.atajo-ok;
+                        tiene-atajo: g.tiene-atajo;
+                        grabando: root.grabando-atajo == i;
+                        clicked => { root.grabar-atajo(i); }
+                        quitar => { root.quitar-atajo(i); }
+                    }
+                    FilaAtajo {
+                        es-mostrar: true;
+                        nombre: @tr("Mostrar u ocultar");
+                        atajo: root.grabando-atajo == -1 ? @tr("Pulsa una combinación…") : root.atajo-mostrar;
+                        ok: root.atajo-mostrar-ok;
+                        tiene-atajo: root.atajo-mostrar-definido;
+                        grabando: root.grabando-atajo == -1;
+                        clicked => { root.grabar-atajo(-1); }
+                        quitar => { root.quitar-atajo(-1); }
+                    }
+                    if root.usar-boveda : FilaAtajo {
+                        es-boveda: true;
+                        nombre: @tr("Bóveda de textos");
+                        atajo: root.grabando-atajo == -3 ? @tr("Pulsa una combinación…") : root.atajo-boveda;
+                        ok: root.atajo-boveda-ok;
+                        tiene-atajo: root.atajo-boveda-definido;
+                        grabando: root.grabando-atajo == -3;
+                        clicked => { root.grabar-atajo(-3); }
+                        quitar => { root.quitar-atajo(-3); }
+                    }
+                    FilaAtajo {
+                        es-microfono: true;
+                        solo-pro: true;
+                        nombre: @tr("Silenciar el micrófono");
+                        atajo: root.grabando-atajo == -4 ? @tr("Pulsa una combinación…") : root.atajo-microfono;
+                        ok: root.atajo-microfono-ok;
+                        tiene-atajo: root.atajo-microfono-definido;
+                        grabando: root.grabando-atajo == -4;
+                        clicked => { root.grabar-atajo(-4); }
+                        quitar => { root.quitar-atajo(-4); }
+                    }
+                    FilaAtajo {
+                        es-buscar: true;
+                        solo-pro: true;
+                        nombre: @tr("Buscar y abrir una aplicación");
+                        atajo: root.grabando-atajo == -5 ? @tr("Pulsa una combinación…") : root.atajo-buscar;
+                        ok: root.atajo-buscar-ok;
+                        tiene-atajo: root.atajo-buscar-definido;
+                        grabando: root.grabando-atajo == -5;
+                        clicked => { root.grabar-atajo(-5); }
+                        quitar => { root.quitar-atajo(-5); }
+                    }
+                }
+
+                if root.seccion == 1 : VerticalLayout {
+                    Titulo { text: @tr("COMPORTAMIENTO"); }
+                    FilaInterruptor { texto: @tr("Ocultar en reposo"); activo: root.ocultar-en-reposo; clicked => { root.alternar-ocultar(); } }
+                    FilaInterruptor { texto: @tr("Ocultar con juegos y apps a pantalla completa"); solo-pro: true; activo: root.ocultar-en-pantalla-completa; clicked => { root.alternar-pantalla-completa(); } }
+                    FilaInterruptor { texto: @tr("Iniciar con Windows"); activo: root.iniciar-con-windows; clicked => { root.alternar-iniciar(); } }
+                    FilaInterruptor { texto: @tr("Sustituir la barra de tareas de Windows"); solo-pro: true; activo: root.sustituir-barra-de-windows; clicked => { root.alternar-sustituir-barra-de-windows(); } }
+                    FilaInterruptor {
+                        texto: @tr("La tecla Windows abre el buscador de Nook");
+                        solo-pro: true;
+                        nota: @tr("Pide permisos de administrador");
+                        ayuda: @tr("Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas.");
+                        activo: root.tecla-windows-abre-buscador;
+                        clicked => { root.alternar-tecla-windows(); }
+                    }
+                    FilaInterruptor { texto: @tr("Mostrar las apps abiertas"); solo-pro: true; activo: root.apps-abiertas; clicked => { root.alternar-apps-abiertas(); } }
+                    FilaInterruptor { texto: @tr("Mostrar la hora"); activo: root.mostrar-hora; clicked => { root.alternar-hora(); } }
+                    FilaInterruptor { texto: @tr("Botón de sonido"); solo-pro: true; activo: root.boton-sonido; clicked => { root.alternar-boton-sonido(); } }
+                    FilaInterruptor { texto: @tr("Botón del micrófono"); solo-pro: true; activo: root.boton-microfono; clicked => { root.alternar-boton-microfono(); } }
+                    FilaInterruptor { texto: @tr("Botón para buscar y abrir aplicaciones"); solo-pro: true; activo: root.boton-buscar; clicked => { root.alternar-boton-buscar(); } }
+                    FilaInterruptor { texto: @tr("Bóveda de textos"); activo: root.usar-boveda; clicked => { root.alternar-usar-boveda(); } }
+                    FilaInterruptor { texto: @tr("Animaciones"); activo: root.animaciones; clicked => { root.alternar-animaciones(); } }
+
+                    // Cuenta de GitHub para tener la misma bóveda en varios ordenadores.
+                    if root.usar-boveda : Rectangle { height: 12px; }
+                    if root.usar-boveda : Titulo { text: @tr("CUENTA"); }
+                    if root.usar-boveda : HorizontalLayout {
+                        height: 44px;
+                        spacing: 10px;
+
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            spacing: 2px;
+
+                            Text {
+                                text: root.cuenta-estado == 3 ? @tr("Conectada como {}", root.cuenta-usuario)
+                                    : root.cuenta-estado == 2 ? @tr("Código: {}", root.cuenta-codigo)
+                                    : root.cuenta-estado == 1 ? @tr("Conectando con GitHub…")
+                                    : @tr("Sincronizar la bóveda");
+                                color: Tema.texto;
+                                font-size: 12px;
+                                font-weight: root.cuenta-estado == 2 ? 700 : 400;
+                                overflow: elide;
+                            }
+                            Text {
+                                text: root.cuenta-error != "" ? @tr("No se pudo: {}", root.cuenta-error)
+                                    : root.cuenta-estado == 3 ? @tr("Se guarda en un Gist secreto de tu GitHub")
+                                    : root.cuenta-estado == 2 ? @tr("Ya está copiado: pégalo en GitHub")
+                                    : root.cuenta-estado == 1 ? @tr("Pidiendo un código a GitHub")
+                                    : @tr("Úsala en varios PCs con tu GitHub");
+                                color: Tema.texto-tenue;
+                                font-size: 11px;
+                                overflow: elide;
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            BotonTexto {
+                                texto: root.cuenta-estado == 3 ? @tr("Desconectar") : root.cuenta-estado == 0 ? @tr("Conectar") : @tr("Cancelar");
+                                peligro: root.cuenta-estado == 0;
+                                clicked => { root.boton-cuenta(); }
+                            }
+                        }
+                    }
+                }
+
+                if root.seccion == 2 : VerticalLayout {
+                    Titulo { text: @tr("COLORES"); }
+                    Subtitulo { text: @tr("Fondo"); }
+                    HorizontalLayout {
+                        height: 30px;
+                        padding-top: 3px;
+                        padding-bottom: 3px;
+                        spacing: 4px;
+                        alignment: start;
+                        for c[i] in root.fondos : Muestra {
+                            tono: c;
+                            elegido: c == Tema.fondo;
+                            clicked => { root.elegir-fondo(c); }
+                            menu => {
+                                if (i >= root.colores-base) {
+                                    root.menu-color(0, i);
+                                }
+                            }
+                        }
+                        MuestraMas {
+                            clicked => { root.agregar-color(0); }
+                        }
+                    }
+                    Subtitulo { text: @tr("Acento"); }
+                    HorizontalLayout {
+                        height: 30px;
+                        padding-top: 3px;
+                        padding-bottom: 3px;
+                        spacing: 4px;
+                        alignment: start;
+                        for c[i] in root.acentos : Muestra {
+                            tono: c;
+                            elegido: c == Tema.acento;
+                            clicked => { root.elegir-acento(c); }
+                            menu => {
+                                if (i >= root.colores-base) {
+                                    root.menu-color(1, i);
+                                }
+                            }
+                        }
+                        MuestraMas {
+                            clicked => { root.agregar-color(1); }
+                        }
+                    }
+                    Subtitulo { text: @tr("Presets"); }
+                    HorizontalLayout {
+                        height: 30px;
+                        padding-top: 3px;
+                        padding-bottom: 3px;
+                        spacing: 4px;
+                        alignment: start;
+                        for p[i] in root.presets : MuestraPreset {
+                            fondo: p.fondo;
+                            acento: p.acento;
+                            elegido: p.fondo == Tema.fondo && p.acento == Tema.acento;
+                            clicked => { root.aplicar-preset(i); }
+                            menu => { root.menu-preset(i); }
+                        }
+                        // Guardar la combinación actual.
+                        if !root.preset-guardado : MuestraMas {
+                            clicked => { root.guardar-preset(); }
+                        }
+                    }
+                }
+
+                if root.seccion == 3 : VerticalLayout {
+                    Titulo { text: @tr("APARIENCIA"); }
+                    FilaInterruptor { texto: @tr("Transparencia"); activo: root.transparencia; clicked => { root.alternar-transparencia(); } }
+                    if root.transparencia : HorizontalLayout {
+                        height: 32px;
+                        spacing: 10px;
+
+                        Text {
+                            width: 64px;
+                            text: @tr("Opacidad");
+                            color: Tema.texto;
+                            font-size: 12px;
+                            vertical-alignment: center;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            horizontal-stretch: 1;
+                            Deslizador {
+                                minimo: 0.3;
+                                valor: root.opacidad-elegida;
+                                cambiado(v) => { root.elegir-opacidad(v); }
+                            }
+                        }
+                        Text {
+                            width: 36px;
+                            text: round(root.opacidad-elegida * 100) + " %";
+                            color: Tema.texto-suave;
+                            font-size: 12px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                        }
+                    }
+                    HorizontalLayout {
+                        height: 32px;
+                        spacing: 10px;
+
+                        Text {
+                            width: 64px;
+                            text: @tr("Tamaño");
+                            color: Tema.texto;
+                            font-size: 12px;
+                            vertical-alignment: center;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            horizontal-stretch: 1;
+                            Deslizador {
+                                minimo: 0.8;
+                                maximo: 1.5;
+                                valor: root.tamano-provisional;
+                                // En pasos de 5 %.
+                                cambiado(v) => { root.tamano-provisional = round(v * 20) / 20; }
+                                soltado => { root.elegir-tamano(root.tamano-provisional); }
+                            }
+                        }
+                        Text {
+                            width: 36px;
+                            text: round(root.tamano-provisional * 100) + " %";
+                            color: Tema.texto-suave;
+                            font-size: 12px;
+                            horizontal-alignment: right;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle { height: 12px; }
+                    Titulo { text: @tr("POSICIÓN"); }
+                    Rectangle {
+                        height: 34px;
+                        border-radius: 14px;
+                        background: Tema.capa;
+                        HorizontalLayout {
+                            padding: 3px;
+                            spacing: 2px;
+                            OpcionSegmento { texto: @tr("Arriba"); elegida: root.posicion == 0; clicked => { root.elegir-posicion(0); } }
+                            OpcionSegmento { texto: @tr("Izquierda"); elegida: root.posicion == 1; clicked => { root.elegir-posicion(1); } }
+                            OpcionSegmento { texto: @tr("Derecha"); elegida: root.posicion == 2; clicked => { root.elegir-posicion(2); } }
+                            // Abajo solo con la barra de tareas de Windows sustituida.
+                            if root.sustituir-barra-de-windows : OpcionSegmento { texto: @tr("Abajo"); elegida: root.posicion == 3; clicked => { root.elegir-posicion(3); } }
+                        }
+                    }
+
+                    // Cada idioma, con su nombre en ese idioma.
+                    Rectangle { height: 12px; }
+                    Titulo { text: @tr("IDIOMA"); }
+                    Rectangle {
+                        height: 34px;
+                        border-radius: 14px;
+                        background: Tema.capa;
+                        HorizontalLayout {
+                            padding: 3px;
+                            spacing: 2px;
+                            for nombre[i] in [@tr("Sistema"), "Español", "English", "日本語", "한국어"] : OpcionSegmento {
+                                texto: nombre;
+                                elegida: root.idioma == i;
+                                clicked => { root.elegir-idioma(i); }
+                            }
+                        }
+                    }
+                }
+
+                // Personaje: cómo se ve (se mueve como el de la barra), su figura y los
+                // accesorios, cada uno con su interruptor y, puesto, sus colores.
+                if root.seccion == 4 : VerticalLayout {
+                    spacing: 8px;
+
+                    Rectangle {
+                        height: root.lado-muestra + 10px;
+                        border-radius: 14px;
+                        background: Tema.capa;
+                        Image {
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                            width: root.lado-muestra;
+                            height: root.lado-muestra;
+                            source: root.personaje-muestra;
+                        }
+                    }
+                    VerticalLayout {
+                        Titulo { text: @tr("FIGURA"); }
+                        Rectangle {
+                            height: 34px;
+                            border-radius: 14px;
+                            background: Tema.capa;
+                            HorizontalLayout {
+                                padding: 3px;
+                                spacing: 2px;
+                                OpcionSegmento { texto: "Nook"; elegida: root.figura == 0; clicked => { root.elegir-figura(0); } }
+                                OpcionSegmento { texto: @tr("Limón"); elegida: root.figura == 1; clicked => { root.elegir-figura(1); } }
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        Titulo { text: @tr("ACCESORIOS"); }
+                        for a[i] in root.accesorios : VerticalLayout {
+                            FilaInterruptor {
+                                texto: a.nombre;
+                                activo: a.puesto;
+                                clicked => { root.alternar-accesorio(i); }
+                            }
+                            if a.puesto : HorizontalLayout {
+                                height: 30px;
+                                padding-top: 3px;
+                                padding-bottom: 3px;
+                                spacing: 4px;
+                                alignment: start;
+                                for c[j] in root.colores-accesorios : Muestra {
+                                    tono: c;
+                                    elegido: c == a.color;
+                                    clicked => { root.elegir-color-accesorio(i, c); }
+                                    menu => {
+                                        if (j >= root.colores-accesorios-base) {
+                                            root.menu-color-accesorio(j);
+                                        }
+                                    }
+                                }
+                                MuestraMas {
+                                    clicked => { root.agregar-color-accesorio(i); }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Música: dónde va el reproductor.
+                if root.seccion == 5 : VerticalLayout {
+                    Titulo { text: @tr("REPRODUCTOR"); }
+                    FilaInterruptor {
+                        texto: @tr("Reproductor en la barra");
+                        solo-pro: true;
+                        activo: root.reproductor-en-barra;
+                        clicked => { root.alternar-reproductor-en-barra(); }
+                    }
+                    if Tema.pro : Text {
+                        text: root.reproductor-en-barra
+                            ? @tr("Los controles se quedan en la barra mientras haya algo reproduciéndose")
+                            : @tr("Haz clic en el personaje mientras suena algo para abrir el reproductor");
+                        color: Tema.texto-tenue;
+                        font-size: 11px;
+                        wrap: word-wrap;
+                    }
+                    if Tema.pro : Rectangle { height: 12px; }
+                    if Tema.pro : Text {
+                        text: @tr("Funciona con Spotify, el navegador y cualquier app que salga en los controles multimedia de Windows.");
+                        color: Tema.texto-suave;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                }
+
+                // Acerca de: la versión (y si hay otra nueva) y los créditos: qué se usa de
+                // otros proyectos (los textos completos, en AVISOS_DE_TERCEROS.md).
+                if root.seccion == 6 : VerticalLayout {
+                    spacing: 10px;
+
+                    VerticalLayout {
+                        Titulo { text: @tr("ACERCA DE"); }
+                        Text {
+                            text: "Nook " + root.version;
+                            color: Tema.texto;
+                            font-size: 13px;
+                            font-weight: 700;
+                        }
+                    }
+
+                    if root.actualizacion != "" : Rectangle {
+                        height: 50px;
+                        border-radius: 14px;
+                        background: Tema.capa;
+
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 8px;
+                            spacing: 10px;
+
+                            VerticalLayout {
+                                horizontal-stretch: 1;
+                                alignment: center;
+                                spacing: 5px;
+
+                                Text {
+                                    text: root.actualizando ? @tr("Descargando {}… {} %", root.actualizacion, round(root.progreso-actualizacion * 100))
+                                        : root.error-actualizacion != "" ? @tr("No se pudo actualizar: {}", root.error-actualizacion)
+                                        : @tr("Hay una versión nueva: {}", root.actualizacion);
+                                    color: root.error-actualizacion != "" && !root.actualizando ? Tema.texto-suave : Tema.texto;
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    overflow: elide;
+                                }
+                                if root.actualizando : BarraProgreso { valor: root.progreso-actualizacion; }
+                            }
+                            if !root.actualizando : VerticalLayout {
+                                alignment: center;
+                                BotonTexto {
+                                    texto: root.error-actualizacion != "" ? @tr("Reintentar") : @tr("Actualizar");
+                                    peligro: true;
+                                    clicked => { root.actualizar(); }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        BotonTexto {
+                            texto: @tr("Ver licencias completas");
+                            clicked => { root.ver-licencias(); }
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 8px;
+                        Titulo { text: @tr("CRÉDITOS"); }
+                        Text {
+                            text: @tr("El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:");
+                            color: Tema.texto-suave;
+                            font-size: 12px;
+                            wrap: word-wrap;
+                        }
+                        for c in [
+                            { nombre: "bloub", autor: "Jérémy Perret", licencia: "MIT",
+                              uso: @tr("Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición.") },
+                            { nombre: "Slint", autor: "Slint Developers", licencia: "Royalty-free 2.0",
+                              uso: @tr("Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones.") },
+                            { nombre: "zeno", autor: "Chad Brokaw", licencia: "MIT",
+                              uso: @tr("El rasterizado de las formas del personaje.") },
+                            { nombre: "windows-rs", autor: "Microsoft", licencia: "MIT",
+                              uso: @tr("El acceso a Windows: ventanas, iconos, atajos, desenfoque, notificaciones y música.") },
+                            { nombre: @tr("serde y serde_json"), autor: @tr("Erick Tryzelaar y David Tolnay"), licencia: "MIT",
+                              uso: @tr("La lectura y el guardado de la configuración.") },
+                            { nombre: "chrono", autor: @tr("Kang Seonghoon y colaboradores"), licencia: "MIT",
+                              uso: @tr("La hora de la barra.") },
+                        ] : FilaCredito { credito: c; }
+                    }
+                }
+            }
+        }
+    }
+}

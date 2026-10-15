@@ -1,0 +1,34 @@
+[package]
+name = "nook"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.45"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-2", "renderer-software", "software-renderer-systemfonts", "software-renderer-path"] }
+windows = { version = "0.62.2", features = ["Foundation", "Foundation_Collections", "Graphics_Imaging", "Media", "Media_Control", "Storage_Streams", "System", "UI", "UI_Composition", "UI_Composition_Desktop", "Win32_Foundation", "Win32_Globalization", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Storage_FileSystem", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Console", "Win32_System_LibraryLoader", "Win32_System_Ole", "Win32_Security", "Win32_Security_Cryptography", "Win32_System_Registry", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_Variant", "Win32_System_WinRT", "Win32_System_WinRT_Composition", "Win32_UI_Accessibility", "Win32_UI_Controls", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_UI_Shell_PropertiesSystem", "Win32_Storage_Packaging_Appx", "Win32_UI_WindowsAndMessaging", "Web_Http", "Web_Http_Filters", "Web_Http_Headers"] }
+windows-core = "0.62.2"
+windows-numerics = "0.3.1"
+zeno = "0.3.3"
+
+[build-dependencies]
+slint-build = "1.18.1"
+
+# En modo debug (`cargo run`) también se optimiza: el dibujo es por software y, sin optimizar,
+# las animaciones van a tirones (sobre todo con transparencia, que mezcla cada píxel). Las
+# dependencias, que casi no se recompilan, al máximo; el código propio algo menos, para que
+# compile rápido.
+[profile.dev]
+opt-level = 2
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# Binario final más pequeño y rápido
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

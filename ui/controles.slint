@@ -1,0 +1,267 @@
+// Controles que se usan en varias partes: botones, campos de texto, teclas y el deslizador.
+
+import { Tema } from "tema.slint";
+
+// Botón cuadrado de la tira (configuración, grupos, apps sueltas y "+").
+export component Boton inherits Rectangle {
+    in property <bool> activo;
+    in property <bool> resaltado;
+    in property <color> fondo-activo: Tema.capa-fuerte;
+    in property <bool> fondo-encima: true;  // fondo al pasar el cursor por encima
+    // Se puede cambiar de sitio arrastrándolo a lo largo de la tira (`vertical`: la tira va de
+    // arriba abajo). Arrastrarlo hacia fuera de la tira sigue moviendo la barra.
+    in property <bool> reordenable;
+    in property <bool> vertical;
+    out property <bool> encima: area.has-hover;
+    // Dónde está el cursor dentro del botón, a lo largo de la tira.
+    out property <length> raton-a-lo-largo: root.vertical ? area.mouse-y : area.mouse-x;
+    callback clicked();
+    // El usuario pulsó y arrastró: quiere mover la barra, no hacer clic.
+    callback arrastrar();
+    // Clic derecho.
+    callback menu();
+    // Arrastrándolo para cambiarlo de sitio: cuánto se movió desde el último aviso, a lo largo
+    // de la tira; y al soltarlo.
+    callback reordenar(length);
+    callback soltar-reorden();
+    // Giro de la rueda del ratón con el cursor encima (positivo hacia delante). Devuelve si lo
+    // atendió: si no, Slint deja de considerar que el cursor está encima hasta que se mueva.
+    callback rueda(length) -> bool;
+    // Qué está haciendo el arrastre en curso: 0 nada aún, 1 cambiar de sitio, 2 mover la barra.
+    property <int> gesto;
+
+    width: 30px;
+    height: 30px;
+    border-radius: 11px;
+    background: root.activo ? root.fondo-activo : area.has-hover && root.fondo-encima ? Tema.capa-fuerte : transparent;
+    border-width: root.resaltado ? 2px : 0px;
+    border-color: Tema.acento;
+
+    area := TouchArea {
+        clicked => {
+            if (root.gesto != 1) {
+                root.clicked();
+            }
+        }
+        moved => {
+            // El botón se mueve con el cursor mientras se arrastra: lo que se mueve el cursor
+            // respecto al botón es lo que falta por avanzar.
+            let a-lo-largo = root.vertical ? self.mouse-y - self.pressed-y : self.mouse-x - self.pressed-x;
+            let hacia-fuera = root.vertical ? self.mouse-x - self.pressed-x : self.mouse-y - self.pressed-y;
+            if (root.gesto == 1) {
+                root.reordenar(a-lo-largo);
+            } else if (root.gesto == 0 && root.reordenable && abs(a-lo-largo) > 5px && abs(a-lo-largo) >= abs(hacia-fuera)) {
+                root.gesto = 1;
+                root.reordenar(a-lo-largo);
+            } else if (root.gesto == 0 && (abs(a-lo-largo) > 5px || abs(hacia-fuera) > 5px)) {
+                root.gesto = 2;
+                root.arrastrar();
+            }
+        }
+        pointer-event(evento) => {
+            if (evento.button == PointerEventButton.left && evento.kind == PointerEventKind.down) {
+                root.gesto = 0;
+            }
+            if (evento.button == PointerEventButton.left && evento.kind == PointerEventKind.up && root.gesto == 1) {
+                root.soltar-reorden();
+            }
+            if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up) {
+                root.menu();
+            }
+        }
+        scroll-event(evento) => {
+            if (root.rueda(evento.delta-y)) {
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    @children
+}
+
+// Botón con texto (Eliminar, Listo...).
+export component BotonTexto inherits Rectangle {
+    in property <string> texto;
+    in property <bool> peligro;
+    callback clicked();
+
+    min-width: etiqueta.preferred-width + 24px;
+    height: 30px;
+    border-radius: 11px;
+    background: root.peligro ? Tema.acento : area.has-hover ? Tema.capa-fuerte : Tema.capa;
+
+    etiqueta := Text {
+        text: root.texto;
+        color: root.peligro ? Tema.sobre-acento : Tema.texto;
+        font-size: 12px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Campo de texto de una línea (el nombre del grupo).
+export component CampoTexto inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    callback edited(string);
+    callback accepted();
+
+    height: 30px;
+    border-radius: 11px;
+    background: Tema.capa;
+    border-width: 1px;
+    border-color: entrada.has-focus ? Tema.acento : Tema.linea;
+
+    Text {
+        visible: root.text == "";
+        x: 10px;
+        text: root.placeholder;
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        x: 10px;
+        width: parent.width - 20px;
+        height: parent.height;
+        clip: true;
+
+        entrada := TextInput {
+            // Cuánto se ha corrido el texto hacia la izquierda para seguir al cursor.
+            property <length> corrido;
+            x: min(0px, max(parent.width - self.width - self.text-cursor-width, self.corrido));
+            width: max(parent.width - self.text-cursor-width, self.preferred-width);
+            height: parent.height;
+            text <=> root.text;
+            color: Tema.texto;
+            font-size: 12px;
+            vertical-alignment: center;
+            single-line: true;
+            selection-background-color: Tema.acento;
+            selection-foreground-color: Tema.sobre-acento;
+            edited => { root.edited(self.text); }
+            accepted => { root.accepted(); }
+            cursor-position-changed(cursor) => {
+                if (cursor.x + self.corrido < 0px) {
+                    self.corrido = -cursor.x;
+                } else if (cursor.x + self.corrido > parent.width - self.text-cursor-width) {
+                    self.corrido = parent.width - cursor.x - self.text-cursor-width;
+                }
+            }
+        }
+    }
+}
+
+// Tecla dibujada como una pequeña pieza (para mostrar atajos).
+export component Tecla inherits Rectangle {
+    in property <string> texto;
+    // Marcada (grabando un atajo o con un atajo que otro programa ya usa): en color de acento.
+    in property <bool> marcada;
+
+    width: etiqueta.preferred-width + 10px;
+    height: 18px;
+    border-radius: 5px;
+    background: root.marcada ? Tema.acento : Tema.capa-fuerte;
+
+    etiqueta := Text {
+        text: root.texto;
+        color: root.marcada ? Tema.sobre-acento : Tema.texto;
+        font-size: 10px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Pista de teclado del pie del panel: [tecla] acción.
+export component Pista inherits HorizontalLayout {
+    in property <string> tecla;
+    in property <string> texto;
+    spacing: 5px;
+    alignment: start;
+
+    VerticalLayout {
+        alignment: center;
+        Tecla { texto: root.tecla; }
+    }
+
+    Text {
+        text: root.texto;
+        color: Tema.texto-tenue;
+        font-size: 11px;
+        vertical-alignment: center;
+    }
+}
+
+export component Titulo inherits Text {
+    color: Tema.texto-tenue;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    height: 24px;
+    vertical-alignment: top;
+}
+
+// Barra deslizante para elegir un valor entre `minimo` y `maximo`.
+export component Deslizador inherits Rectangle {
+    in property <float> minimo;
+    in property <float> maximo: 1;
+    in property <float> valor;
+    callback cambiado(float);
+    callback soltado();
+    property <float> parte: (root.valor - root.minimo) / (root.maximo - root.minimo);
+
+    height: 20px;
+
+    function mover(x: length) {
+        root.cambiado(root.minimo + max(0, min(1, x / root.width)) * (root.maximo - root.minimo));
+    }
+
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        width: parent.width;
+        height: 4px;
+        border-radius: 2px;
+        background: Tema.capa-fuerte;
+    }
+
+    Rectangle {
+        x: 0px;
+        y: (parent.height - self.height) / 2;
+        width: root.parte * parent.width;
+        height: 4px;
+        border-radius: 2px;
+        background: Tema.acento;
+    }
+
+    Rectangle {
+        x: root.parte * (parent.width - self.width);
+        y: (parent.height - self.height) / 2;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: #FFFFFF;
+        border-width: 1px;
+        border-color: Tema.linea;
+    }
+
+    TouchArea {
+        pointer-event(evento) => {
+            if (evento.button == PointerEventButton.left) {
+                if (evento.kind == PointerEventKind.down) {
+                    root.mover(self.mouse-x);
+                } else if (evento.kind == PointerEventKind.up) {
+                    root.soltado();
+                }
+            }
+        }
+        moved => { root.mover(self.mouse-x); }
+    }
+}

@@ -1,0 +1,253 @@
+// Grupo abierto: cuadrícula de apps y, al pie, las pistas de teclado o (editándolo) su nombre.
+
+import { Tema, AppItem } from "tema.slint";
+import { IconoApp, IconoX, IconoMas } from "iconos.slint";
+import { BotonTexto, CampoTexto, Pista } from "controles.slint";
+
+export component PanelGrupo inherits Rectangle {
+    in property <[AppItem]> apps;
+    in-out property <bool> editando;
+    in-out property <string> nombre-grupo;
+    callback lanzar(int);
+    callback quitar-app(int);
+    callback usar-como-icono(int);
+    callback agregar-apps();
+    callback renombrar(string);
+    callback eliminar-grupo();
+    in property <int> columnas;
+    in property <length> celda-ancho;
+    in property <length> celda-alto;
+    in property <length> hueco;
+    in property <length> margen;
+    in property <length> pie;
+    // Dónde empieza el grupo en la caja y su ancho (el nombre de la app no se sale de ella).
+    in property <length> desde-x;
+    in property <length> ancho-caja;
+    // Pulsar "Listo" o Intro en el nombre: deja de editar y la barra recupera el foco.
+    callback listo();
+
+    // App bajo el cursor (se muestra su nombre).
+    property <int> app-encima: -1;
+
+    pure function celda-x(i: int) -> length {
+        return root.margen + mod(i, root.columnas) * (root.celda-ancho + root.hueco);
+    }
+    pure function celda-y(i: int) -> length {
+        return 14px + floor(i / root.columnas) * (root.celda-alto + root.hueco);
+    }
+
+    if root.apps.length == 0 && !root.editando : Text {
+        x: root.margen;
+        y: 14px;
+        width: root.width - 2 * root.margen;
+        height: root.celda-alto;
+        text: @tr("Arrastra aquí una app o pulsa E para editar");
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    for app[i] in root.apps : Rectangle {
+        x: root.celda-x(i);
+        y: root.celda-y(i);
+        width: root.celda-ancho;
+        height: root.celda-alto;
+        border-radius: 18px;
+        background: zona.has-hover ? Tema.capa : transparent;
+        border-width: root.editando && app.es-icono-grupo ? 2px : 0px;
+        border-color: Tema.acento;
+
+        zona := TouchArea {
+            clicked => {
+                if (root.editando) {
+                    root.usar-como-icono(i);
+                } else {
+                    root.lanzar(i);
+                }
+            }
+            changed has-hover => {
+                if (self.has-hover) {
+                    root.app-encima = i;
+                } else if (root.app-encima == i) {
+                    root.app-encima = -1;
+                }
+            }
+        }
+
+        IconoApp {
+            x: (root.celda-ancho - 40px) / 2;
+            y: (root.celda-alto - 40px) / 2;
+            width: 40px;
+            height: 40px;
+            icono: app.icono;
+            tiene-icono: app.tiene-icono;
+            inicial: app.inicial;
+        }
+
+        // Número con el que se abre desde el teclado.
+        Rectangle {
+            visible: i < 9 && !root.editando;
+            x: root.celda-ancho - 19px;
+            y: 4px;
+            width: 15px;
+            height: 15px;
+            border-radius: 5px;
+            background: Tema.capa-fuerte;
+            Text {
+                text: i + 1;
+                color: Tema.texto-suave;
+                font-size: 10px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        // Quitar del grupo (modo edición).
+        Rectangle {
+            visible: root.editando;
+            x: root.celda-ancho - 20px;
+            y: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            background: quitar.has-hover ? Tema.acento : Tema.capa-fuerte;
+            IconoX {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                color: quitar.has-hover ? Tema.sobre-acento : Tema.texto;
+            }
+            quitar := TouchArea {
+                clicked => { root.quitar-app(i); }
+            }
+        }
+    }
+
+    // Añadir apps (modo edición).
+    Rectangle {
+        visible: root.editando;
+        x: root.celda-x(root.apps.length) + 6px;
+        y: root.celda-y(root.apps.length) + 6px;
+        width: root.celda-ancho - 12px;
+        height: root.celda-alto - 12px;
+        border-radius: 16px;
+        border-width: 1px;
+        border-color: agregar.has-hover ? Tema.acento : Tema.linea;
+        background: agregar.has-hover ? Tema.capa : transparent;
+        IconoMas {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            color: agregar.has-hover ? Tema.acento : Tema.texto-suave;
+        }
+        agregar := TouchArea {
+            clicked => { root.agregar-apps(); }
+        }
+    }
+
+    // Pie normal: pistas de teclado y nombre del grupo.
+    Rectangle {
+        visible: !root.editando;
+        x: 0px;
+        y: root.height - root.pie;
+        width: root.width;
+        height: root.pie;
+
+        Rectangle {
+            x: 16px;
+            y: 0px;
+            width: parent.width - 32px;
+            height: 1px;
+            background: Tema.linea;
+        }
+
+        HorizontalLayout {
+            padding-left: 18px;
+            padding-right: 18px;
+            spacing: 14px;
+
+            Pista { tecla: "1–9"; texto: @tr("abrir"); }
+            Pista { tecla: "Tab"; texto: @tr("grupo"); }
+            Rectangle {
+                Pista { tecla: "E"; texto: @tr("editar"); }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.editando = true;
+                    }
+                }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Text {
+                text: root.nombre-grupo;
+                color: Tema.texto-suave;
+                font-size: 11px;
+                font-weight: 700;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+
+    // Pie en modo edición: nombre del grupo, eliminar y terminar.
+    Rectangle {
+        visible: root.editando;
+        x: 0px;
+        y: root.height - root.pie;
+        width: root.width;
+        height: root.pie;
+
+        HorizontalLayout {
+            padding: 10px;
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 8px;
+
+            CampoTexto {
+                text <=> root.nombre-grupo;
+                placeholder: @tr("Nombre del grupo");
+                horizontal-stretch: 1;
+                edited(texto) => { root.renombrar(texto); }
+                accepted => {
+                    root.editando = false;
+                    root.listo();
+                }
+            }
+            BotonTexto {
+                texto: @tr("Eliminar");
+                peligro: true;
+                clicked => { root.eliminar-grupo(); }
+            }
+            BotonTexto {
+                texto: @tr("Listo");
+                clicked => {
+                    root.editando = false;
+                    root.listo();
+                }
+            }
+        }
+    }
+
+    // Nombre de la app bajo el cursor.
+    Rectangle {
+        property <int> i: root.app-encima;
+        visible: !root.editando && i >= 0 && i < root.apps.length;
+        x: max(4px - root.desde-x, min(root.ancho-caja - root.desde-x - self.width - 4px, root.celda-x(i) + (root.celda-ancho - self.width) / 2));
+        y: root.celda-y(i) + root.celda-alto - 2px;
+        width: nombre-app.preferred-width + 16px;
+        height: 22px;
+        border-radius: 9px;
+        background: Tema.texto;
+
+        nombre-app := Text {
+            text: root.apps[i].nombre;
+            color: Tema.fondo;
+            font-size: 11px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}

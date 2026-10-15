@@ -1,0 +1,27 @@
+#!/bin/sh
+# Que nada de nook Pro se suba al repositorio público (fate-9x/nook): ni src/pro/ ni un commit de
+# la rama pro. Se comprueban todos los commits que se van a subir. Ver AGENTS.md.
+remoto="$1"
+url="$2"
+case "$url" in
+    *fate-9x/nook-pro*) exit 0 ;;
+    *fate-9x/nook.git|*fate-9x/nook) ;;
+    *) exit 0 ;;
+esac
+cero=0000000000000000000000000000000000000000
+while read -r ref_local sha_local ref_remoto sha_remoto; do
+    [ "$sha_local" = "$cero" ] && continue
+    if [ "$sha_remoto" = "$cero" ]; then
+        commits=$(git rev-list "$sha_local" --not --remotes="$remoto")
+    else
+        commits=$(git rev-list "$sha_remoto..$sha_local")
+    fi
+    for commit in $commits; do
+        if [ -n "$(git ls-tree -r --name-only "$commit" -- src/pro)" ]; then
+            echo "error: $ref_local lleva código de nook Pro (src/pro/ en $commit) y $remoto es el repositorio público." >&2
+            echo "La rama pro se sube solo al repositorio privado: git push pro pro:main" >&2
+            exit 1
+        fi
+    done
+done
+exit 0

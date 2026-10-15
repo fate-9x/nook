@@ -1,0 +1,170 @@
+// Buscador de aplicaciones instaladas (botón "+", para añadirlas, o lupa, para abrirlas): el
+// campo y, debajo, los resultados.
+
+import { Tema, AppItem } from "tema.slint";
+import { IconoApp, IconoLupa } from "iconos.slint";
+import { Pista } from "controles.slint";
+
+export component PanelBuscador inherits Rectangle {
+    in property <[AppItem]> resultados;
+    in property <string> lugar-busqueda;
+    in property <bool> para-abrir;
+    in property <length> fila-busqueda;
+    in-out property <int> seleccion;
+    in-out property <string> texto-busqueda;
+    callback buscar(string);
+    callback elegir-resultado(int);
+    callback salir-del-buscador();
+
+    // Da el foco del teclado al campo de búsqueda.
+    public function enfocar() {
+        entrada-busqueda.focus();
+    }
+
+
+    // Campo de búsqueda.
+    Rectangle {
+        x: 16px;
+        y: 14px;
+        width: parent.width - 32px;
+        height: 36px;
+        border-radius: 14px;
+        background: Tema.capa;
+        border-width: 1px;
+        // Del color de acento cuando se puede escribir en él; si no, apagado.
+        border-color: entrada-busqueda.has-focus ? Tema.acento : Tema.linea;
+
+        IconoLupa {
+            x: 12px;
+            y: (parent.height - self.height) / 2;
+            color: Tema.texto-suave;
+        }
+
+        Text {
+            visible: root.texto-busqueda == "";
+            x: 36px;
+            width: parent.width - 48px;
+            height: parent.height;
+            text: root.lugar-busqueda;
+            color: Tema.texto-tenue;
+            font-size: 13px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // Las flechas, Intro y Esc se atienden antes de que lleguen al campo de texto.
+        FocusScope {
+            x: 36px;
+            width: parent.width - 48px;
+            height: parent.height;
+            capture-key-pressed(evento) => {
+                if (evento.text == Key.UpArrow) {
+                    root.seleccion = max(0, root.seleccion - 1);
+                    return accept;
+                }
+                if (evento.text == Key.DownArrow) {
+                    root.seleccion = min(root.resultados.length - 1, root.seleccion + 1);
+                    return accept;
+                }
+                if (evento.text == Key.Return) {
+                    root.elegir-resultado(root.seleccion);
+                    return accept;
+                }
+                if (evento.text == Key.Escape) {
+                    root.salir-del-buscador();
+                    return accept;
+                }
+                return reject;
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: parent.height;
+                clip: true;
+
+                entrada-busqueda := TextInput {
+                    // Cuánto se ha corrido el texto hacia la izquierda para seguir al cursor.
+                    property <length> corrido;
+                    x: min(0px, max(parent.width - self.width - self.text-cursor-width, self.corrido));
+                    width: max(parent.width - self.text-cursor-width, self.preferred-width);
+                    height: parent.height;
+                    text <=> root.texto-busqueda;
+                    color: Tema.texto;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                    single-line: true;
+                    selection-background-color: Tema.acento;
+                    selection-foreground-color: Tema.sobre-acento;
+                    edited => { root.buscar(self.text); }
+                    cursor-position-changed(cursor) => {
+                        if (cursor.x + self.corrido < 0px) {
+                            self.corrido = -cursor.x;
+                        } else if (cursor.x + self.corrido > parent.width - self.text-cursor-width) {
+                            self.corrido = parent.width - cursor.x - self.text-cursor-width;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if root.resultados.length == 0 : Text {
+        x: 16px;
+        y: 14px + 36px + 8px;
+        width: parent.width - 32px;
+        height: root.fila-busqueda * 2;
+        text: @tr("No se encontró ninguna aplicación");
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    for r[i] in root.resultados : Rectangle {
+        x: 10px;
+        y: 14px + 36px + 8px + i * root.fila-busqueda;
+        width: parent.width - 20px;
+        height: root.fila-busqueda - 2px;
+        border-radius: 11px;
+        background: i == root.seleccion ? Tema.capa-fuerte : transparent;
+
+        TouchArea {
+            clicked => { root.elegir-resultado(i); }
+            changed has-hover => {
+                if (self.has-hover) {
+                    root.seleccion = i;
+                }
+            }
+        }
+
+        IconoApp {
+            x: 10px;
+            y: (parent.height - self.height) / 2;
+            width: 26px;
+            height: 26px;
+            icono: r.icono;
+            tiene-icono: r.tiene-icono;
+            inicial: r.inicial;
+        }
+
+        Text {
+            x: 46px;
+            width: parent.width - 46px - 90px;
+            height: parent.height;
+            text: r.nombre;
+            color: Tema.texto;
+            font-size: 13px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // Pista: Intro añade (o abre) el resultado marcado.
+        Pista {
+            visible: i == root.seleccion;
+            x: parent.width - self.preferred-width - 10px;
+            height: parent.height;
+            tecla: @tr("Intro");
+            texto: root.para-abrir ? @tr("abrir") : @tr("añadir");
+        }
+    }
+}

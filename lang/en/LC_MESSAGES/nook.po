@@ -1,0 +1,544 @@
+# Traducción de nook al inglés (English).
+# El texto original (msgid) es el español del código; ver src/idioma.rs.
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# ---- Interfaz (ui/barra.slint) ----
+
+msgid "Escribe o pega un texto y pulsa Intro para guardarlo"
+msgstr "Type or paste a text and press Enter to save it"
+
+msgid "Arrastra aquí una app o pulsa E para editar"
+msgstr "Drag an app here or press E to edit"
+
+msgid "abrir"
+msgstr "open"
+
+msgid "grupo"
+msgstr "group"
+
+msgid "editar"
+msgstr "edit"
+
+msgid "Nombre del grupo"
+msgstr "Group name"
+
+msgid "Eliminar"
+msgstr "Delete"
+
+msgid "Listo"
+msgstr "Done"
+
+msgid "Atajos"
+msgstr "Shortcuts"
+
+msgid "Comportamiento"
+msgstr "Behavior"
+
+msgid "Colores"
+msgstr "Colors"
+
+msgid "Apariencia"
+msgstr "Appearance"
+
+msgid "Personaje"
+msgstr "Character"
+
+msgid "Acerca de"
+msgstr "About"
+
+msgid "Cerrar aplicación"
+msgstr "Quit app"
+
+msgid "ATAJOS"
+msgstr "SHORTCUTS"
+
+msgid "Pulsa una combinación…"
+msgstr "Press a key combination…"
+
+msgid "Mostrar u ocultar"
+msgstr "Show or hide"
+
+msgid "Bóveda de textos"
+msgstr "Text vault"
+
+msgid "COMPORTAMIENTO"
+msgstr "BEHAVIOR"
+
+msgid "Ocultar en reposo"
+msgstr "Hide when idle"
+
+msgid "Iniciar con Windows"
+msgstr "Start with Windows"
+
+msgid "Mostrar la hora"
+msgstr "Show the time"
+
+msgid "Animaciones"
+msgstr "Animations"
+
+msgid "CUENTA"
+msgstr "ACCOUNT"
+
+msgid "Conectada como {}"
+msgstr "Signed in as {}"
+
+msgid "Código: {}"
+msgstr "Code: {}"
+
+msgid "Conectando con GitHub…"
+msgstr "Connecting to GitHub…"
+
+msgid "Sincronizar la bóveda"
+msgstr "Sync the vault"
+
+msgid "No se pudo: {}"
+msgstr "Failed: {}"
+
+msgid "Se guarda en un Gist secreto de tu GitHub"
+msgstr "Saved in a secret Gist on your GitHub"
+
+msgid "Ya está copiado: pégalo en GitHub"
+msgstr "Already copied: paste it on GitHub"
+
+msgid "Pidiendo un código a GitHub"
+msgstr "Requesting a code from GitHub"
+
+msgid "Úsala en varios PCs con tu GitHub"
+msgstr "Use it on several PCs with your GitHub"
+
+msgid "Desconectar"
+msgstr "Disconnect"
+
+msgid "Conectar"
+msgstr "Connect"
+
+msgid "Cancelar"
+msgstr "Cancel"
+
+msgid "COLORES"
+msgstr "COLORS"
+
+msgid "Fondo"
+msgstr "Background"
+
+msgid "Acento"
+msgstr "Accent"
+
+msgid "Presets"
+msgstr "Presets"
+
+msgid "APARIENCIA"
+msgstr "APPEARANCE"
+
+msgid "Transparencia"
+msgstr "Transparency"
+
+msgid "Opacidad"
+msgstr "Opacity"
+
+msgid "Tamaño"
+msgstr "Size"
+
+msgid "POSICIÓN"
+msgstr "POSITION"
+
+msgid "Arriba"
+msgstr "Top"
+
+msgid "Abajo"
+msgstr "Bottom"
+
+msgid "Izquierda"
+msgstr "Left"
+
+msgid "Derecha"
+msgstr "Right"
+
+msgid "IDIOMA"
+msgstr "LANGUAGE"
+
+msgid "Sistema"
+msgstr "System"
+
+msgid "FIGURA"
+msgstr "FIGURE"
+
+msgid "Limón"
+msgstr "Lemon"
+
+msgid "ACCESORIOS"
+msgstr "ACCESSORIES"
+
+msgid "ACERCA DE"
+msgstr "ABOUT"
+
+msgid "Descargando {}… {} %"
+msgstr "Downloading {}… {} %"
+
+msgid "No se pudo actualizar: {}"
+msgstr "Couldn't update: {}"
+
+msgid "Hay una versión nueva: {}"
+msgstr "A new version is available: {}"
+
+msgid "Reintentar"
+msgstr "Retry"
+
+msgid "Actualizar"
+msgstr "Update"
+
+msgid "Ver licencias completas"
+msgstr "View full licenses"
+
+msgid "CRÉDITOS"
+msgstr "CREDITS"
+
+msgid "El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:"
+msgstr "The bar's character is original. It is drawn and animated with a technique from another project, and the bar relies on these libraries:"
+
+msgid "Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
+msgstr "Technique for drawing and animating the character: the silhouette as an interpolated radial profile, the eyes painted on a sphere, the drifting gaze, the blinks and the transition curves."
+
+msgid "Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones."
+msgstr "Made with Slint (slint.dev): the bar's layout, drawing and animations."
+
+msgid "El rasterizado de las formas del personaje."
+msgstr "Rasterizing the character's shapes."
+
+msgid "El acceso a Windows: ventanas, iconos, atajos, desenfoque, notificaciones y música."
+msgstr "Access to Windows: windows, icons, shortcuts, blur, notifications and music."
+
+msgid "La lectura y el guardado de la configuración."
+msgstr "Reading and saving the settings."
+
+msgid "La hora de la barra."
+msgstr "The bar's clock."
+
+msgid "serde y serde_json"
+msgstr "serde and serde_json"
+
+msgid "Erick Tryzelaar y David Tolnay"
+msgstr "Erick Tryzelaar and David Tolnay"
+
+msgid "Kang Seonghoon y colaboradores"
+msgstr "Kang Seonghoon and contributors"
+
+msgid "La bóveda está vacía.\nGuarda aquí los textos que copias a menudo."
+msgstr "The vault is empty.\nSave here the texts you copy often."
+
+msgid "No se encontró ninguna aplicación"
+msgstr "No apps found"
+
+msgid "Intro"
+msgstr "Enter"
+
+msgid "añadir"
+msgstr "add"
+
+msgid "Añadir"
+msgstr "Add"
+
+msgid "No se está reproduciendo nada"
+msgstr "Nothing is playing"
+
+msgid "Sin título"
+msgstr "Untitled"
+
+msgid "No se puede cambiar el volumen de esta app"
+msgstr "This app's volume can't be changed"
+
+msgid "Música"
+msgstr "Music"
+
+msgid "REPRODUCTOR"
+msgstr "PLAYER"
+
+msgid "Reproductor en la barra"
+msgstr "Player in the bar"
+
+msgid "Los controles se quedan en la barra mientras haya algo reproduciéndose"
+msgstr "The controls stay in the bar while something is playing"
+
+msgid "Haz clic en el personaje mientras suena algo para abrir el reproductor"
+msgstr "Click the character while something is playing to open the player"
+
+msgid "Funciona con Spotify, el navegador y cualquier app que salga en los controles multimedia de Windows."
+msgstr "Works with Spotify, your browser and any app that shows up in the Windows media controls."
+
+# ---- Menús y mensajes (src/) ----
+
+msgid "Escribe o pega un texto para guardarlo en este grupo"
+msgstr "Type or paste a text to save it in this group"
+
+msgid "Nueva etiqueta (ahora «{}»)"
+msgstr "New label (now “{}”)"
+
+msgid "Etiqueta para el texto"
+msgstr "Label for the text"
+
+msgid "Nuevo nombre (ahora «{}»)"
+msgstr "New name (now “{}”)"
+
+msgid "Abrir"
+msgstr "Open"
+
+msgid "Cambiar nombre…"
+msgstr "Rename…"
+
+msgid "Deshacer grupo"
+msgstr "Ungroup"
+
+msgid "Eliminar grupo y sus textos"
+msgstr "Delete group and its texts"
+
+msgid "Copiar"
+msgstr "Copy"
+
+msgid "Cambiar etiqueta…"
+msgstr "Change label…"
+
+msgid "Poner etiqueta…"
+msgstr "Add label…"
+
+msgid "Quitar etiqueta"
+msgstr "Remove label"
+
+msgid "Sacar del grupo"
+msgstr "Remove from group"
+
+msgid "Nuevo grupo"
+msgstr "New group"
+
+msgid "Grupo nuevo"
+msgstr "New group"
+
+msgid "Busca una aplicación para la barra"
+msgstr "Search for an app for the bar"
+
+msgid "Busca una aplicación para abrirla"
+msgstr "Search for an app to open"
+
+msgid "Busca una aplicación para «{}»"
+msgstr "Search for an app for “{}”"
+
+msgid "Añadir aplicación…"
+msgstr "Add app…"
+
+msgid "Editar grupo"
+msgstr "Edit group"
+
+msgid "Eliminar grupo"
+msgstr "Delete group"
+
+msgid "Quitar de la barra"
+msgstr "Remove from bar"
+
+msgid "NUEVO COLOR DE ACENTO"
+msgstr "NEW ACCENT COLOR"
+
+msgid "NUEVO COLOR DE FONDO"
+msgstr "NEW BACKGROUND COLOR"
+
+msgid "ACENTO DEL PRESET"
+msgstr "PRESET ACCENT"
+
+msgid "FONDO DEL PRESET"
+msgstr "PRESET BACKGROUND"
+
+msgid "COLOR DE {}"
+msgstr "{} COLOR"
+
+msgid "Quitar color"
+msgstr "Remove color"
+
+msgid "Aplicar"
+msgstr "Apply"
+
+msgid "Cambiar el fondo…"
+msgstr "Change background…"
+
+msgid "Cambiar el acento…"
+msgstr "Change accent…"
+
+msgid "Guardar aquí los colores actuales"
+msgstr "Save the current colors here"
+
+msgid "Eliminar preset"
+msgstr "Delete preset"
+
+msgid "Configuración"
+msgstr "Settings"
+
+msgid "Sin atajo"
+msgstr "No shortcut"
+
+msgid "Espacio"
+msgstr "Space"
+
+msgid "Audífonos"
+msgstr "Headphones"
+
+msgid "Corona"
+msgstr "Crown"
+
+msgid "Gorro de lana"
+msgstr "Beanie"
+
+msgid "Cuernos"
+msgstr "Horns"
+
+msgid "Gafas de sol"
+msgstr "Sunglasses"
+
+msgid "Monóculo"
+msgstr "Monocle"
+
+msgid "Antifaz"
+msgstr "Domino mask"
+
+msgid "Mascarilla"
+msgstr "Face mask"
+
+msgid "Corbatín"
+msgstr "Bow tie"
+
+msgid "Capa de vampiro"
+msgstr "Vampire cape"
+
+msgid "Explorador"
+msgstr "File Explorer"
+
+msgid "Bloc de notas"
+msgstr "Notepad"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "Tareas"
+msgstr "Task Manager"
+
+msgid "no se pudo descargar: {}"
+msgstr "couldn't download: {}"
+
+msgid "lo descargado no es un ejecutable"
+msgstr "the download isn't an executable"
+
+msgid "no se pudo guardar: {}"
+msgstr "couldn't save: {}"
+
+msgid "no se pudo apartar la versión actual: {}"
+msgstr "couldn't move the current version aside: {}"
+
+msgid "no se pudo colocar la versión nueva: {}"
+msgstr "couldn't put the new version in place: {}"
+
+msgid "no se pudo abrir la versión nueva: {}"
+msgstr "couldn't open the new version: {}"
+
+msgid "GitHub ya no da permiso"
+msgstr "GitHub no longer grants permission"
+
+msgid "no se encontró en GitHub"
+msgstr "not found on GitHub"
+
+msgid "falta el identificador de la app de GitHub"
+msgstr "the GitHub app ID is missing"
+
+msgid "no se pudo leer la cuenta: {}"
+msgstr "couldn't read the account: {}"
+
+msgid "no se pudo hablar con GitHub: {}"
+msgstr "couldn't reach GitHub: {}"
+
+msgid "GitHub no dio ningún código"
+msgstr "GitHub didn't give a code"
+
+msgid "el código caducó"
+msgstr "the code expired"
+
+msgid "se rechazó el permiso en GitHub"
+msgstr "permission was denied on GitHub"
+
+msgid "GitHub no dio permiso"
+msgstr "GitHub didn't grant permission"
+
+msgid "GitHub retiró el permiso: vuelve a conectar la cuenta"
+msgstr "GitHub revoked the permission: reconnect the account"
+
+msgid "no se pudo bajar la bóveda"
+msgstr "couldn't download the vault"
+
+msgid "no se pudo subir la bóveda"
+msgstr "couldn't upload the vault"
+
+msgid "el Gist no tiene dirección"
+msgstr "the Gist has no URL"
+
+msgid "GitHub no devolvió el Gist creado"
+msgstr "GitHub didn't return the created Gist"
+
+msgid "GitHub respondió {}"
+msgstr "GitHub replied {}"
+
+msgid "Botón de sonido"
+msgstr "Sound button"
+
+msgid "No hay ninguna salida de audio"
+msgstr "There is no audio output"
+
+msgid "Salida de audio"
+msgstr "Audio output"
+
+msgid "Ocultar con juegos y apps a pantalla completa"
+msgstr "Hide during full-screen games and apps"
+
+msgid "Abrir otra ventana"
+msgstr "Open another window"
+
+msgid "Fijar en la barra"
+msgstr "Pin to the bar"
+
+msgid "Cerrar todas las ventanas"
+msgstr "Close all windows"
+
+msgid "Cerrar ventana"
+msgstr "Close window"
+
+msgid "Mostrar las apps abiertas"
+msgstr "Show open apps"
+
+msgid "Botón del micrófono"
+msgstr "Microphone button"
+
+msgid "Botón para buscar y abrir aplicaciones"
+msgstr "Button to search and open apps"
+
+msgid "Silenciar el micrófono"
+msgstr "Mute the microphone"
+
+msgid "Buscar y abrir una aplicación"
+msgstr "Search and open an app"
+
+msgid "Sustituir la barra de tareas de Windows"
+msgstr "Replace the Windows taskbar"
+
+msgid "La tecla Windows abre el buscador de Nook"
+msgstr "The Windows key opens Nook's search"
+
+msgid "Pide permisos de administrador"
+msgstr "Asks for administrator permissions"
+
+msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
+msgstr "Windows doesn't let a program see the keys pressed in programs opened as administrator. For that, Nook sets up a small helper: a copy of Nook in the “Nook Ayudante” folder in Program Files, which a scheduled task opens with administrator permissions. It only watches the Windows key and tells Nook; it closes when Nook closes and is removed when you uninstall it. Windows asks for permission only once, when you turn the option on. If you don't give it, the option works the same except with those programs."
+
+
+
+
+msgid "Disponible en nook Pro"
+msgstr "Available in nook Pro"

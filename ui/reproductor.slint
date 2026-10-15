@@ -1,0 +1,169 @@
+// Reproductor de lo que suena: la portada a la izquierda, con el título y los botones a su lado,
+// y el volumen debajo.
+
+import { Tema } from "tema.slint";
+import { IconoMusica, IconoNota, IconoVolumen } from "iconos.slint";
+import { Boton, Deslizador } from "controles.slint";
+
+export component PanelReproductor inherits Rectangle {
+    in property <bool> hay-musica;
+    in property <bool> reproduciendo;
+    in property <string> cancion;
+    in property <string> artista;
+    in property <image> portada;
+    in property <bool> tiene-portada;
+    in property <bool> puede-anterior;
+    in property <bool> puede-siguiente;
+    in property <bool> hay-volumen;
+    in property <length> lado-portada;
+    in-out property <float> volumen;
+    callback orden-musica(int);
+    callback elegir-volumen(float);
+
+
+    if !root.hay-musica : Text {
+        x: 16px;
+        width: parent.width - 32px;
+        height: parent.height;
+        text: @tr("No se está reproduciendo nada");
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    if root.hay-musica : Rectangle {
+        property <length> texto-x: 16px + root.lado-portada + 14px;
+
+        // Portada (Rust ya la da con las esquinas redondeadas).
+        Rectangle {
+            x: 16px;
+            y: 16px;
+            width: root.lado-portada;
+            height: root.lado-portada;
+            border-radius: root.lado-portada * 0.2;
+            background: root.tiene-portada ? transparent : Tema.capa;
+            if root.tiene-portada : Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.portada;
+            }
+            if !root.tiene-portada : IconoNota {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 26px;
+                height: 26px;
+                tono: Tema.texto-tenue;
+            }
+        }
+
+        Text {
+            x: parent.texto-x;
+            y: 18px;
+            width: parent.width - self.x - 16px;
+            height: 18px;
+            text: root.cancion != "" ? root.cancion : @tr("Sin título");
+            color: Tema.texto;
+            font-size: 13px;
+            font-weight: 700;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Text {
+            x: parent.texto-x;
+            y: 37px;
+            width: parent.width - self.x - 16px;
+            height: 16px;
+            text: root.artista;
+            color: Tema.texto-suave;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // Anterior, pausa o reproducir (resaltado) y siguiente.
+        HorizontalLayout {
+            x: parent.texto-x;
+            y: 16px + root.lado-portada - 30px;
+            height: 30px;
+            spacing: 6px;
+            alignment: start;
+
+            Boton {
+                opacity: root.puede-anterior ? 1 : 0.4;
+                clicked => { root.orden-musica(0); }
+                IconoMusica {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    tipo: 0;
+                    color: Tema.texto;
+                }
+            }
+            Boton {
+                activo: true;
+                fondo-activo: Tema.acento;
+                clicked => { root.orden-musica(1); }
+                IconoMusica {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    tipo: root.reproduciendo ? 2 : 1;
+                    color: Tema.sobre-acento;
+                }
+            }
+            Boton {
+                opacity: root.puede-siguiente ? 1 : 0.4;
+                clicked => { root.orden-musica(2); }
+                IconoMusica {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    tipo: 3;
+                    color: Tema.texto;
+                }
+            }
+        }
+
+        // Volumen de la app.
+        HorizontalLayout {
+            x: 16px;
+            y: 16px + root.lado-portada + 12px;
+            width: parent.width - 32px;
+            height: 30px;
+            spacing: 10px;
+
+            VerticalLayout {
+                alignment: center;
+                IconoVolumen {
+                    tono: Tema.texto-suave;
+                    silencio: !root.hay-volumen || root.volumen < 0.005;
+                }
+            }
+            if root.hay-volumen : VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                Deslizador {
+                    valor: root.volumen;
+                    cambiado(v) => {
+                        root.volumen = v;
+                        root.elegir-volumen(v);
+                    }
+                }
+            }
+            if root.hay-volumen : Text {
+                width: 36px;
+                text: round(root.volumen * 100) + " %";
+                color: Tema.texto-suave;
+                font-size: 12px;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+            if !root.hay-volumen : Text {
+                horizontal-stretch: 1;
+                text: @tr("No se puede cambiar el volumen de esta app");
+                color: Tema.texto-tenue;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+}

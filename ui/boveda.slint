@@ -1,0 +1,410 @@
+// Bóveda de textos: un campo para guardar textos y, debajo, sus tarjetas (sueltas o en grupos).
+
+import { Tema, ItemBoveda } from "tema.slint";
+import { IconoTarjetas, IconoCarpeta, IconoAtras } from "iconos.slint";
+
+export component PanelBoveda inherits Rectangle {
+    in property <[ItemBoveda]> boveda;
+    in property <bool> en-grupo-boveda;
+    in property <string> nombre-grupo-boveda;
+    in property <int> entrada-boveda;
+    in property <string> pista-entrada-boveda;
+    in-out property <int> seleccion-boveda;
+    in-out property <string> texto-boveda;
+    callback guardar-en-boveda(string);
+    callback elegir-en-boveda(int);
+    callback quitar-de-boveda(int);
+    callback menu-boveda(int);
+    callback juntar-en-boveda(int, int);
+    callback volver-en-boveda();
+    callback cancelar-entrada-boveda();
+    callback alternar-boveda();
+    // Alto de lo que hay bajo el campo (la cabecera del grupo y las tarjetas).
+    in property <length> zona-boveda;
+
+    // Tarjetas en una cuadrícula de 3 columnas que se desplaza con la rueda.
+    property <int> columnas-boveda: 3;
+    property <length> hueco-tarjeta: 8px;
+    property <length> ancho-tarjeta: (root.width - 20px - (root.columnas-boveda - 1) * root.hueco-tarjeta) / root.columnas-boveda;
+    property <length> alto-tarjeta: 76px;
+    property <length> cabecera-grupo-boveda: root.en-grupo-boveda ? 34px : 0px;
+    property <length> alto-tarjetas: root.zona-boveda - root.cabecera-grupo-boveda;
+    property <length> alto-contenido-boveda: ceil(root.boveda.length / root.columnas-boveda) * (root.alto-tarjeta + root.hueco-tarjeta) - root.hueco-tarjeta;
+    property <length> desplazamiento-boveda;
+    // Arrastrar una tarjeta de texto (en la vista de arriba) sobre otra: cuál se arrastra (-1
+    // ninguna), cuánto se ha movido y sobre cuál caería (-1 ninguna).
+    property <int> arrastrando-boveda: -1;
+    property <length> arrastre-boveda-x;
+    property <length> arrastre-boveda-y;
+    property <int> destino-boveda: root.arrastrando-boveda < 0 ? -1 : root.tarjeta-en(
+        root.tarjeta-x(root.arrastrando-boveda) + root.arrastre-boveda-x + root.ancho-tarjeta / 2,
+        root.tarjeta-y(root.arrastrando-boveda) + root.arrastre-boveda-y + root.alto-tarjeta / 2);
+
+    // Desplaza las tarjetas de la bóveda para que se vea la marcada.
+    public function mostrar-seleccion() {
+        let fila = floor(root.seleccion-boveda / root.columnas-boveda);
+        let arriba = fila * (root.alto-tarjeta + root.hueco-tarjeta);
+        if (arriba < root.desplazamiento-boveda) {
+            root.desplazamiento-boveda = arriba;
+        }
+        if (arriba + root.alto-tarjeta > root.desplazamiento-boveda + root.alto-tarjetas) {
+            root.desplazamiento-boveda = arriba + root.alto-tarjeta - root.alto-tarjetas;
+        }
+    }
+    // Mueve la selección de la bóveda `d` tarjetas (en la cuadrícula: ±1 a los lados, ±3 arriba
+    // y abajo).
+    function mover-seleccion-boveda(d: int) {
+        root.seleccion-boveda = max(0, min(root.boveda.length - 1, root.seleccion-boveda + d));
+        root.mostrar-seleccion();
+    }
+    function desplazar-boveda(d: length) {
+        root.desplazamiento-boveda = max(0px, min(root.desplazamiento-boveda - d,
+            root.alto-contenido-boveda - root.alto-tarjetas));
+    }
+
+    // Posición de la tarjeta `i` de la bóveda dentro de la zona de tarjetas (sin desplazar).
+    pure function tarjeta-x(i: int) -> length {
+        return mod(i, root.columnas-boveda) * (root.ancho-tarjeta + root.hueco-tarjeta);
+    }
+    pure function tarjeta-y(i: int) -> length {
+        return floor(i / root.columnas-boveda) * (root.alto-tarjeta + root.hueco-tarjeta);
+    }
+    // Tarjeta de la bóveda en el punto (x, y) de la zona de tarjetas (sin desplazar), o -1.
+    pure function tarjeta-en(x: length, y: length) -> int {
+        let columna = floor(x / (root.ancho-tarjeta + root.hueco-tarjeta));
+        let fila = floor(y / (root.alto-tarjeta + root.hueco-tarjeta));
+        let i = fila * root.columnas-boveda + columna;
+        if (x < 0 || y < 0 || columna >= root.columnas-boveda || i >= root.boveda.length || i == root.arrastrando-boveda) {
+            return -1;
+        }
+        return i;
+    }
+
+    // Da el foco del teclado al campo de arriba.
+    public function enfocar() {
+        entrada-boveda.focus();
+    }
+
+
+    // Campo de arriba: guarda un texto nuevo (en el grupo, si se está dentro de uno), o
+    // escribe la etiqueta de un texto o el nombre de un grupo.
+    Rectangle {
+        x: 16px;
+        y: 14px;
+        width: parent.width - 32px;
+        height: 36px;
+        border-radius: 14px;
+        background: Tema.capa;
+        border-width: 1px;
+        border-color: Tema.acento;
+
+        IconoTarjetas {
+            x: 11px;
+            y: (parent.height - self.height) / 2;
+            width: 14px;
+            height: 14px;
+            color: root.entrada-boveda == 0 ? Tema.texto-suave : Tema.acento;
+        }
+
+        Text {
+            visible: root.texto-boveda == "";
+            x: 36px;
+            width: parent.width - 48px;
+            height: parent.height;
+            text: root.pista-entrada-boveda;
+            color: Tema.texto-tenue;
+            font-size: 13px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        // Las flechas, Intro, Supr y Esc se atienden antes de que lleguen al campo de texto.
+        FocusScope {
+            x: 36px;
+            width: parent.width - 48px;
+            height: parent.height;
+            capture-key-pressed(evento) => {
+                if (evento.text == Key.Escape) {
+                    if (root.entrada-boveda != 0) {
+                        root.cancelar-entrada-boveda();
+                    } else if (root.en-grupo-boveda) {
+                        root.volver-en-boveda();
+                    } else {
+                        root.alternar-boveda();
+                    }
+                    return accept;
+                }
+                if (evento.text == Key.Return) {
+                    // Con algo escrito (o editando una etiqueta o un nombre), se guarda; si
+                    // no, se copia el texto marcado o se abre el grupo marcado.
+                    if (root.entrada-boveda != 0 || root.texto-boveda != "") {
+                        root.guardar-en-boveda(root.texto-boveda);
+                    } else if (root.boveda.length > 0) {
+                        root.elegir-en-boveda(root.seleccion-boveda);
+                    }
+                    return accept;
+                }
+                if (root.entrada-boveda != 0 || root.texto-boveda != "") {
+                    return reject;
+                }
+                if (evento.text == Key.LeftArrow) {
+                    root.mover-seleccion-boveda(-1);
+                    return accept;
+                }
+                if (evento.text == Key.RightArrow) {
+                    root.mover-seleccion-boveda(1);
+                    return accept;
+                }
+                if (evento.text == Key.UpArrow) {
+                    root.mover-seleccion-boveda(-root.columnas-boveda);
+                    return accept;
+                }
+                if (evento.text == Key.DownArrow) {
+                    root.mover-seleccion-boveda(root.columnas-boveda);
+                    return accept;
+                }
+                // Supr borra el texto marcado (los grupos se borran desde su menú).
+                if (evento.text == Key.Delete && root.boveda.length > 0 && !root.boveda[root.seleccion-boveda].es-grupo) {
+                    root.quitar-de-boveda(root.seleccion-boveda);
+                    return accept;
+                }
+                if (evento.text == Key.Backspace && root.en-grupo-boveda) {
+                    root.volver-en-boveda();
+                    return accept;
+                }
+                return reject;
+            }
+
+            Rectangle {
+                width: parent.width;
+                height: parent.height;
+                clip: true;
+
+                entrada-boveda := TextInput {
+                    // Cuánto se ha corrido el texto hacia la izquierda para seguir al cursor.
+                    property <length> corrido;
+                    x: min(0px, max(parent.width - self.width - self.text-cursor-width, self.corrido));
+                    width: max(parent.width - self.text-cursor-width, self.preferred-width);
+                    height: parent.height;
+                    text <=> root.texto-boveda;
+                    color: Tema.texto;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                    single-line: true;
+                    selection-background-color: Tema.acento;
+                    selection-foreground-color: Tema.sobre-acento;
+                    cursor-position-changed(cursor) => {
+                        if (cursor.x + self.corrido < 0px) {
+                            self.corrido = -cursor.x;
+                        } else if (cursor.x + self.corrido > parent.width - self.text-cursor-width) {
+                            self.corrido = parent.width - cursor.x - self.text-cursor-width;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Dentro de un grupo: volver a la vista de arriba y el nombre del grupo.
+    if root.en-grupo-boveda : Rectangle {
+        x: 10px;
+        y: 14px + 36px + 8px;
+        width: parent.width - 20px;
+        height: root.cabecera-grupo-boveda - 6px;
+
+        Rectangle {
+            x: 0px;
+            y: (parent.height - self.height) / 2;
+            width: 26px;
+            height: 26px;
+            border-radius: 9px;
+            background: volver.has-hover ? Tema.capa-fuerte : Tema.capa;
+            IconoAtras {
+                // Medio píxel a la izquierda: así la punta queda en el centro a la vista.
+                x: (parent.width - self.width) / 2 - 0.5px;
+                y: (parent.height - self.height) / 2;
+                color: Tema.texto;
+            }
+            volver := TouchArea {
+                clicked => { root.volver-en-boveda(); }
+            }
+        }
+        IconoCarpeta {
+            x: 36px;
+            y: (parent.height - self.height) / 2;
+            color: Tema.acento;
+        }
+        Text {
+            x: 58px;
+            width: parent.width - 58px;
+            height: parent.height;
+            text: root.nombre-grupo-boveda;
+            color: Tema.texto;
+            font-size: 13px;
+            font-weight: 700;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+
+    if root.boveda.length == 0 && !root.en-grupo-boveda : Text {
+        x: 16px;
+        y: 14px + 36px + 8px;
+        width: parent.width - 32px;
+        height: root.alto-tarjeta * 2;
+        text: @tr("La bóveda está vacía.\nGuarda aquí los textos que copias a menudo.");
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    // Tarjetas: se desplazan con la rueda; las de texto se pueden arrastrar sobre otra
+    // (crea un grupo) o sobre un grupo (entran en él).
+    Rectangle {
+        x: 10px;
+        y: 14px + 36px + 8px + root.cabecera-grupo-boveda;
+        width: parent.width - 20px;
+        height: root.alto-tarjetas;
+        clip: true;
+
+        TouchArea {
+            scroll-event(evento) => {
+                root.desplazar-boveda(evento.delta-y);
+                return accept;
+            }
+        }
+
+        for t[i] in root.boveda : Rectangle {
+            // Qué hace el gesto en curso: 0 nada aún, 1 arrastrar la tarjeta.
+            property <int> gesto;
+            property <bool> arrastrada: i == root.arrastrando-boveda;
+            x: root.tarjeta-x(i) + (self.arrastrada ? root.arrastre-boveda-x : 0px);
+            y: root.tarjeta-y(i) - root.desplazamiento-boveda + (self.arrastrada ? root.arrastre-boveda-y : 0px);
+            z: self.arrastrada ? 1 : 0;
+            width: root.ancho-tarjeta;
+            height: root.alto-tarjeta;
+            border-radius: 14px;
+            background: i == root.seleccion-boveda || self.arrastrada ? Tema.capa-fuerte : Tema.capa;
+            border-width: i == root.destino-boveda ? 2px : 0px;
+            border-color: Tema.acento;
+            opacity: self.arrastrada ? 0.85 : 1;
+            // Lo que no quepa (un texto muy largo, una palabra sin espacios) no se sale.
+            clip: true;
+
+            area := TouchArea {
+                clicked => {
+                    if (parent.gesto != 1) {
+                        root.elegir-en-boveda(i);
+                    }
+                }
+                changed has-hover => {
+                    if (self.has-hover && root.arrastrando-boveda < 0) {
+                        root.seleccion-boveda = i;
+                    }
+                }
+                pointer-event(evento) => {
+                    if (evento.button == PointerEventButton.left && evento.kind == PointerEventKind.down) {
+                        parent.gesto = 0;
+                    }
+                    if (evento.button == PointerEventButton.left && evento.kind == PointerEventKind.up && parent.gesto == 1) {
+                        let sobre = root.destino-boveda;
+                        root.arrastrando-boveda = -1;
+                        root.arrastre-boveda-x = 0;
+                        root.arrastre-boveda-y = 0;
+                        if (sobre >= 0) {
+                            root.juntar-en-boveda(i, sobre);
+                        }
+                    }
+                    if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up) {
+                        root.menu-boveda(i);
+                    }
+                }
+                moved => {
+                    // La tarjeta se mueve con el cursor: lo que se mueve el cursor respecto a
+                    // ella es lo que falta por avanzar.
+                    let dx = self.mouse-x - self.pressed-x;
+                    let dy = self.mouse-y - self.pressed-y;
+                    if (parent.gesto == 1) {
+                        root.arrastre-boveda-x += dx;
+                        root.arrastre-boveda-y += dy;
+                    } else if (!t.es-grupo && !root.en-grupo-boveda && (abs(dx) > 6px || abs(dy) > 6px)) {
+                        parent.gesto = 1;
+                        root.arrastrando-boveda = i;
+                        root.arrastre-boveda-x = dx;
+                        root.arrastre-boveda-y = dy;
+                    }
+                }
+                scroll-event(evento) => {
+                    root.desplazar-boveda(evento.delta-y);
+                    return accept;
+                }
+            }
+
+            // Grupo: carpeta, nombre y cuántos textos tiene.
+            if t.es-grupo : IconoCarpeta {
+                x: 10px;
+                y: 11px;
+                color: Tema.acento;
+            }
+            if t.es-grupo : Text {
+                x: 10px;
+                y: 30px;
+                width: parent.width - 20px;
+                height: 18px;
+                text: t.titulo;
+                color: Tema.texto;
+                font-size: 13px;
+                font-weight: 700;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            if t.es-grupo : Text {
+                x: 10px;
+                y: 49px;
+                width: parent.width - 20px;
+                height: 16px;
+                text: t.detalle;
+                color: Tema.texto-tenue;
+                font-size: 11px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
+            // Texto: sus primeras líneas, en el hueco que deja la etiqueta, y la etiqueta
+            // abajo, que no pasa del ancho de la tarjeta.
+            if !t.es-grupo : Text {
+                x: 10px;
+                y: 8px;
+                width: parent.width - 20px;
+                height: parent.height - 16px - (t.etiqueta != "" ? 20px : 0px);
+                text: t.titulo;
+                color: Tema.texto;
+                font-size: 12px;
+                wrap: word-wrap;
+                overflow: elide;
+                vertical-alignment: top;
+            }
+            if !t.es-grupo && t.etiqueta != "" : Rectangle {
+                x: 10px;
+                y: parent.height - 8px - self.height;
+                width: min(etiqueta.preferred-width + 12px, parent.width - 20px);
+                height: 16px;
+                border-radius: 8px;
+                background: Tema.acento;
+                clip: true;
+                etiqueta := Text {
+                    x: 6px;
+                    width: parent.width - 12px;
+                    height: parent.height;
+                    text: t.etiqueta;
+                    color: Tema.sobre-acento;
+                    font-size: 10px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+    }
+}

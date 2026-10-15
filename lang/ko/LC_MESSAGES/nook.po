@@ -1,0 +1,544 @@
+# Traducción de nook al coreano (Korean).
+# El texto original (msgid) es el español del código; ver src/idioma.rs.
+msgid ""
+msgstr ""
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+# ---- Interfaz (ui/barra.slint) ----
+
+msgid "Escribe o pega un texto y pulsa Intro para guardarlo"
+msgstr "텍스트를 입력하거나 붙여넣고 Enter를 눌러 저장"
+
+msgid "Arrastra aquí una app o pulsa E para editar"
+msgstr "여기로 앱을 끌어오거나 E를 눌러 편집"
+
+msgid "abrir"
+msgstr "열기"
+
+msgid "grupo"
+msgstr "그룹"
+
+msgid "editar"
+msgstr "편집"
+
+msgid "Nombre del grupo"
+msgstr "그룹 이름"
+
+msgid "Eliminar"
+msgstr "삭제"
+
+msgid "Listo"
+msgstr "완료"
+
+msgid "Atajos"
+msgstr "단축키"
+
+msgid "Comportamiento"
+msgstr "동작"
+
+msgid "Colores"
+msgstr "색상"
+
+msgid "Apariencia"
+msgstr "모양"
+
+msgid "Personaje"
+msgstr "캐릭터"
+
+msgid "Acerca de"
+msgstr "정보"
+
+msgid "Cerrar aplicación"
+msgstr "앱 종료"
+
+msgid "ATAJOS"
+msgstr "단축키"
+
+msgid "Pulsa una combinación…"
+msgstr "키 조합을 누르세요…"
+
+msgid "Mostrar u ocultar"
+msgstr "표시 또는 숨기기"
+
+msgid "Bóveda de textos"
+msgstr "텍스트 보관함"
+
+msgid "COMPORTAMIENTO"
+msgstr "동작"
+
+msgid "Ocultar en reposo"
+msgstr "사용하지 않을 때 숨기기"
+
+msgid "Iniciar con Windows"
+msgstr "Windows 시작 시 실행"
+
+msgid "Mostrar la hora"
+msgstr "시간 표시"
+
+msgid "Animaciones"
+msgstr "애니메이션"
+
+msgid "CUENTA"
+msgstr "계정"
+
+msgid "Conectada como {}"
+msgstr "{}(으)로 로그인됨"
+
+msgid "Código: {}"
+msgstr "코드: {}"
+
+msgid "Conectando con GitHub…"
+msgstr "GitHub에 연결하는 중…"
+
+msgid "Sincronizar la bóveda"
+msgstr "보관함 동기화"
+
+msgid "No se pudo: {}"
+msgstr "실패: {}"
+
+msgid "Se guarda en un Gist secreto de tu GitHub"
+msgstr "GitHub의 비밀 Gist에 저장됩니다"
+
+msgid "Ya está copiado: pégalo en GitHub"
+msgstr "복사했습니다. GitHub에 붙여넣으세요"
+
+msgid "Pidiendo un código a GitHub"
+msgstr "GitHub에 코드를 요청하는 중"
+
+msgid "Úsala en varios PCs con tu GitHub"
+msgstr "GitHub로 여러 PC에서 사용하세요"
+
+msgid "Desconectar"
+msgstr "연결 해제"
+
+msgid "Conectar"
+msgstr "연결"
+
+msgid "Cancelar"
+msgstr "취소"
+
+msgid "COLORES"
+msgstr "색상"
+
+msgid "Fondo"
+msgstr "배경"
+
+msgid "Acento"
+msgstr "강조"
+
+msgid "Presets"
+msgstr "프리셋"
+
+msgid "APARIENCIA"
+msgstr "모양"
+
+msgid "Transparencia"
+msgstr "투명 효과"
+
+msgid "Opacidad"
+msgstr "불투명도"
+
+msgid "Tamaño"
+msgstr "크기"
+
+msgid "POSICIÓN"
+msgstr "위치"
+
+msgid "Arriba"
+msgstr "위"
+
+msgid "Abajo"
+msgstr "아래"
+
+msgid "Izquierda"
+msgstr "왼쪽"
+
+msgid "Derecha"
+msgstr "오른쪽"
+
+msgid "IDIOMA"
+msgstr "언어"
+
+msgid "Sistema"
+msgstr "시스템"
+
+msgid "FIGURA"
+msgstr "종류"
+
+msgid "Limón"
+msgstr "레몬"
+
+msgid "ACCESORIOS"
+msgstr "액세서리"
+
+msgid "ACERCA DE"
+msgstr "정보"
+
+msgid "Descargando {}… {} %"
+msgstr "{} 다운로드 중… {} %"
+
+msgid "No se pudo actualizar: {}"
+msgstr "업데이트하지 못했습니다: {}"
+
+msgid "Hay una versión nueva: {}"
+msgstr "새 버전이 있습니다: {}"
+
+msgid "Reintentar"
+msgstr "다시 시도"
+
+msgid "Actualizar"
+msgstr "업데이트"
+
+msgid "Ver licencias completas"
+msgstr "전체 라이선스 보기"
+
+msgid "CRÉDITOS"
+msgstr "크레딧"
+
+msgid "El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:"
+msgstr "바의 캐릭터는 직접 만든 것입니다. 캐릭터를 그리고 움직이는 데에는 다른 프로젝트의 기법을 사용하며, 바는 다음 라이브러리를 기반으로 합니다:"
+
+msgid "Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
+msgstr "캐릭터를 그리고 움직이는 기법: 보간되는 방사형 프로필로 만든 실루엣, 구 위에 그린 눈, 시선의 흔들림, 눈 깜빡임과 전환 곡선."
+
+msgid "Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones."
+msgstr "Slint(slint.dev)로 제작: 바의 레이아웃, 그리기, 애니메이션."
+
+msgid "El rasterizado de las formas del personaje."
+msgstr "캐릭터 도형의 래스터화."
+
+msgid "El acceso a Windows: ventanas, iconos, atajos, desenfoque, notificaciones y música."
+msgstr "Windows 접근: 창, 아이콘, 단축키, 흐림 효과, 알림, 음악."
+
+msgid "La lectura y el guardado de la configuración."
+msgstr "설정 읽기와 저장."
+
+msgid "La hora de la barra."
+msgstr "바의 시계."
+
+msgid "serde y serde_json"
+msgstr "serde와 serde_json"
+
+msgid "Erick Tryzelaar y David Tolnay"
+msgstr "Erick Tryzelaar, David Tolnay"
+
+msgid "Kang Seonghoon y colaboradores"
+msgstr "Kang Seonghoon 외 기여자"
+
+msgid "La bóveda está vacía.\nGuarda aquí los textos que copias a menudo."
+msgstr "보관함이 비어 있습니다.\n자주 복사하는 텍스트를 여기에 저장하세요."
+
+msgid "No se encontró ninguna aplicación"
+msgstr "앱을 찾을 수 없습니다"
+
+msgid "Intro"
+msgstr "Enter"
+
+msgid "añadir"
+msgstr "추가"
+
+msgid "Añadir"
+msgstr "추가"
+
+msgid "No se está reproduciendo nada"
+msgstr "재생 중인 항목이 없습니다"
+
+msgid "Sin título"
+msgstr "제목 없음"
+
+msgid "No se puede cambiar el volumen de esta app"
+msgstr "이 앱의 볼륨은 변경할 수 없습니다"
+
+msgid "Música"
+msgstr "음악"
+
+msgid "REPRODUCTOR"
+msgstr "플레이어"
+
+msgid "Reproductor en la barra"
+msgstr "바에 플레이어 표시"
+
+msgid "Los controles se quedan en la barra mientras haya algo reproduciéndose"
+msgstr "무언가 재생 중일 때 컨트롤이 바에 표시됩니다"
+
+msgid "Haz clic en el personaje mientras suena algo para abrir el reproductor"
+msgstr "무언가 재생 중일 때 캐릭터를 클릭하면 플레이어가 열립니다"
+
+msgid "Funciona con Spotify, el navegador y cualquier app que salga en los controles multimedia de Windows."
+msgstr "Spotify, 브라우저, Windows 미디어 컨트롤에 표시되는 모든 앱에서 작동합니다."
+
+# ---- Menús y mensajes (src/) ----
+
+msgid "Escribe o pega un texto para guardarlo en este grupo"
+msgstr "이 그룹에 저장할 텍스트를 입력하거나 붙여넣기"
+
+msgid "Nueva etiqueta (ahora «{}»)"
+msgstr "새 레이블(현재 “{}”)"
+
+msgid "Etiqueta para el texto"
+msgstr "텍스트 레이블"
+
+msgid "Nuevo nombre (ahora «{}»)"
+msgstr "새 이름(현재 “{}”)"
+
+msgid "Abrir"
+msgstr "열기"
+
+msgid "Cambiar nombre…"
+msgstr "이름 바꾸기…"
+
+msgid "Deshacer grupo"
+msgstr "그룹 해제"
+
+msgid "Eliminar grupo y sus textos"
+msgstr "그룹과 텍스트 삭제"
+
+msgid "Copiar"
+msgstr "복사"
+
+msgid "Cambiar etiqueta…"
+msgstr "레이블 변경…"
+
+msgid "Poner etiqueta…"
+msgstr "레이블 추가…"
+
+msgid "Quitar etiqueta"
+msgstr "레이블 제거"
+
+msgid "Sacar del grupo"
+msgstr "그룹에서 빼기"
+
+msgid "Nuevo grupo"
+msgstr "새 그룹"
+
+msgid "Grupo nuevo"
+msgstr "새 그룹"
+
+msgid "Busca una aplicación para la barra"
+msgstr "바에 추가할 앱 검색"
+
+msgid "Busca una aplicación para abrirla"
+msgstr "열 앱 검색"
+
+msgid "Busca una aplicación para «{}»"
+msgstr "“{}”에 추가할 앱 검색"
+
+msgid "Añadir aplicación…"
+msgstr "앱 추가…"
+
+msgid "Editar grupo"
+msgstr "그룹 편집"
+
+msgid "Eliminar grupo"
+msgstr "그룹 삭제"
+
+msgid "Quitar de la barra"
+msgstr "바에서 제거"
+
+msgid "NUEVO COLOR DE ACENTO"
+msgstr "새 강조 색상"
+
+msgid "NUEVO COLOR DE FONDO"
+msgstr "새 배경 색상"
+
+msgid "ACENTO DEL PRESET"
+msgstr "프리셋 강조 색상"
+
+msgid "FONDO DEL PRESET"
+msgstr "프리셋 배경"
+
+msgid "COLOR DE {}"
+msgstr "{} 색상"
+
+msgid "Quitar color"
+msgstr "색상 제거"
+
+msgid "Aplicar"
+msgstr "적용"
+
+msgid "Cambiar el fondo…"
+msgstr "배경 변경…"
+
+msgid "Cambiar el acento…"
+msgstr "강조 색상 변경…"
+
+msgid "Guardar aquí los colores actuales"
+msgstr "현재 색상을 여기에 저장"
+
+msgid "Eliminar preset"
+msgstr "프리셋 삭제"
+
+msgid "Configuración"
+msgstr "설정"
+
+msgid "Sin atajo"
+msgstr "단축키 없음"
+
+msgid "Espacio"
+msgstr "Space"
+
+msgid "Audífonos"
+msgstr "헤드폰"
+
+msgid "Corona"
+msgstr "왕관"
+
+msgid "Gorro de lana"
+msgstr "비니"
+
+msgid "Cuernos"
+msgstr "뿔"
+
+msgid "Gafas de sol"
+msgstr "선글라스"
+
+msgid "Monóculo"
+msgstr "외알 안경"
+
+msgid "Antifaz"
+msgstr "가면"
+
+msgid "Mascarilla"
+msgstr "마스크"
+
+msgid "Corbatín"
+msgstr "나비넥타이"
+
+msgid "Capa de vampiro"
+msgstr "뱀파이어 망토"
+
+msgid "Explorador"
+msgstr "파일 탐색기"
+
+msgid "Bloc de notas"
+msgstr "메모장"
+
+msgid "Terminal"
+msgstr "터미널"
+
+msgid "Tareas"
+msgstr "작업 관리자"
+
+msgid "no se pudo descargar: {}"
+msgstr "다운로드하지 못했습니다: {}"
+
+msgid "lo descargado no es un ejecutable"
+msgstr "다운로드한 파일이 실행 파일이 아닙니다"
+
+msgid "no se pudo guardar: {}"
+msgstr "저장하지 못했습니다: {}"
+
+msgid "no se pudo apartar la versión actual: {}"
+msgstr "현재 버전을 옮기지 못했습니다: {}"
+
+msgid "no se pudo colocar la versión nueva: {}"
+msgstr "새 버전을 배치하지 못했습니다: {}"
+
+msgid "no se pudo abrir la versión nueva: {}"
+msgstr "새 버전을 열지 못했습니다: {}"
+
+msgid "GitHub ya no da permiso"
+msgstr "GitHub 권한이 더 이상 없습니다"
+
+msgid "no se encontró en GitHub"
+msgstr "GitHub에서 찾을 수 없습니다"
+
+msgid "falta el identificador de la app de GitHub"
+msgstr "GitHub 앱 ID가 없습니다"
+
+msgid "no se pudo leer la cuenta: {}"
+msgstr "계정을 읽지 못했습니다: {}"
+
+msgid "no se pudo hablar con GitHub: {}"
+msgstr "GitHub와 통신하지 못했습니다: {}"
+
+msgid "GitHub no dio ningún código"
+msgstr "GitHub에서 코드를 받지 못했습니다"
+
+msgid "el código caducó"
+msgstr "코드가 만료되었습니다"
+
+msgid "se rechazó el permiso en GitHub"
+msgstr "GitHub에서 권한이 거부되었습니다"
+
+msgid "GitHub no dio permiso"
+msgstr "GitHub에서 권한을 주지 않았습니다"
+
+msgid "GitHub retiró el permiso: vuelve a conectar la cuenta"
+msgstr "GitHub 권한이 취소되었습니다. 계정을 다시 연결하세요"
+
+msgid "no se pudo bajar la bóveda"
+msgstr "보관함을 내려받지 못했습니다"
+
+msgid "no se pudo subir la bóveda"
+msgstr "보관함을 올리지 못했습니다"
+
+msgid "el Gist no tiene dirección"
+msgstr "Gist에 주소가 없습니다"
+
+msgid "GitHub no devolvió el Gist creado"
+msgstr "GitHub가 만든 Gist를 돌려주지 않았습니다"
+
+msgid "GitHub respondió {}"
+msgstr "GitHub 응답: {}"
+
+msgid "Botón de sonido"
+msgstr "사운드 버튼"
+
+msgid "No hay ninguna salida de audio"
+msgstr "오디오 출력이 없습니다"
+
+msgid "Salida de audio"
+msgstr "오디오 출력"
+
+msgid "Ocultar con juegos y apps a pantalla completa"
+msgstr "전체 화면 게임과 앱에서는 숨기기"
+
+msgid "Abrir otra ventana"
+msgstr "다른 창 열기"
+
+msgid "Fijar en la barra"
+msgstr "바에 고정"
+
+msgid "Cerrar todas las ventanas"
+msgstr "모든 창 닫기"
+
+msgid "Cerrar ventana"
+msgstr "창 닫기"
+
+msgid "Mostrar las apps abiertas"
+msgstr "열린 앱 표시"
+
+msgid "Botón del micrófono"
+msgstr "마이크 버튼"
+
+msgid "Botón para buscar y abrir aplicaciones"
+msgstr "앱 검색 및 열기 버튼"
+
+msgid "Silenciar el micrófono"
+msgstr "마이크 음소거"
+
+msgid "Buscar y abrir una aplicación"
+msgstr "앱 검색 후 열기"
+
+msgid "Sustituir la barra de tareas de Windows"
+msgstr "Windows 작업 표시줄 대체"
+
+msgid "La tecla Windows abre el buscador de Nook"
+msgstr "Windows 키로 Nook 검색 열기"
+
+msgid "Pide permisos de administrador"
+msgstr "관리자 권한을 요청합니다"
+
+msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
+msgstr "Windows에서는 관리자로 연 프로그램에서 누른 키를 다른 프로그램이 볼 수 없습니다. 그래서 Nook은 작은 도우미를 준비합니다. Program Files의 'Nook Ayudante' 폴더에 있는 Nook 사본으로, 예약된 작업이 관리자 권한으로 실행합니다. Windows 키만 지켜보고 Nook에 알려 주며, Nook을 닫으면 함께 닫히고 제거할 때 삭제됩니다. 권한은 옵션을 켤 때 한 번만 요청합니다. 허용하지 않아도 그런 프로그램을 빼면 똑같이 작동합니다."
+
+
+
+
+msgid "Disponible en nook Pro"
+msgstr "nook Pro에서 사용할 수 있습니다"

@@ -1,0 +1,86 @@
+// Volumen general de Windows (botón del altavoz de la tira): el nombre de la salida de audio y,
+// debajo, el silencio, el volumen y su porcentaje. La rueda del ratón también lo cambia.
+
+import { Tema } from "tema.slint";
+import { IconoSonido } from "iconos.slint";
+import { Boton, Deslizador } from "controles.slint";
+
+export component PanelSonido inherits Rectangle {
+    in property <bool> hay-sonido;
+    in property <string> nombre-salida;
+    in property <bool> silencio;
+    in-out property <float> volumen-sistema;    // 0–1
+    callback elegir-volumen-sistema(float);
+    callback alternar-silencio();
+    callback rueda-sonido(float);               // giro de la rueda (positivo hacia delante)
+
+    TouchArea {
+        scroll-event(evento) => {
+            root.rueda-sonido(evento.delta-y / 1px);
+            return accept;
+        }
+    }
+
+    if !root.hay-sonido : Text {
+        x: 16px;
+        width: parent.width - 32px;
+        height: parent.height;
+        text: @tr("No hay ninguna salida de audio");
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    if root.hay-sonido : Text {
+        x: 16px;
+        y: 14px;
+        width: parent.width - 32px;
+        height: 16px;
+        text: root.nombre-salida != "" ? root.nombre-salida : @tr("Salida de audio");
+        color: Tema.texto-suave;
+        font-size: 12px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    if root.hay-sonido : HorizontalLayout {
+        x: 10px;
+        y: 14px + 16px + 8px;
+        width: parent.width - 26px;
+        height: 30px;
+        spacing: 8px;
+
+        Boton {
+            activo: root.silencio;
+            clicked => { root.alternar-silencio(); }
+            IconoSonido {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: Tema.texto;
+                nivel: root.volumen-sistema;
+                silencio: root.silencio;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Deslizador {
+                opacity: root.silencio ? 0.5 : 1;
+                valor: root.volumen-sistema;
+                cambiado(v) => {
+                    root.volumen-sistema = v;
+                    root.elegir-volumen-sistema(v);
+                }
+            }
+        }
+        Text {
+            width: 36px;
+            text: round(root.volumen-sistema * 100) + " %";
+            color: Tema.texto-suave;
+            font-size: 12px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+    }
+}
