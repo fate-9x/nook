@@ -104,13 +104,18 @@ pub(crate) fn dibujar_personaje(
 }
 
 /// La figura del personaje y cómo se ve con los ajustes: el cuerpo del color de acento, los
-/// rasgos del color que se lee sobre él (como `sobre-acento` en ui/tema.slint) y los accesorios.
+/// rasgos del color que se lee sobre él (como `sobre-acento` en ui/tema.slint), el circulito de
+/// aviso (del color elegido, si se eligió) y los accesorios.
 pub(crate) fn aspecto_de(ajustes: &Ajustes) -> (personaje::Figura, personaje::Aspecto) {
     let acento = color(&ajustes.color_acento);
     let rasgos = if es_claro(acento) { [0x0B, 0x12, 0x30] } else { [0xFF, 0xFF, 0xFF] };
     let aspecto = personaje::Aspecto {
         cuerpo: [acento.red(), acento.green(), acento.blue()],
         rasgos,
+        aviso: ajustes.personaje.color_aviso.as_deref().map(|c| {
+            let c = color(c);
+            [c.red(), c.green(), c.blue()]
+        }),
         accesorios: accesorios_puestos(&ajustes.personaje),
     };
     (figura_de(ajustes.personaje.figura), aspecto)

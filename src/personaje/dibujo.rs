@@ -19,6 +19,8 @@ use zeno::{Cap, Command, Fill, Join, Mask, PathBuilder, Stroke};
 pub struct Aspecto {
     pub cuerpo: [u8; 3],
     pub rasgos: [u8; 3],
+    /// Color de la pastilla de aviso; sin él, el de los rasgos.
+    pub aviso: Option<[u8; 3]>,
     pub accesorios: Vec<Accesorio>,
 }
 
@@ -383,7 +385,7 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
         }
     }
 
-    // Pastilla de aviso (del color de los ojos) y el hueco que abre en lo que hay debajo, en
+    // Pastilla de aviso (del color elegido o, si no, el de los ojos) y el hueco que abre en lo que hay debajo, en
     // píxeles.
     let pastilla = cuadro.pastilla.map(|p| {
         let [x, y] = pantalla((p.x, p.y));
@@ -429,7 +431,7 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
             let distancia = ((i as u32 % lado) as f32 + 0.5 - x).hypot((i as u32 / lado) as f32 + 0.5 - y);
             let hueco = 1.0 - circulo(distancia, muesca);
             color = color.map(|c| c * hueco);
-            encima(&mut color, ojos, circulo(distancia, radio));
+            encima(&mut color, aspecto.aviso.unwrap_or(ojos), circulo(distancia, radio));
         }
         let [r, g, b, a] = color.map(|c| c.round().clamp(0.0, 255.0) as u8);
         *pixel = Rgba8Pixel { r, g, b, a };
@@ -453,7 +455,7 @@ mod tests {
     fn dibuja_el_cuerpo_los_rasgos_y_el_colmillo_dentro() {
         let lado = 128;
         let cuadro = Motor::new().muestrear(0.5);
-        let imagen = dibujar(&cuadro, lado, &Aspecto { cuerpo: [46, 139, 87], rasgos: [18, 32, 58], accesorios: Vec::new() });
+        let imagen = dibujar(&cuadro, lado, &Aspecto { cuerpo: [46, 139, 87], rasgos: [18, 32, 58], aviso: None, accesorios: Vec::new() });
         let buffer = imagen.to_rgba8_premultiplied().expect("imagen de píxeles");
         let pixeles = buffer.as_slice();
         let en = |x: u32, y: u32| pixeles[(y * lado + x) as usize];
@@ -477,7 +479,7 @@ mod tests {
         // Ojos de un color que no usa nada más: con las gafas (negras) no queda ningún píxel así.
         let ojos = [1, 2, 250];
         let con = |accesorios: Vec<Accesorio>| {
-            let imagen = dibujar(&cuadro, lado, &Aspecto { cuerpo: [46, 139, 87], rasgos: ojos, accesorios });
+            let imagen = dibujar(&cuadro, lado, &Aspecto { cuerpo: [46, 139, 87], rasgos: ojos, aviso: None, accesorios });
             let buffer = imagen.to_rgba8_premultiplied().expect("imagen de píxeles");
             buffer.as_slice().iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == ojos).count()
         };
@@ -490,6 +492,28 @@ mod tests {
     }
 
     #[test]
+    fn la_pastilla_de_aviso_es_del_color_elegido_o_del_de_los_ojos() {
+        let lado = 128;
+        let mut motor = Motor::new();
+        motor.poner_estado(Estado::Aviso, 0.0);
+        let cuadro = motor.muestrear(1.0);
+        assert!(cuadro.pastilla.is_some());
+        // Colores que no usa nada más, para contar solo la pastilla (los ojos, aparte, son del
+        // color de los rasgos).
+        let (rasgos, rojo) = ([1, 2, 250], [250, 3, 2]);
+        let con = |aviso: Option<[u8; 3]>, color: [u8; 3]| {
+            let imagen = dibujar(&cuadro, lado, &Aspecto { cuerpo: [46, 139, 87], rasgos, aviso, accesorios: Vec::new() });
+            let buffer = imagen.to_rgba8_premultiplied().expect("imagen de píxeles");
+            buffer.as_slice().iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == color).count()
+        };
+        // Con color elegido, la pastilla (un círculo grande) sale de él y no de los rasgos.
+        assert!(con(Some(rojo), rojo) > 100);
+        // Sin elegirlo, sale del color de los rasgos: hay muchos más píxeles que solo con los ojos.
+        assert_eq!(con(None, rojo), 0);
+        assert!(con(None, rasgos) > con(Some(rojo), rasgos) + 100);
+    }
+
+    #[test]
     fn el_arandano_del_limon_se_ve_tambien_mirando_hacia_abajo() {
         use super::super::motor::{Figura, Mirar};
         let lado = 128;
@@ -497,7 +521,7 @@ mod tests {
             let mut motor = Motor::new();
             motor.poner_figura(Figura::Limon);
             motor.poner_mirada(Mirar { guinada: 0.0, cabeceo, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
-            let imagen = dibujar(&motor.muestrear(1.0), lado, &Aspecto { cuerpo: [0; 3], rasgos: [0; 3], accesorios: Vec::new() });
+            let imagen = dibujar(&motor.muestrear(1.0), lado, &Aspecto { cuerpo: [0; 3], rasgos: [0; 3], aviso: None, accesorios: Vec::new() });
             let buffer = imagen.to_rgba8_premultiplied().expect("imagen de píxeles");
             buffer.as_slice().iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == LIMON_ARANDANO).count()
         };

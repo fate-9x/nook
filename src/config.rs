@@ -169,6 +169,9 @@ pub struct Personaje {
     /// inicial).
     pub accesorios: Vec<Accesorio>,
     pub colores_propios: Vec<String>,
+    /// Color del circulito que sale cuando llega una notificación (de la fila de colores de los
+    /// accesorios). Sin elegir, el de los ojos.
+    pub color_aviso: Option<String>,
 }
 
 /// Formato de la fecha de la tira (ver `fecha.rs`).
@@ -306,6 +309,8 @@ impl TipoAccesorio {
 /// Colores base de los accesorios (el usuario añade más con "+"): lila, blanco, negro, rosa,
 /// amarillo y rojo.
 pub const COLORES_ACCESORIOS: [&str; 6] = ["#9AA8F0", "#F4F5FA", "#22252D", "#FF7A9C", "#FFD86B", "#E0455A"];
+/// Color con el que empieza el circulito de aviso cuando se deja de usar el de los ojos: el rojo.
+pub const COLOR_AVISO_INICIAL: &str = COLORES_ACCESORIOS[5];
 
 /// Combinación de fondo y acento guardada para volver a ella con un clic.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -421,20 +426,35 @@ impl Personaje {
     /// Cambia el color del accesorio `tipo` (y se lo pone). Si el color no estaba en la fila, se
     /// añade a ella.
     pub fn poner_color(&mut self, tipo: TipoAccesorio, color: String) {
-        let ya_esta = self.paleta().iter().any(|c| c.eq_ignore_ascii_case(&color));
-        if !ya_esta {
-            self.colores_propios.push(color.clone());
-            if self.colores_propios.len() > MAX_COLORES_PROPIOS {
-                self.colores_propios.remove(0);
-            }
-        }
+        self.agregar_a_la_fila(&color);
         self.accesorio_mut(tipo).color = color;
         self.poner(tipo);
     }
 
-    /// Quita un color propio de la fila. Los accesorios que lo tenían vuelven a su color inicial.
+    /// Añade el color a la fila de colores propios si no estaba (olvidando el más antiguo si ya
+    /// hay `MAX_COLORES_PROPIOS`).
+    fn agregar_a_la_fila(&mut self, color: &str) {
+        if !self.paleta().iter().any(|c| c.eq_ignore_ascii_case(color)) {
+            self.colores_propios.push(color.to_string());
+            if self.colores_propios.len() > MAX_COLORES_PROPIOS {
+                self.colores_propios.remove(0);
+            }
+        }
+    }
+
+    /// Cambia el color del circulito de aviso. Si el color no estaba en la fila, se añade a ella.
+    pub fn poner_color_aviso(&mut self, color: String) {
+        self.agregar_a_la_fila(&color);
+        self.color_aviso = Some(color);
+    }
+
+    /// Quita un color propio de la fila. Los accesorios que lo tenían vuelven a su color inicial
+    /// y el circulito de aviso, al de los ojos.
     pub fn quitar_color(&mut self, color: &str) {
         self.colores_propios.retain(|c| !c.eq_ignore_ascii_case(color));
+        if self.color_aviso.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(color)) {
+            self.color_aviso = None;
+        }
         for accesorio in &mut self.accesorios {
             if accesorio.color.eq_ignore_ascii_case(color) {
                 accesorio.color = accesorio.tipo.color_inicial().into();
@@ -1014,6 +1034,26 @@ mod tests {
         p.quitar_color("#123456");
         assert_eq!(p.accesorio(audifonos).color, COLORES_ACCESORIOS[0]);
         assert_eq!(p.accesorios.len(), 1);
+    }
+
+    #[test]
+    fn el_circulito_de_aviso_recuerda_su_color_hasta_que_se_quita() {
+        let mut p = Personaje::default();
+        // Sin elegir, es el de los ojos.
+        assert_eq!(p.color_aviso, None);
+        p.poner_color_aviso("#123456".into());
+        assert_eq!(p.color_aviso.as_deref(), Some("#123456"));
+        // El color nuevo entra en la fila de los accesorios.
+        assert_eq!(p.paleta().last().unwrap(), "#123456");
+        // Uno que ya estaba no se repite.
+        p.poner_color_aviso(COLORES_ACCESORIOS[3].to_lowercase());
+        assert_eq!(p.colores_propios, ["#123456"]);
+        // Quitar el color propio que tenía lo devuelve al de los ojos; otro color no lo toca.
+        p.poner_color_aviso("#654321".into());
+        p.quitar_color("#123456");
+        assert_eq!(p.color_aviso.as_deref(), Some("#654321"));
+        p.quitar_color("#654321");
+        assert_eq!(p.color_aviso, None);
     }
 
     #[test]

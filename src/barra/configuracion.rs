@@ -10,6 +10,8 @@ pub(crate) enum DestinoColor {
     Paleta { acento: bool },
     /// El color de un accesorio del personaje.
     Accesorio(TipoAccesorio),
+    /// El color del circulito que sale en el personaje cuando llega una notificación.
+    Aviso,
     /// El fondo o el acento de un preset guardado.
     Preset { indice: usize, acento: bool },
 }
@@ -131,6 +133,8 @@ impl Ctx {
         ui.set_accesorios(modelo(accesorios.collect()));
         ui.set_colores_accesorios(modelo(ajustes.personaje.paleta().iter().map(|c| color(c)).collect()));
         ui.set_colores_accesorios_base(COLORES_ACCESORIOS.len() as i32);
+        ui.set_aviso_automatico(ajustes.personaje.color_aviso.is_none());
+        ui.set_color_aviso(color(ajustes.personaje.color_aviso.as_deref().unwrap_or(config::COLOR_AVISO_INICIAL)));
         let figura = config::Figura::TODAS.iter().position(|&f| f == ajustes.personaje.figura).unwrap_or(0);
         ui.set_figura(figura as i32);
         let idioma = config::Idioma::TODOS.iter().position(|&i| i == ajustes.idioma).unwrap_or(0);
@@ -152,6 +156,10 @@ impl Ctx {
                 }
                 DestinoColor::Accesorio(tipo) => {
                     (a.personaje.accesorio(tipo).color, tr_con("COLOR DE {}", &[&tipo.nombre().to_uppercase()]))
+                }
+                DestinoColor::Aviso => {
+                    let actual = a.personaje.color_aviso.clone().unwrap_or_else(|| config::COLOR_AVISO_INICIAL.into());
+                    (actual, tr("COLOR DEL AVISO").into())
                 }
             }
         };
@@ -204,6 +212,7 @@ impl Ctx {
             }
             DestinoColor::Preset { indice, acento } => self.modificar_ajustes(|a| a.editar_preset(indice, acento, hex(c))),
             DestinoColor::Accesorio(tipo) => self.modificar_ajustes(|a| a.personaje.poner_color(tipo, hex(c))),
+            DestinoColor::Aviso => self.modificar_ajustes(|a| a.personaje.poner_color_aviso(hex(c))),
         }
     }
 
@@ -441,6 +450,26 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
         let c = c.clone();
         Timer::single_shot(Duration::ZERO, move || c.abrir_selector_color(DestinoColor::Accesorio(tipo)));
     });
+    // El circulito de aviso: sin elegir color usa el de los ojos; al quitar "automático" empieza
+    // en rojo, el de las notificaciones de siempre.
+    let c = ctx.clone();
+    ui.on_alternar_aviso_automatico(move || {
+        c.modificar_ajustes(|a| {
+            a.personaje.color_aviso = match a.personaje.color_aviso {
+                Some(_) => None,
+                None => Some(config::COLOR_AVISO_INICIAL.into()),
+            };
+        });
+    });
+    let c = ctx.clone();
+    ui.on_elegir_color_aviso(move |color| c.modificar_ajustes(|a| a.personaje.poner_color_aviso(hex(color))));
+    let c = ctx.clone();
+    ui.on_agregar_color_aviso(move || {
+        let c = c.clone();
+        Timer::single_shot(Duration::ZERO, move || c.abrir_selector_color(DestinoColor::Aviso));
+    });
+    let c = ctx.clone();
+    ui.on_probar_aviso(move || c.notificar());
     let c = ctx.clone();
     ui.on_menu_color_accesorio(move |i| {
         let c = c.clone();

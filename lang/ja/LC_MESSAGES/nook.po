@@ -184,6 +184,21 @@ msgstr "レモン"
 msgid "ACCESORIOS"
 msgstr "アクセサリー"
 
+msgid "AVISO"
+msgstr "通知"
+
+msgid "Color de los ojos en el circulito de aviso"
+msgstr "通知の丸に目と同じ色を使う"
+
+msgid "El circulito que sale en el personaje cuando llega una notificación"
+msgstr "通知が届いたときにキャラクターに表示される丸"
+
+msgid "Probar aviso"
+msgstr "通知をテスト"
+
+msgid "COLOR DEL AVISO"
+msgstr "通知の色"
+
 msgid "ACERCA DE"
 msgstr "情報"
 

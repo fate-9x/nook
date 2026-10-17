@@ -123,6 +123,9 @@ export component Barra inherits Window {
     in property <[AccesorioItem]> accesorios;
     in property <[color]> colores-accesorios;
     in property <int> colores-accesorios-base: 6;
+    // El circulito que sale en el personaje con una notificación: sin color elegido, el de los ojos.
+    in property <bool> aviso-automatico: true;
+    in property <color> color-aviso;
     // Reproductor: lo que suena (o está en pausa) en cualquier app que salga en los controles
     // multimedia de Windows.
     in property <bool> hay-musica;
@@ -247,6 +250,10 @@ export component Barra inherits Window {
     callback elegir-color-accesorio(int, color);
     callback agregar-color-accesorio(int);          // "+" de la fila de colores del accesorio n
     callback menu-color-accesorio(int);             // clic derecho en un color propio: índice
+    callback alternar-aviso-automatico();           // usar el color de los ojos o uno elegido
+    callback elegir-color-aviso(color);
+    callback agregar-color-aviso();                 // "+" de la fila de colores del circulito
+    callback probar-aviso();                        // el personaje cuenta una notificación de prueba
     callback orden-musica(int);             // 0 anterior, 1 pausa o reproducir, 2 siguiente
     callback elegir-volumen(float);
     callback alternar-reproductor();        // abrir o cerrar el reproductor (portada de la tira)
@@ -1543,6 +1550,8 @@ export component Barra inherits Window {
         accesorios: root.accesorios;
         colores-accesorios: root.colores-accesorios;
         colores-accesorios-base: root.colores-accesorios-base;
+        aviso-automatico: root.aviso-automatico;
+        color-aviso: root.color-aviso;
         reproductor-en-barra: root.reproductor-en-barra;
         version: root.version;
         actualizacion: root.actualizacion;
@@ -1592,6 +1601,10 @@ export component Barra inherits Window {
         elegir-color-accesorio(a, b) => { root.elegir-color-accesorio(a, b); }
         agregar-color-accesorio(a) => { root.agregar-color-accesorio(a); }
         menu-color-accesorio(a) => { root.menu-color-accesorio(a); }
+        alternar-aviso-automatico => { root.alternar-aviso-automatico(); }
+        elegir-color-aviso(a) => { root.elegir-color-aviso(a); }
+        agregar-color-aviso => { root.agregar-color-aviso(); }
+        probar-aviso => { root.probar-aviso(); }
         alternar-reproductor-en-barra => { root.alternar-reproductor-en-barra(); }
         actualizar => { root.actualizar(); }
         ver-licencias => { root.ver-licencias(); }

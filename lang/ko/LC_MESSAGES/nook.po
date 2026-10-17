@@ -184,6 +184,21 @@ msgstr "레몬"
 msgid "ACCESORIOS"
 msgstr "액세서리"
 
+msgid "AVISO"
+msgstr "알림"
+
+msgid "Color de los ojos en el circulito de aviso"
+msgstr "알림 점에 눈과 같은 색 사용"
+
+msgid "El circulito que sale en el personaje cuando llega una notificación"
+msgstr "알림이 오면 캐릭터에 나타나는 점"
+
+msgid "Probar aviso"
+msgstr "알림 테스트"
+
+msgid "COLOR DEL AVISO"
+msgstr "알림 색상"
+
 msgid "ACERCA DE"
 msgstr "정보"
 

@@ -184,6 +184,21 @@ msgstr "Lemon"
 msgid "ACCESORIOS"
 msgstr "ACCESSORIES"
 
+msgid "AVISO"
+msgstr "ALERT"
+
+msgid "Color de los ojos en el circulito de aviso"
+msgstr "Eye color for the alert dot"
+
+msgid "El circulito que sale en el personaje cuando llega una notificación"
+msgstr "The dot that appears on the character when a notification arrives"
+
+msgid "Probar aviso"
+msgstr "Test alert"
+
+msgid "COLOR DEL AVISO"
+msgstr "ALERT COLOR"
+
 msgid "ACERCA DE"
 msgstr "ABOUT"
 

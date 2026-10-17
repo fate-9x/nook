@@ -249,7 +249,7 @@ mod archivo {
     #[test]
     #[ignore]
     fn genera_las_imagenes_del_instalador() {
-        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, accesorios: Vec::new() };
+        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, aviso: None, accesorios: Vec::new() };
         let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
         let caja = caja(&grande);
         let carpeta = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/instalador");
@@ -283,7 +283,7 @@ mod archivo {
         }
         const LADO_ICONO: u32 = 300;
         const CLARO: [u8; 3] = [0xF4, 0xF5, 0xFA];
-        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, accesorios: Vec::new() };
+        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, aviso: None, accesorios: Vec::new() };
         let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
         let caja = caja(&grande);
         let carpeta = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/imagenes-store");
@@ -325,7 +325,7 @@ mod archivo {
         unsafe {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
-        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, accesorios: Vec::new() };
+        let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, aviso: None, accesorios: Vec::new() };
         let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
         let caja = caja(&grande);
         let imagenes: Vec<(u32, Vec<u8>)> = TAMANOS
@@ -348,7 +348,7 @@ mod tests {
     fn el_icono_de_la_bandeja_es_transparente_en_las_esquinas_y_opaco_en_el_centro() {
         let lado = 32;
         for figura in [Figura::Nook, Figura::Limon] {
-            let aspecto = Aspecto { cuerpo: [0xDE, 0x3B, 0x3B], rasgos: [0xFF, 0xFF, 0xFF], accesorios: Vec::new() };
+            let aspecto = Aspecto { cuerpo: [0xDE, 0x3B, 0x3B], rasgos: [0xFF, 0xFF, 0xFF], aviso: None, accesorios: Vec::new() };
             let pixeles = pixeles(figura, &aspecto, lado);
             assert_eq!(pixeles.len(), (lado * lado * 4) as usize);
             let alfa = |x: u32, y: u32| pixeles[((y * lado + x) * 4 + 3) as usize];

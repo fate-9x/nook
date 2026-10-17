@@ -715,6 +715,8 @@ export component PanelConfiguracion inherits Rectangle {
     in property <[AccesorioItem]> accesorios;
     in property <[color]> colores-accesorios;
     in property <int> colores-accesorios-base;
+    in property <bool> aviso-automatico;
+    in property <color> color-aviso;
     in property <bool> reproductor-en-barra;
     in property <string> version;
     in property <string> actualizacion;
@@ -765,6 +767,10 @@ export component PanelConfiguracion inherits Rectangle {
     callback elegir-color-accesorio(int, color);
     callback agregar-color-accesorio(int);
     callback menu-color-accesorio(int);
+    callback alternar-aviso-automatico();
+    callback elegir-color-aviso(color);
+    callback agregar-color-aviso();
+    callback probar-aviso();
     callback alternar-reproductor-en-barra();
     callback actualizar();
     callback ver-licencias();
@@ -1161,6 +1167,30 @@ export component PanelConfiguracion inherits Rectangle {
                         lista-accesorios := VerticalLayout {
                             width: accesorios.width;
                             alignment: start;
+                            Titulo { text: @tr("AVISO"); }
+                            FilaInterruptor {
+                                texto: @tr("Color de los ojos en el circulito de aviso");
+                                nota: @tr("El circulito que sale en el personaje cuando llega una notificación");
+                                activo: root.aviso-automatico;
+                                clicked => { root.alternar-aviso-automatico(); }
+                            }
+                            if !root.aviso-automatico : FilaMuestras {
+                                colores: root.colores-accesorios;
+                                elegido: root.color-aviso;
+                                base: root.colores-accesorios-base;
+                                elegir(c) => { root.elegir-color-aviso(c); }
+                                menu(j) => { root.menu-color-accesorio(j); }
+                                mas => { root.agregar-color-aviso(); }
+                            }
+                            HorizontalLayout {
+                                alignment: start;
+                                height: 38px;
+                                BotonTexto {
+                                    y: 4px;
+                                    texto: @tr("Probar aviso");
+                                    clicked => { root.probar-aviso(); }
+                                }
+                            }
                             Titulo { text: @tr("ACCESORIOS"); }
                             for a[i] in root.accesorios : VerticalLayout {
                                 FilaInterruptor {
