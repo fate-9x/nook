@@ -67,6 +67,7 @@ impl Ctx {
     pub(crate) fn refrescar_ajustes(&self, ui: &Barra, e: &Estado) {
         let ajustes = &e.config.ajustes;
         aplicar_tema(ajustes, ui.global::<Tema>());
+        self.refrescar_tema_addon(ajustes);
 
         ui.set_posicion(match ajustes.borde() {
             Posicion::Arriba => 0,

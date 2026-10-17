@@ -2,7 +2,7 @@
 // que toca (cada uno en su archivo de ui/). Aquí se personaliza lo visual: colores, tamaños, qué
 // elementos aparecen y en qué orden. Cada vez que guardes y hagas `cargo run` verás los cambios.
 
-import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem } from "tema.slint";
+import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
 import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria } from "iconos.slint";
 import { Boton } from "controles.slint";
@@ -20,7 +20,7 @@ export { Emergente } from "emergente.slint";
 export component Barra inherits Window {
     // ---- Estado que llega desde Rust (src/main.rs y src/barra/) ----
     in property <int> posicion;          // 0 arriba, 1 izquierda, 2 derecha, 3 abajo
-    in property <int> modo;              // 0 oculta, 1 reposo, 2 grupo abierto, 3 configuración, 4 buscador, 5 bóveda, 6 reproductor, 7 sonido
+    in property <int> modo;              // 0 oculta, 1 reposo, 2 grupo abierto, 3 configuración, 4 buscador, 5 bóveda, 6 reproductor, 7 sonido, 8 addon
     in property <[ElementoItem]> elementos;    // los de la barra (para la lista de atajos)
     // Lo que se ve en la tira: primero las apps abiertas (las de la barra que lo están, también) y
     // luego los demás elementos de la barra. Los callbacks de la tira dan la posición en ella.
@@ -56,6 +56,9 @@ export component Barra inherits Window {
     in property <bool> actualizando;        // descargando e instalando la versión nueva
     in property <float> progreso-actualizacion; // 0–1
     in property <string> error-actualizacion;
+    in property <[AddonFila]> addons-config;    // la sección "Addons" de la configuración
+    in property <bool> buscando-addons;
+    in property <string> error-addons;
     // Cuenta de GitHub con la que se sincroniza la bóveda: 0 sin conectar, 1 pidiendo el código,
     // 2 esperando a que se escriba el código en GitHub, 3 conectada.
     in property <int> cuenta-estado;
@@ -126,6 +129,14 @@ export component Barra inherits Window {
     // Volumen general de Windows: si su botón va en la tira, y cómo está la salida de audio.
     in property <bool> boton-sonido: true;
     in property <bool> hay-sonido;
+    // Addons (ver src/addons/): sus botones en la tira; y del abierto, cuál es, su panel (que nook
+    // compila al abrirlo), su tamaño y, si no se pudo cargar, por qué.
+    in property <[BotonAddonItem]> botones-addon;
+    in property <int> addon-abierto: -1;
+    in property <component-factory> panel-addon;
+    in property <length> ancho-addon;
+    in property <length> alto-addon;
+    in property <string> error-addon;
     in property <string> nombre-salida;
     in property <bool> silencio;
     in-out property <float> volumen-sistema;    // 0–1
@@ -202,7 +213,12 @@ export component Barra inherits Window {
     callback elegir-resultado(int);
     callback salir-del-buscador();
     callback ver-licencias();
+    callback buscar-addons();
+    callback instalar-addon(int);
+    callback quitar-addon(int);
+    callback alternar-addon-visible(int);
     callback alternar-boveda();             // botón del rombo
+    callback alternar-addon(int);           // botón de un addon (su posición en botones-addon)
     callback guardar-en-boveda(string);     // Intro en el campo (según `entrada-boveda`)
     callback elegir-en-boveda(int);         // copiar un texto o entrar en un grupo
     callback quitar-de-boveda(int);
@@ -352,7 +368,13 @@ export component Barra inherits Window {
     // hasta él es también la zona en la que aparece el "+": lo bastante ancho para acertarle.
     property <length> hueco-mas: 8px;
     property <length> eje-boveda: root.eje-grupo(root.n) + root.espacio-mas + root.hueco-mas;
-    property <length> fin-sin-musica: root.usar-boveda ? root.eje-boveda + root.boton : root.eje-grupo(root.n) + root.espacio-mas;
+    property <length> fin-con-boveda: root.usar-boveda ? root.eje-boveda + root.boton : root.eje-grupo(root.n) + root.espacio-mas;
+    // Tras ella, los botones de los addons.
+    property <int> n-addons: root.botones-addon.length;
+    property <length> eje-addons: root.fin-con-boveda + (root.usar-boveda ? 2px : root.hueco-mas);
+    property <length> paso-addon: root.boton + 2px;
+    property <length> fin-sin-musica: root.n-addons == 0 ? root.fin-con-boveda
+        : root.eje-addons + root.n-addons * root.paso-addon - 2px;
     // Luego, si el reproductor va en la barra y hay algo sonando o en pausa, tras una línea: la
     // portada (abre el reproductor) y los botones de anterior, pausa y siguiente.
     property <bool> musica-en-tira: root.reproductor-en-barra && root.hay-musica;
@@ -414,10 +436,10 @@ export component Barra inherits Window {
     property <bool> abierto: root.modo >= 2;
     property <length> ancho-contenido: root.modo == 2 ? root.ancho-grupo : root.modo == 3 ? root.ancho-config
         : root.modo == 4 || root.modo == 5 ? root.ancho-buscar : root.modo == 6 ? root.ancho-musica
-        : root.modo == 7 ? root.ancho-sonido : 0px;
+        : root.modo == 7 ? root.ancho-sonido : root.modo == 8 ? root.ancho-addon : 0px;
     property <length> alto-contenido: root.modo == 2 ? root.alto-grupo : root.modo == 3 ? root.alto-config
         : root.modo == 4 ? root.alto-buscar : root.modo == 5 ? root.alto-boveda : root.modo == 6 ? root.alto-musica
-        : root.modo == 7 ? root.alto-sonido : 0px;
+        : root.modo == 7 ? root.alto-sonido : root.modo == 8 ? root.alto-addon : 0px;
 
     out property <length> ancho: root.modo == 0 ? (root.vertical ? root.asomo : root.zona + root.separacion-personajes)
         : root.vertical ? root.grosor-total + (root.abierto ? 1px + root.ancho-contenido : 0px)
@@ -913,6 +935,26 @@ export component Barra inherits Window {
             }
         }
 
+        // Addons: cada uno abre o cierra su panel.
+        for addon[i] in root.botones-addon : Boton {
+            x: root.px(root.eje-addons + i * root.paso-addon);
+            y: root.py(root.eje-addons + i * root.paso-addon);
+            activo: root.modo == 8 && root.addon-abierto == i;
+            fondo-activo: Tema.acento;
+            clicked => { root.alternar-addon(i); }
+            arrastrar => { root.mover-barra(); }
+            Path {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 18px;
+                height: 18px;
+                viewbox-width: 24;
+                viewbox-height: 24;
+                commands: addon.icono;
+                fill: root.modo == 8 && root.addon-abierto == i ? Tema.sobre-acento : Tema.texto-suave;
+            }
+        }
+
         // Reproductor.
         if root.musica-en-tira : Rectangle {
             x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica;
@@ -1181,6 +1223,9 @@ export component Barra inherits Window {
         actualizando: root.actualizando;
         progreso-actualizacion: root.progreso-actualizacion;
         error-actualizacion: root.error-actualizacion;
+        addons: root.addons-config;
+        buscando-addons: root.buscando-addons;
+        error-addons: root.error-addons;
         seccion <=> root.seccion;
         tamano-provisional <=> root.tamano-provisional;
         grabar-atajo(a) => { root.grabar-atajo(a); }
@@ -1220,6 +1265,10 @@ export component Barra inherits Window {
         alternar-reproductor-en-barra => { root.alternar-reproductor-en-barra(); }
         actualizar => { root.actualizar(); }
         ver-licencias => { root.ver-licencias(); }
+        buscar-addons => { root.buscar-addons(); }
+        instalar-addon(a) => { root.instalar-addon(a); }
+        quitar-addon(a) => { root.quitar-addon(a); }
+        alternar-addon-visible(a) => { root.alternar-addon-visible(a); }
         salir => { root.salir(); }
     }
 
@@ -1302,6 +1351,27 @@ export component Barra inherits Window {
         elegir-volumen-sistema(a) => { root.elegir-volumen-sistema(a); }
         alternar-silencio => { root.alternar-silencio(); }
         rueda-sonido(a) => { root.rueda-sonido(a); }
+    }
+
+    // ---- Addon abierto ----
+    if root.modo == 8 && root.error-addon != "" : Text {
+        x: root.contenido-x + 16px;
+        y: root.contenido-y + 14px;
+        width: root.ancho-addon - 32px;
+        height: root.alto-addon - 28px;
+        text: root.error-addon;
+        color: Tema.texto-suave;
+        font-size: 12px;
+        wrap: word-wrap;
+        overflow: elide;
+    }
+    ComponentContainer {
+        visible: root.modo == 8 && root.error-addon == "";
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-addon;
+        height: root.alto-addon;
+        component-factory: root.panel-addon;
     }
 
     } // fin de la caja

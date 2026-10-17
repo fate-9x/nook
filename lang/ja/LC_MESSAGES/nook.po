@@ -566,3 +566,56 @@ msgstr "充電中"
 
 msgid "enchufada"
 msgstr "電源に接続"
+
+# Addons
+
+msgid "Addons"
+msgstr "アドオン"
+
+msgid "ADDONS"
+msgstr "アドオン"
+
+msgid "Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos."
+msgstr "バーに追加できるパネル（ミニゲームなど）。開いたときだけ読み込まれます。"
+
+msgid "Buscando addons…"
+msgstr "アドオンを探しています…"
+
+msgid "No se pudo ver el catálogo: {}"
+msgstr "カタログを読み込めませんでした: {}"
+
+msgid "Necesita una versión más nueva de nook"
+msgstr "新しいバージョンの nook が必要です"
+
+msgid "En la barra"
+msgstr "バーに表示"
+
+msgid "Instalar"
+msgstr "インストール"
+
+msgid "Quitar"
+msgstr "削除"
+
+
+
+
+
+
+
+
+
+
+msgid "No se pudo abrir este addon:\n{}"
+msgstr "このアドオンを開けませんでした:\n{}"
+
+msgid "No se pudo instalar: {}"
+msgstr "インストールできませんでした: {}"
+
+msgid "No se pudo quitar: {}"
+msgstr "削除できませんでした: {}"
+
+msgid "Jonathan Turner, Stephen Chung y colaboradores"
+msgstr "Jonathan Turner、Stephen Chung ほか"
+
+msgid "El lenguaje de los addons."
+msgstr "アドオンを書くための言語。"

@@ -133,6 +133,8 @@ pub struct Ajustes {
     /// Nook activó "ocultar automáticamente" en la barra de tareas de Windows para sustituirla y
     /// tiene que desactivarlo al devolverla (también si se cerró de golpe sin hacerlo).
     pub barra_de_windows_ocultandose: bool,
+    /// Addons instalados que no se muestran en la tira (por su id).
+    pub addons_ocultos: Vec<String>,
 }
 
 /// Idioma de la interfaz (ver `idioma.rs`).
@@ -341,6 +343,7 @@ impl Default for Ajustes {
             apps_abiertas: true,
             sustituir_barra_de_windows: false,
             barra_de_windows_ocultandose: false,
+            addons_ocultos: Vec::new(),
         }
     }
 }

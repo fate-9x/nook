@@ -45,6 +45,14 @@ fn actual() -> Idioma {
     }
 }
 
+/// Código del idioma en uso ("es", "en", "ja" o "ko").
+pub fn codigo_actual() -> &'static str {
+    match codigo(actual()) {
+        "" => "es",
+        codigo => codigo,
+    }
+}
+
 /// Nombre de la carpeta de `lang/` con sus traducciones.
 fn codigo(idioma: Idioma) -> &'static str {
     match idioma {

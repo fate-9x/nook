@@ -566,3 +566,56 @@ msgstr "charging"
 
 msgid "enchufada"
 msgstr "plugged in"
+
+# Addons
+
+msgid "Addons"
+msgstr "Add-ons"
+
+msgid "ADDONS"
+msgstr "ADD-ONS"
+
+msgid "Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos."
+msgstr "Panels you can add to the bar, like mini-games. They only load when you open them."
+
+msgid "Buscando addons…"
+msgstr "Looking for add-ons…"
+
+msgid "No se pudo ver el catálogo: {}"
+msgstr "Couldn't load the catalog: {}"
+
+msgid "Necesita una versión más nueva de nook"
+msgstr "Needs a newer version of nook"
+
+msgid "En la barra"
+msgstr "On the bar"
+
+msgid "Instalar"
+msgstr "Install"
+
+msgid "Quitar"
+msgstr "Remove"
+
+
+
+
+
+
+
+
+
+
+msgid "No se pudo abrir este addon:\n{}"
+msgstr "Couldn't open this add-on:\n{}"
+
+msgid "No se pudo instalar: {}"
+msgstr "Couldn't install: {}"
+
+msgid "No se pudo quitar: {}"
+msgstr "Couldn't remove: {}"
+
+msgid "Jonathan Turner, Stephen Chung y colaboradores"
+msgstr "Jonathan Turner, Stephen Chung and contributors"
+
+msgid "El lenguaje de los addons."
+msgstr "The language add-ons are written in."

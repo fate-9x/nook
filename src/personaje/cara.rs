@@ -95,23 +95,12 @@ fn ruido(t: f64, periodo: f64, semilla: f64) -> f32 {
         as f32
 }
 
-/// Generador pseudoaleatorio determinista (mulberry32): da siempre la misma secuencia.
-fn aleatorio(semilla: u32) -> impl FnMut() -> f32 {
-    let mut a = semilla;
-    move || {
-        a = a.wrapping_add(0x6D2B_79F5);
-        let mut t = (a ^ (a >> 15)).wrapping_mul(1 | a);
-        t = t.wrapping_add((t ^ (t >> 7)).wrapping_mul(61 | t)) ^ t;
-        (t ^ (t >> 14)) as f32 / 4_294_967_296.0
-    }
-}
-
 /// Los parpadeos se reparten de antemano en un calendario que se repite cada `CICLO` segundos:
 /// así la vida es una función pura del tiempo, sin estado.
 const CICLO: f64 = 900.0;
 const DURACION_PARPADEO: f64 = 0.18;
 static PARPADEOS: LazyLock<Vec<f64>> = LazyLock::new(|| {
-    let mut azar = aleatorio(0x5EED);
+    let mut azar = crate::azar::aleatorio(0x5EED);
     let mut lista = Vec::new();
     let mut t = 1.4;
     while t < CICLO - 5.0 {

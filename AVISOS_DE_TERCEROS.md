@@ -31,7 +31,8 @@ licencias.
 - Licencia: Slint Royalty-free Desktop, Mobile, and Web Applications License 2.0
   (https://github.com/slint-ui/slint/blob/master/LICENSES/LicenseRef-Slint-Royalty-free-2.0.md)
 - **Qué se usa:** la interfaz gráfica: el lenguaje de diseño de la barra (`ui/barra.slint`), su
-  dibujo por software y sus animaciones.
+  dibujo por software y sus animaciones; y su intérprete (`slint-interpreter`), que compila al
+  abrirlos los paneles de los addons.
 
 ## zeno
 
@@ -56,6 +57,13 @@ licencias.
 - Licencia: MIT o Apache-2.0, a elección; se usa bajo MIT (texto completo más abajo)
 - **Qué se usa:** la lectura y el guardado de la configuración.
 
+## Rhai
+
+- Proyecto: https://rhai.rs
+- Autores: Jonathan Turner, Lukáš Hozda, Stephen Chung y colaboradores
+- Licencia: MIT o Apache-2.0, a elección; se usa bajo MIT (texto completo más abajo)
+- **Qué se usa:** el lenguaje en el que se escribe lo que hacen los addons (sus `logica.rhai`).
+
 ## chrono
 
 - Proyecto: https://github.com/chronotope/chrono
@@ -67,8 +75,8 @@ licencias.
 
 ## Licencia MIT
 
-Se aplica a bloub (Copyright (c) 2026 Jérémy Perret), zeno, windows-rs, serde, serde_json y
-chrono, cada uno con el aviso de copyright indicado arriba.
+Se aplica a bloub (Copyright (c) 2026 Jérémy Perret), zeno, windows-rs, serde, serde_json, Rhai
+y chrono, cada uno con el aviso de copyright indicado arriba.
 
 ```
 MIT License

@@ -1,7 +1,7 @@
 // Configuración: a la izquierda, las secciones; a la derecha, los ajustes de la elegida (con la
 // rueda se desplazan si no caben).
 
-import { Tema, ElementoItem, PresetItem, AccesorioItem } from "tema.slint";
+import { Tema, ElementoItem, PresetItem, AccesorioItem, AddonFila } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoX, IconoMas, IconoMicrofono, IconoLupa } from "iconos.slint";
 import { BotonTexto, Tecla, Titulo, Deslizador } from "controles.slint";
 
@@ -411,6 +411,101 @@ component Interruptor inherits Rectangle {
     }
 }
 
+// Addon de la configuración: su icono, nombre, versión y descripción, y lo que se puede hacer con
+// él (instalarlo, actualizarlo o quitarlo y, si está instalado, mostrarlo o no en la barra).
+component FilaAddon inherits Rectangle {
+    in property <AddonFila> addon;
+    callback instalar();
+    callback quitar();
+    callback alternar-visible();
+
+    border-radius: 14px;
+    background: Tema.capa;
+    height: contenido.preferred-height;
+
+    contenido := HorizontalLayout {
+        padding: 10px;
+        padding-left: 12px;
+        spacing: 10px;
+
+        VerticalLayout {
+            alignment: start;
+            padding-top: 2px;
+            Path {
+                width: 18px;
+                height: 18px;
+                viewbox-width: 24;
+                viewbox-height: 24;
+                commands: root.addon.icono;
+                fill: Tema.acento;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 3px;
+            HorizontalLayout {
+                alignment: start;
+                spacing: 6px;
+                Text {
+                    text: root.addon.nombre;
+                    color: Tema.texto;
+                    font-size: 12px;
+                    font-weight: 700;
+                }
+                Text {
+                    text: root.addon.nueva != "" ? root.addon.version + " → " + root.addon.nueva : root.addon.version;
+                    color: Tema.texto-tenue;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+            Text {
+                text: root.addon.error != "" ? root.addon.error
+                    : !root.addon.compatible ? @tr("Necesita una versión más nueva de nook")
+                    : root.addon.descripcion;
+                color: root.addon.error != "" ? Tema.texto : Tema.texto-suave;
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+            if root.addon.instalado && root.addon.compatible : HorizontalLayout {
+                alignment: start;
+                spacing: 8px;
+                padding-top: 4px;
+                Interruptor {
+                    activo: root.addon.visible;
+                    clicked => { root.alternar-visible(); }
+                }
+                Text {
+                    text: @tr("En la barra");
+                    color: Tema.texto-suave;
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            spacing: 6px;
+            if root.addon.ocupado : Text {
+                height: 30px;
+                text: "…";
+                color: Tema.texto-suave;
+                font-size: 14px;
+                vertical-alignment: center;
+            }
+            if !root.addon.ocupado && (!root.addon.instalado || root.addon.nueva != "") && root.addon.compatible : BotonTexto {
+                texto: root.addon.instalado ? @tr("Actualizar") : @tr("Instalar");
+                peligro: true;
+                clicked => { root.instalar(); }
+            }
+            if !root.addon.ocupado && root.addon.instalado : BotonTexto {
+                texto: @tr("Quitar");
+                clicked => { root.quitar(); }
+            }
+        }
+    }
+}
+
 component FilaInterruptor inherits VerticalLayout {
     in property <string> texto;
     // Aclaración debajo, más pequeña (opcional).
@@ -550,6 +645,10 @@ export component PanelConfiguracion inherits Rectangle {
     in property <bool> actualizando;
     in property <float> progreso-actualizacion;
     in property <string> error-actualizacion;
+    // Addons (sección "Addons").
+    in property <[AddonFila]> addons;
+    in property <bool> buscando-addons;
+    in property <string> error-addons;
     in-out property <int> seccion;
     in-out property <float> tamano-provisional;
     callback grabar-atajo(int);
@@ -589,6 +688,10 @@ export component PanelConfiguracion inherits Rectangle {
     callback alternar-reproductor-en-barra();
     callback actualizar();
     callback ver-licencias();
+    callback buscar-addons();
+    callback instalar-addon(int);
+    callback quitar-addon(int);
+    callback alternar-addon-visible(int);
     callback salir();
 
     property <length> ancho-secciones: 152px;
@@ -604,14 +707,17 @@ export component PanelConfiguracion inherits Rectangle {
             padding-right: 8px;
             spacing: 2px;
 
-            for nombre[i] in [@tr("Atajos"), @tr("Comportamiento"), @tr("Colores"), @tr("Apariencia"), @tr("Personaje"), @tr("Música"), @tr("Acerca de")] : OpcionSeccion {
+            for nombre[i] in [@tr("Atajos"), @tr("Comportamiento"), @tr("Colores"), @tr("Apariencia"), @tr("Personaje"), @tr("Música"), @tr("Addons"), @tr("Acerca de")] : OpcionSeccion {
                 texto: nombre;
                 elegida: root.seccion == i;
                 // Hay una versión nueva: se avisa en "Acerca de".
-                aviso: i == 6 && root.actualizacion != "";
+                aviso: i == 7 && root.actualizacion != "";
                 clicked => {
                     root.seccion = i;
                     ajustes.content-y = 0px;
+                    if (i == 6) {
+                        root.buscar-addons();
+                    }
                 }
             }
             Rectangle { vertical-stretch: 1; }
@@ -1026,9 +1132,49 @@ export component PanelConfiguracion inherits Rectangle {
                     }
                 }
 
+                // Addons: los instalados y los del catálogo.
+                if root.seccion == 6 : VerticalLayout {
+                    spacing: 8px;
+
+                    Titulo { text: @tr("ADDONS"); }
+                    Text {
+                        text: @tr("Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos.");
+                        color: Tema.texto-suave;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                    if root.buscando-addons : Text {
+                        text: @tr("Buscando addons…");
+                        color: Tema.texto-tenue;
+                        font-size: 12px;
+                    }
+                    if root.error-addons != "" : HorizontalLayout {
+                        spacing: 8px;
+                        Text {
+                            horizontal-stretch: 1;
+                            text: @tr("No se pudo ver el catálogo: {}", root.error-addons);
+                            color: Tema.texto-suave;
+                            font-size: 12px;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                        }
+                        BotonTexto {
+                            texto: @tr("Reintentar");
+                            clicked => { root.buscar-addons(); }
+                        }
+                    }
+                    for a[i] in root.addons : FilaAddon {
+                        addon: a;
+                        instalar => { root.instalar-addon(i); }
+                        quitar => { root.quitar-addon(i); }
+                        alternar-visible => { root.alternar-addon-visible(i); }
+                    }
+
+                }
+
                 // Acerca de: la versión (y si hay otra nueva) y los créditos: qué se usa de
                 // otros proyectos (los textos completos, en AVISOS_DE_TERCEROS.md).
-                if root.seccion == 6 : VerticalLayout {
+                if root.seccion == 7 : VerticalLayout {
                     spacing: 10px;
 
                     VerticalLayout {
@@ -1107,6 +1253,8 @@ export component PanelConfiguracion inherits Rectangle {
                               uso: @tr("El acceso a Windows: ventanas, iconos, atajos, desenfoque, notificaciones y música.") },
                             { nombre: @tr("serde y serde_json"), autor: @tr("Erick Tryzelaar y David Tolnay"), licencia: "MIT",
                               uso: @tr("La lectura y el guardado de la configuración.") },
+                            { nombre: "Rhai", autor: @tr("Jonathan Turner, Stephen Chung y colaboradores"), licencia: "MIT",
+                              uso: @tr("El lenguaje de los addons.") },
                             { nombre: "chrono", autor: @tr("Kang Seonghoon y colaboradores"), licencia: "MIT",
                               uso: @tr("La hora de la barra.") },
                         ] : FilaCredito { credito: c; }

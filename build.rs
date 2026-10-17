@@ -5,6 +5,10 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
+    // El panel de los addons (`ComponentContainer`, ver src/addons/panel.rs) todavía es una función
+    // experimental de Slint.
+    // SAFETY: el script de compilación no tiene más hilos que lean el entorno.
+    unsafe { std::env::set_var("SLINT_ENABLE_EXPERIMENTAL_FEATURES", "1") };
     // Los textos de `@tr(…)` se traducen sin contexto: así los .po sirven igual para los de Rust
     // (ver src/idioma.rs).
     let config = slint_build::CompilerConfiguration::new()

@@ -566,3 +566,56 @@ msgstr "충전 중"
 
 msgid "enchufada"
 msgstr "전원 연결됨"
+
+# Addons
+
+msgid "Addons"
+msgstr "애드온"
+
+msgid "ADDONS"
+msgstr "애드온"
+
+msgid "Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos."
+msgstr "바에 추가하는 패널(미니게임 등)입니다. 열 때만 불러옵니다."
+
+msgid "Buscando addons…"
+msgstr "애드온을 찾는 중…"
+
+msgid "No se pudo ver el catálogo: {}"
+msgstr "카탈로그를 불러오지 못했습니다: {}"
+
+msgid "Necesita una versión más nueva de nook"
+msgstr "최신 버전의 nook이 필요합니다"
+
+msgid "En la barra"
+msgstr "바에 표시"
+
+msgid "Instalar"
+msgstr "설치"
+
+msgid "Quitar"
+msgstr "제거"
+
+
+
+
+
+
+
+
+
+
+msgid "No se pudo abrir este addon:\n{}"
+msgstr "이 애드온을 열지 못했습니다:\n{}"
+
+msgid "No se pudo instalar: {}"
+msgstr "설치하지 못했습니다: {}"
+
+msgid "No se pudo quitar: {}"
+msgstr "제거하지 못했습니다: {}"
+
+msgid "Jonathan Turner, Stephen Chung y colaboradores"
+msgstr "Jonathan Turner, Stephen Chung 외 기여자"
+
+msgid "El lenguaje de los addons."
+msgstr "애드온을 작성하는 언어."

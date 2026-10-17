@@ -2,8 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod actualizacion;
+mod addons;
 mod atajos;
 mod avisos;
+mod azar;
 mod bandeja;
 mod barra_de_tareas;
 mod boveda;
@@ -51,6 +53,7 @@ mod tecla_windows;
 /// eventos de la interfaz (`conectar`).
 mod barra {
     pub mod abiertas;
+    pub mod addons;
     pub mod atajos;
     pub mod boveda;
     pub mod buscador;
@@ -115,6 +118,8 @@ enum Modo {
     Musica,
     /// Volumen general de Windows (botón del altavoz).
     Sonido,
+    /// Panel de un addon (ver src/addons/).
+    Addon,
 }
 
 impl Modo {
@@ -128,11 +133,12 @@ impl Modo {
             Modo::Boveda => 5,
             Modo::Musica => 6,
             Modo::Sonido => 7,
+            Modo::Addon => 8,
         }
     }
 
     fn desplegado(self) -> bool {
-        matches!(self, Modo::Grupo | Modo::Config | Modo::Buscar | Modo::Boveda | Modo::Musica | Modo::Sonido)
+        matches!(self, Modo::Grupo | Modo::Config | Modo::Buscar | Modo::Boveda | Modo::Musica | Modo::Sonido | Modo::Addon)
     }
 }
 
@@ -201,6 +207,10 @@ struct Estado {
     conectando_cuenta: bool,
     codigo_cuenta: Option<String>,
     error_cuenta: String,
+    /// Addons instalados (solo lo que dicen sus manifiestos: se cargan al abrirlos) y lo de su
+    /// sección de la configuración.
+    addons: Vec<addons::Addon>,
+    config_addons: barra::addons::ConfigAddons,
 }
 
 /// Lo que necesitan los eventos: la ventana, el estado y los temporizadores.
@@ -242,6 +252,8 @@ struct Ctx {
     /// ha hecho.
     sondeo: Rc<Timer>,
     vueltas: Rc<Cell<u32>>,
+    /// Addons cargados y lo que esperan de ellos (ver barra/addons.rs).
+    addons: Rc<barra::addons::Addons>,
 }
 
 impl Ctx {
@@ -263,6 +275,7 @@ impl Ctx {
         self.refrescar_ajustes(&ui, e);
         self.refrescar_tira(&ui, e);
         self.refrescar_boveda(&ui, e);
+        self.refrescar_addons(&ui, e);
     }
 
     fn poner_modo(&self, modo: Modo) {
@@ -525,6 +538,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             conectando_cuenta: false,
             codigo_cuenta: None,
             error_cuenta: String::new(),
+            addons: Vec::new(),
+            config_addons: Default::default(),
         })),
         vigia: Rc::new(Timer::default()),
         lienzo: Rc::new(Cell::new(None)),
@@ -549,7 +564,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })),
         sondeo: Rc::new(Timer::default()),
         vueltas: Rc::new(Cell::new(0)),
+        addons: Rc::default(),
     };
+    ctx.leer_addons();
     ctx.refrescar();
     ctx.recolocar();
     // Lo primero, por si Nook arranca con Windows: así recibe los iconos de los programas que
@@ -580,6 +597,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- Eventos de la interfaz ---
 
     barra::abiertas::conectar(&ui, &ctx);
+    barra::addons::conectar(&ui, &ctx);
     barra::atajos::conectar(&ui, &ctx);
     barra::boveda::conectar(&ui, &ctx);
     barra::buscador::conectar(&ui, &ctx);
