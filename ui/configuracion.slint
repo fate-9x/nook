@@ -649,6 +649,8 @@ export component PanelConfiguracion inherits Rectangle {
     in property <[AddonFila]> addons;
     in property <bool> buscando-addons;
     in property <string> error-addons;
+    in property <bool> conectado-claude;
+    in property <string> mensaje-conexion;
     in-out property <int> seccion;
     in-out property <float> tamano-provisional;
     callback grabar-atajo(int);
@@ -692,6 +694,8 @@ export component PanelConfiguracion inherits Rectangle {
     callback instalar-addon(int);
     callback quitar-addon(int);
     callback alternar-addon-visible(int);
+    callback conectar-claude-desktop();
+    callback copiar-comando-claude-code();
     callback salir();
 
     property <length> ancho-secciones: 152px;
@@ -1132,7 +1136,7 @@ export component PanelConfiguracion inherits Rectangle {
                     }
                 }
 
-                // Addons: los instalados y los del catálogo.
+                // Addons: los instalados y los del catálogo, y conectarlos con la IA del usuario.
                 if root.seccion == 6 : VerticalLayout {
                     spacing: 8px;
 
@@ -1170,6 +1174,33 @@ export component PanelConfiguracion inherits Rectangle {
                         alternar-visible => { root.alternar-addon-visible(i); }
                     }
 
+                    Rectangle { height: 4px; }
+                    Titulo { text: @tr("CONECTAR CON TU IA"); }
+                    Text {
+                        text: @tr("Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella.");
+                        color: Tema.texto-suave;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        BotonTexto {
+                            texto: root.conectado-claude ? @tr("Conectado con Claude Desktop") : @tr("Conectar con Claude Desktop");
+                            peligro: !root.conectado-claude;
+                            clicked => { root.conectar-claude-desktop(); }
+                        }
+                        BotonTexto {
+                            texto: @tr("Copiar comando para Claude Code");
+                            clicked => { root.copiar-comando-claude-code(); }
+                        }
+                    }
+                    if root.mensaje-conexion != "" : Text {
+                        text: root.mensaje-conexion;
+                        color: Tema.texto-tenue;
+                        font-size: 11px;
+                        wrap: word-wrap;
+                    }
                 }
 
                 // Acerca de: la versión (y si hay otra nueva) y los créditos: qué se usa de

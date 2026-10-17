@@ -12,9 +12,12 @@
 //! - `personaje("rebote")` o `personaje("aviso")`: el personaje reacciona.
 //! - `idioma()`: "es", "en", "ja" o "ko".
 //! - `cerrar()`: cierra el panel.
+//! - `avisar("evento", valor)`: responde a las herramientas MCP que esperan ese evento.
+//! - `esperar("evento", segundos)`: lo que devuelve una herramienta MCP para esperar un `avisar`.
 //!
 //! Si existe, nook llama a `al_abrir()` cada vez que se abre el panel (el panel puede haberse
-//! creado de nuevo: ahí hay que ponerle lo que tenga que mostrar).
+//! creado de nuevo: ahí hay que ponerle lo que tenga que mostrar). Las herramientas MCP del
+//! manifiesto llaman a `herramienta_<nombre>(argumentos)`.
 
 use rhai::{CallFnOptions, Dynamic, Engine, Scope, AST};
 use slint::{Model, ModelRc, VecModel};
@@ -42,6 +45,15 @@ pub struct Anfitrion {
     pub personaje: Box<dyn Fn(&str)>,
     pub cerrar: Box<dyn Fn()>,
     pub idioma: Box<dyn Fn() -> String>,
+    pub avisar: Box<dyn Fn(&str, Dynamic)>,
+}
+
+/// Lo que devuelve `esperar`: la herramienta MCP no responde hasta que el script llame a
+/// `avisar` con ese evento (o pasen esos segundos).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Espera {
+    pub evento: String,
+    pub segundos: u64,
 }
 
 pub struct Guion {
@@ -139,8 +151,15 @@ fn motor(guion: Weak<Guion>, anfitrion: Rc<Anfitrion>, datos: PathBuf) -> Engine
     motor.register_fn("personaje", move |que: &str| (a.personaje)(que));
     let a = anfitrion.clone();
     motor.register_fn("cerrar", move || (a.cerrar)());
-    let a = anfitrion;
+    let a = anfitrion.clone();
     motor.register_fn("idioma", move || (a.idioma)());
+    let a = anfitrion;
+    motor.register_fn("avisar", move |evento: &str, valor: Dynamic| (a.avisar)(evento, valor));
+    motor.register_type_with_name::<Espera>("Espera");
+    motor.register_fn("esperar", |evento: &str, segundos: rhai::INT| Espera {
+        evento: evento.to_string(),
+        segundos: segundos.max(0) as u64,
+    });
 
     motor.register_fn("azar", || crate::azar::siguiente() as f64);
 
@@ -215,6 +234,7 @@ mod tests {
             personaje: Box::new(|_| {}),
             cerrar: Box::new(|| {}),
             idioma: Box::new(|| "es".into()),
+            avisar: Box::new(|_, _| {}),
         }
     }
 
@@ -257,5 +277,12 @@ mod tests {
     fn un_bucle_sin_fin_se_corta() {
         let g = guion("fn bucle() { loop { } }");
         assert!(g.llamar("bucle", Vec::new()).is_err());
+    }
+
+    #[test]
+    fn esperar_devuelve_la_espera() {
+        let g = guion(r#"fn herramienta_turno(a) { esperar("disparo", 30) }"#);
+        let espera = g.llamar("herramienta_turno", vec![Dynamic::UNIT]).unwrap().try_cast::<Espera>().unwrap();
+        assert_eq!(espera, Espera { evento: "disparo".into(), segundos: 30 });
     }
 }

@@ -596,14 +596,32 @@ msgstr "Install"
 msgid "Quitar"
 msgstr "Remove"
 
+msgid "CONECTAR CON TU IA"
+msgstr "CONNECT YOUR AI"
 
+msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella."
+msgstr "Some add-ons can be used from Claude or another AI that supports MCP: for example, to play against it."
 
+msgid "Conectado con Claude Desktop"
+msgstr "Connected to Claude Desktop"
 
+msgid "Conectar con Claude Desktop"
+msgstr "Connect to Claude Desktop"
 
+msgid "Copiar comando para Claude Code"
+msgstr "Copy command for Claude Code"
 
+msgid "Claude Desktop no está instalado"
+msgstr "Claude Desktop isn't installed"
 
+msgid "Listo: reinicia Claude Desktop para que vea nook."
+msgstr "Done: restart Claude Desktop so it can see nook."
 
+msgid "Comando copiado: pégalo en una terminal."
+msgstr "Command copied: paste it into a terminal."
 
+msgid "No se pudo copiar el comando."
+msgstr "Couldn't copy the command."
 
 msgid "No se pudo abrir este addon:\n{}"
 msgstr "Couldn't open this add-on:\n{}"

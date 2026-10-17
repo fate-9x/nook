@@ -475,6 +475,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(tecla_windows::ARG_PREPARAR) => std::process::exit(tecla_windows::preparar()),
         Some(tecla_windows::ARG_QUITAR) => std::process::exit(tecla_windows::quitar()),
+        // El servidor MCP de los addons, para la IA del usuario (ver addons/mcp.rs).
+        Some(addons::mcp::ARG) => {
+            addons::mcp::servir();
+            return Ok(());
+        }
         _ => {}
     }
     // Solo puede haber una barra: si ya hay una abierta, se le pide que se muestre y se sale.

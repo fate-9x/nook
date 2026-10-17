@@ -596,14 +596,32 @@ msgstr "설치"
 msgid "Quitar"
 msgstr "제거"
 
+msgid "CONECTAR CON TU IA"
+msgstr "AI 연결"
 
+msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella."
+msgstr "일부 애드온은 Claude 등 MCP를 지원하는 AI에서 사용할 수 있습니다. 예를 들어 AI와 대결할 수 있습니다."
 
+msgid "Conectado con Claude Desktop"
+msgstr "Claude Desktop에 연결됨"
 
+msgid "Conectar con Claude Desktop"
+msgstr "Claude Desktop에 연결"
 
+msgid "Copiar comando para Claude Code"
+msgstr "Claude Code용 명령 복사"
 
+msgid "Claude Desktop no está instalado"
+msgstr "Claude Desktop이 설치되어 있지 않습니다"
 
+msgid "Listo: reinicia Claude Desktop para que vea nook."
+msgstr "완료: Claude Desktop을 다시 시작하면 nook이 보입니다."
 
+msgid "Comando copiado: pégalo en una terminal."
+msgstr "명령을 복사했습니다. 터미널에 붙여 넣으세요."
 
+msgid "No se pudo copiar el comando."
+msgstr "명령을 복사하지 못했습니다."
 
 msgid "No se pudo abrir este addon:\n{}"
 msgstr "이 애드온을 열지 못했습니다:\n{}"

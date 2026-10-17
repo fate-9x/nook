@@ -596,14 +596,32 @@ msgstr "インストール"
 msgid "Quitar"
 msgstr "削除"
 
+msgid "CONECTAR CON TU IA"
+msgstr "AI と接続"
 
+msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella."
+msgstr "一部のアドオンは Claude など MCP に対応した AI から使えます。たとえば AI と対戦できます。"
 
+msgid "Conectado con Claude Desktop"
+msgstr "Claude Desktop と接続済み"
 
+msgid "Conectar con Claude Desktop"
+msgstr "Claude Desktop と接続"
 
+msgid "Copiar comando para Claude Code"
+msgstr "Claude Code 用のコマンドをコピー"
 
+msgid "Claude Desktop no está instalado"
+msgstr "Claude Desktop がインストールされていません"
 
+msgid "Listo: reinicia Claude Desktop para que vea nook."
+msgstr "完了: nook を認識させるため Claude Desktop を再起動してください。"
 
+msgid "Comando copiado: pégalo en una terminal."
+msgstr "コマンドをコピーしました。ターミナルに貼り付けてください。"
 
+msgid "No se pudo copiar el comando."
+msgstr "コマンドをコピーできませんでした。"
 
 msgid "No se pudo abrir este addon:\n{}"
 msgstr "このアドオンを開けませんでした:\n{}"

@@ -6,8 +6,11 @@
 //! - `logica.rhai`: lo que hace (ver `guion.rs`).
 
 pub mod catalogo;
+pub mod conectar;
 pub mod guion;
+pub mod mcp;
 pub mod panel;
+pub mod tuberia;
 
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -29,6 +32,24 @@ pub struct Manifiesto {
     /// Trazado SVG de su icono en una caja de 24×24 (la tira lo tiñe con el color del tema).
     #[serde(default)]
     pub icono: String,
+    /// Lo que puede usar la IA del usuario por MCP (ver `mcp.rs`).
+    #[serde(default)]
+    pub herramientas: Vec<Herramienta>,
+}
+
+/// Herramienta MCP de un addon: al usarla se llama a `herramienta_<nombre>` de su script.
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+pub struct Herramienta {
+    pub nombre: String,
+    #[serde(default)]
+    pub descripcion: String,
+    /// JSON Schema de sus argumentos.
+    #[serde(default = "sin_parametros")]
+    pub parametros: serde_json::Value,
+}
+
+fn sin_parametros() -> serde_json::Value {
+    serde_json::json!({ "type": "object", "properties": {} })
 }
 
 impl Manifiesto {
@@ -138,10 +159,13 @@ mod tests {
     #[test]
     fn lee_el_manifiesto() {
         let json = r#"{"id":"dado","nombre":{"es":"Dado","en":"Dice"},"version":"0.1.0",
-            "panel":{"ancho":300,"alto":132},"icono":"M0 0h24v24H0z"}"#;
+            "panel":{"ancho":300,"alto":132},"icono":"M0 0h24v24H0z",
+            "herramientas":[{"nombre":"tirar","descripcion":"Tira el dado"}]}"#;
         let m: Manifiesto = serde_json::from_str(json).unwrap();
         assert_eq!(m.id, "dado");
         assert_eq!(m.panel.ancho, 300.0);
+        assert_eq!(m.herramientas[0].nombre, "tirar");
+        assert_eq!(m.herramientas[0].parametros["type"], "object");
         assert_eq!(m.nook_minimo, None);
     }
 

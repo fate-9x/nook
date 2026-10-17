@@ -1,11 +1,18 @@
 //! Addons en la barra: sus botones en la tira, abrir su panel (que se compila la primera vez),
-//! enlazarlo con su script, pasarle los colores, y la sección "Addons" de la configuración.
+//! enlazarlo con su script, pasarle los colores y atender a la IA del usuario por MCP (ver
+//! src/addons/mcp.rs).
 
 use crate::addons::catalogo::{self, Entrada};
-use crate::addons::guion::{self, Anfitrion, Guion};
-use crate::addons::{self, Addon, panel};
+use crate::addons::guion::{self, Anfitrion, Espera, Guion};
+use crate::addons::{self, Addon, conectar as ia, panel, tuberia};
 use crate::*;
+use serde_json::{Value as Json, json};
 use slint_interpreter::{ComponentHandle as _, ComponentInstance, Value};
+use std::sync::mpsc;
+
+/// Lo más que una herramienta MCP se queda esperando al usuario antes de responder que vuelva a
+/// intentarlo (los clientes suelen cortar hacia el minuto).
+const ESPERA_MAXIMA: Duration = Duration::from_secs(50);
 
 /// Lo de los addons que se ha ido cargando.
 #[derive(Default)]
@@ -16,6 +23,9 @@ pub(crate) struct Addons {
     cargados: RefCell<HashMap<String, Cargado>>,
     /// El que está puesto en el panel de la barra.
     puesto: RefCell<Option<String>>,
+    /// Herramientas MCP esperando a que su addon llame a `avisar`.
+    esperas: RefCell<Vec<EsperaMcp>>,
+    siguiente_espera: Cell<u64>,
 }
 
 struct Cargado {
@@ -37,6 +47,18 @@ pub(crate) struct ConfigAddons {
     /// Addons que se están instalando o quitando, y el último error de cada uno.
     ocupados: HashSet<String>,
     errores: HashMap<String, String>,
+    /// Si nook está en Claude Desktop (se mira al arrancar y al conectarlo) y lo último que pasó
+    /// al conectarlo.
+    conectado_claude: bool,
+    mensaje_conexion: String,
+}
+
+struct EsperaMcp {
+    numero: u64,
+    addon: String,
+    evento: String,
+    responder: mpsc::Sender<Json>,
+    _limite: Timer,
 }
 
 impl Ctx {
@@ -57,6 +79,8 @@ impl Ctx {
         ui.set_addons_config(modelo(filas(e).into_iter().map(|(_, fila)| fila).collect()));
         ui.set_buscando_addons(c.buscando);
         ui.set_error_addons(c.error.clone().into());
+        ui.set_conectado_claude(c.conectado_claude);
+        ui.set_mensaje_conexion(c.mensaje_conexion.clone().into());
     }
 
     /// Vuelve a leer los addons instalados (al arrancar y al instalar o quitar uno).
@@ -79,8 +103,8 @@ impl Ctx {
 
     /// Abre el panel de un addon (lo carga si es la primera vez) y llama a su `al_abrir`. Si no
     /// se puede cargar, el panel lo dice.
-    pub(crate) fn abrir_addon(&self, addon: &Addon) {
-        let Some(ui) = self.ui.upgrade() else { return };
+    pub(crate) fn abrir_addon(&self, addon: &Addon) -> bool {
+        let Some(ui) = self.ui.upgrade() else { return false };
         let id = addon.manifiesto.id.clone();
         ui.set_ancho_addon(addon.manifiesto.panel.ancho);
         ui.set_alto_addon(addon.manifiesto.panel.alto);
@@ -96,7 +120,7 @@ impl Ctx {
                     *self.addons.puesto.borrow_mut() = Some(id);
                     ui.set_panel_addon(Default::default());
                     self.poner_modo(Modo::Addon);
-                    return;
+                    return false;
                 }
             }
         }
@@ -117,6 +141,7 @@ impl Ctx {
                 eprintln!("Addon: {e}");
             }
         });
+        true
     }
 
     /// Hace algo con el script de un addon cargado en cuanto su panel esté creado.
@@ -137,7 +162,7 @@ impl Ctx {
         let definicion = panel::compilar(&addon.carpeta)?;
         let instancia: Rc<RefCell<Option<ComponentInstance>>> = Rc::default();
         let pendientes: Rc<RefCell<Vec<Box<dyn FnOnce()>>>> = Rc::default();
-        let anfitrion = self.anfitrion(&instancia);
+        let anfitrion = self.anfitrion(&addon.manifiesto.id, &instancia);
         let guion = Guion::cargar(&addon.carpeta, addons::ruta_datos(&addon.manifiesto.id), anfitrion)?;
 
         let callbacks: Vec<String> = definicion.callbacks().collect();
@@ -178,9 +203,10 @@ impl Ctx {
     }
 
     /// Lo que el script de un addon le puede pedir a nook.
-    fn anfitrion(&self, instancia: &Rc<RefCell<Option<ComponentInstance>>>) -> Anfitrion {
+    fn anfitrion(&self, id: &str, instancia: &Rc<RefCell<Option<ComponentInstance>>>) -> Anfitrion {
         let (i, j) = (instancia.clone(), instancia.clone());
-        let (c, d) = (self.clone(), self.clone());
+        let (c, d, f) = (self.clone(), self.clone(), self.clone());
+        let id = id.to_string();
         Anfitrion {
             poner: Box::new(move |propiedad, valor| {
                 let instancia = i.borrow();
@@ -203,6 +229,7 @@ impl Ctx {
                 }
             }),
             idioma: Box::new(|| idioma::codigo_actual().to_string()),
+            avisar: Box::new(move |evento, valor| f.avisar_addon(&id, evento, &valor)),
         }
     }
 
@@ -309,9 +336,18 @@ impl Ctx {
         });
     }
 
-    /// Deja de tener cargado un addon (para instalar otra versión o quitarlo).
+    /// Deja de tener cargado un addon (para instalar otra versión o quitarlo): sus herramientas
+    /// MCP que esperaban responden que ya no está.
     fn descargar_addon(&self, id: &str) {
         self.addons.cargados.borrow_mut().remove(id);
+        self.addons.esperas.borrow_mut().retain(|e| {
+            if e.addon == id {
+                let _ = e.responder.send(tuberia::error("el addon se ha cerrado"));
+                false
+            } else {
+                true
+            }
+        });
         if self.addons.puesto.borrow().as_deref() == Some(id) {
             *self.addons.puesto.borrow_mut() = None;
             if let Some(ui) = self.ui.upgrade() {
@@ -321,6 +357,140 @@ impl Ctx {
                 self.cerrar();
             }
         }
+    }
+
+    fn conectar_claude_desktop(&self) {
+        let mensaje = match ia::con_claude_desktop() {
+            Ok(_) => tr("Listo: reinicia Claude Desktop para que vea nook.").to_string(),
+            Err(e) => e,
+        };
+        {
+            let mut e = self.estado.borrow_mut();
+            e.config_addons.conectado_claude = ia::conectado_con_claude_desktop();
+            e.config_addons.mensaje_conexion = mensaje;
+        }
+        self.refrescar();
+    }
+
+    fn copiar_comando_claude_code(&self) {
+        let mensaje = if portapapeles::poner(&ia::comando_claude_code()) {
+            tr("Comando copiado: pégalo en una terminal.")
+        } else {
+            tr("No se pudo copiar el comando.")
+        };
+        self.estado.borrow_mut().config_addons.mensaje_conexion = mensaje.to_string();
+        self.refrescar();
+    }
+
+    // ---- MCP ----
+
+    /// Petición de `nook.exe --mcp` (ver addons/mcp.rs): la lista de herramientas o usar una. La
+    /// respuesta va por `responder`.
+    fn peticion_mcp(&self, peticion: Json, responder: mpsc::Sender<Json>) {
+        match peticion["orden"].as_str() {
+            Some("herramientas") => {
+                let _ = responder.send(json!({ "herramientas": self.herramientas_mcp() }));
+            }
+            Some("llamar") => {
+                let nombre = peticion["nombre"].as_str().unwrap_or_default();
+                if let Err(e) = self.llamar_herramienta(nombre, &peticion["argumentos"], responder.clone()) {
+                    let _ = responder.send(tuberia::error(&e));
+                }
+            }
+            _ => {
+                let _ = responder.send(tuberia::error("petición desconocida"));
+            }
+        }
+    }
+
+    /// Las herramientas de los addons que se ven en la tira, como las pide MCP.
+    fn herramientas_mcp(&self) -> Vec<Json> {
+        let e = self.estado.borrow();
+        visibles(&e)
+            .iter()
+            .flat_map(|a| {
+                let nombre = a.manifiesto.nombre();
+                a.manifiesto.herramientas.iter().map(move |h| {
+                    json!({
+                        "name": format!("{}__{}", a.manifiesto.id, h.nombre),
+                        "description": format!("[{nombre}] {}", h.descripcion),
+                        "inputSchema": h.parametros,
+                    })
+                })
+            })
+            .collect()
+    }
+
+    /// Usa una herramienta MCP: abre el panel de su addon (así el usuario ve lo que hace su IA)
+    /// y llama a `herramienta_<nombre>` de su script.
+    fn llamar_herramienta(&self, nombre: &str, argumentos: &Json, responder: mpsc::Sender<Json>) -> Result<(), String> {
+        let (id, herramienta) = nombre.split_once("__").ok_or_else(|| format!("herramienta desconocida: {nombre}"))?;
+        let addon = visibles(&self.estado.borrow())
+            .into_iter()
+            .find(|a| a.manifiesto.id == id && a.manifiesto.herramientas.iter().any(|h| h.nombre == herramienta))
+            .cloned()
+            .ok_or_else(|| format!("herramienta desconocida: {nombre}"))?;
+        let argumentos = rhai::serde::to_dynamic(argumentos).map_err(|e| e.to_string())?;
+        if !self.abrir_addon(&addon) {
+            return Err(self.ui.upgrade().map(|ui| ui.get_error_addon().to_string()).unwrap_or_default());
+        }
+        let (c, id, funcion) = (self.clone(), id.to_string(), format!("herramienta_{herramienta}"));
+        self.cuando_este(&id.clone(), move |guion| {
+            if !guion.tiene(&funcion, 1) {
+                let _ = responder.send(tuberia::error(&format!("el addon no tiene {funcion}(argumentos)")));
+                return;
+            }
+            match guion.llamar(&funcion, vec![argumentos]) {
+                Ok(resultado) => match resultado.clone().try_cast::<Espera>() {
+                    Some(espera) => c.esperar_addon(&id, espera, responder),
+                    None => {
+                        let _ = responder.send(json!({ "texto": como_texto(&resultado) }));
+                    }
+                },
+                Err(e) => {
+                    let _ = responder.send(tuberia::error(&e));
+                }
+            }
+        });
+        Ok(())
+    }
+
+    /// Deja una herramienta MCP esperando a que su addon llame a `avisar` con ese evento.
+    fn esperar_addon(&self, id: &str, espera: Espera, responder: mpsc::Sender<Json>) {
+        let numero = self.addons.siguiente_espera.get();
+        self.addons.siguiente_espera.set(numero + 1);
+        let limite = Timer::default();
+        let c = self.clone();
+        let segundos = Duration::from_secs(espera.segundos).min(ESPERA_MAXIMA);
+        limite.start(TimerMode::SingleShot, segundos, move || {
+            let mut esperas = c.addons.esperas.borrow_mut();
+            if let Some(i) = esperas.iter().position(|e| e.numero == numero) {
+                let espera = esperas.remove(i);
+                let _ = espera.responder.send(json!({
+                    "texto": "Todavía no ha pasado nada: vuelve a usar esta herramienta para seguir esperando.",
+                }));
+            }
+        });
+        self.addons.esperas.borrow_mut().push(EsperaMcp {
+            numero,
+            addon: id.to_string(),
+            evento: espera.evento,
+            responder,
+            _limite: limite,
+        });
+    }
+
+    /// `avisar` del script de un addon: responde a sus herramientas que esperaban ese evento.
+    fn avisar_addon(&self, id: &str, evento: &str, valor: &rhai::Dynamic) {
+        let texto = como_texto(valor);
+        self.addons.esperas.borrow_mut().retain(|e| {
+            if e.addon == id && e.evento == evento {
+                let _ = e.responder.send(json!({ "texto": texto }));
+                false
+            } else {
+                true
+            }
+        });
     }
 }
 
@@ -390,6 +560,17 @@ fn filas(e: &Estado) -> Vec<(String, AddonFila)> {
     instalados
 }
 
+/// Lo que devuelve el script, como texto para la IA: los textos tal cual, lo demás en JSON.
+fn como_texto(valor: &rhai::Dynamic) -> String {
+    if valor.is_unit() {
+        "Hecho.".into()
+    } else if valor.is_string() {
+        valor.clone().into_string().unwrap_or_default()
+    } else {
+        serde_json::to_string(valor).unwrap_or_default()
+    }
+}
+
 /// Lo mismo que `configuracion::aplicar_tema`, pero en el `Tema` del panel de un addon.
 fn aplicar_tema(ajustes: &Ajustes, instancia: &ComponentInstance) {
     let (fondo, acento) = (color(&ajustes.color_fondo), color(&ajustes.color_acento));
@@ -410,7 +591,7 @@ fn aplicar_tema(ajustes: &Ajustes, instancia: &ComponentInstance) {
 }
 
 thread_local! {
-    /// Para lo que llega de otros hilos (las descargas) al hilo de la interfaz.
+    /// Para lo que llega de otros hilos (la tubería, las descargas) al hilo de la interfaz.
     static ATENDER: RefCell<Option<Ctx>> = const { RefCell::new(None) };
 }
 
@@ -425,7 +606,7 @@ fn en_la_interfaz(f: impl FnOnce(&Ctx) + Send + 'static) {
     });
 }
 
-/// Conecta los eventos de la interfaz de esta parte.
+/// Conecta los eventos de la interfaz de esta parte y empieza a atender a `nook.exe --mcp`.
 pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ATENDER.with(|a| *a.borrow_mut() = Some(ctx.clone()));
     let c = ctx.clone();
@@ -438,8 +619,30 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_quitar_addon(move |i| c.quitar_addon(i.max(0) as usize));
     let c = ctx.clone();
     ui.on_alternar_addon_visible(move |i| c.alternar_addon_visible(i.max(0) as usize));
+    let c = ctx.clone();
+    ui.on_conectar_claude_desktop(move || c.conectar_claude_desktop());
+    let c = ctx.clone();
+    ui.on_copiar_comando_claude_code(move || c.copiar_comando_claude_code());
+    ctx.estado.borrow_mut().config_addons.conectado_claude = ia::conectado_con_claude_desktop();
     // Con addons instalados, se mira enseguida si hay versiones nuevas.
     if !ctx.estado.borrow().addons.is_empty() {
         ctx.buscar_addons();
     }
+
+    tuberia::servir(|peticion| {
+        let (responder, respuesta) = mpsc::channel();
+        let en_la_interfaz = responder.clone();
+        let enviada = slint::invoke_from_event_loop(move || {
+            ATENDER.with(|a| match a.borrow().as_ref() {
+                Some(ctx) => ctx.peticion_mcp(peticion, en_la_interfaz),
+                None => {
+                    let _ = en_la_interfaz.send(tuberia::error("nook se está cerrando"));
+                }
+            });
+        });
+        if enviada.is_err() {
+            let _ = responder.send(tuberia::error("nook se está cerrando"));
+        }
+        respuesta
+    });
 }
