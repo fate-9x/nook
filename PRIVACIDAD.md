@@ -1,6 +1,6 @@
 # Política de privacidad
 
-*Última actualización: 15 de octubre de 2026*
+*Última actualización: 16 de octubre de 2026*
 
 Esta política explica qué datos usan **nook** (la versión gratuita, en GitHub) y **Nookly** (la
 versión de pago, en la Microsoft Store), las dos de **Nook Labs**. En lo que sigue, "Nook" se
@@ -15,6 +15,7 @@ Nook guarda en tu carpeta de usuario (`%APPDATA%\nook`; en Nookly, `%APPDATA%\no
 
 - tus grupos de aplicaciones, tus atajos y tus ajustes;
 - los textos que guardas en la **bóveda de textos**;
+- los addons que instalas y lo que guardan (por ejemplo, las partidas de un minijuego);
 - si conectas una cuenta de GitHub (ver abajo), el acceso a esa cuenta, cifrado con la protección
   de datos de Windows: solo se puede leer con tu usuario de Windows.
 
@@ -45,6 +46,18 @@ Si conectas tu cuenta de GitHub en la configuración:
   hasta que lo borres en GitHub. También puedes retirar el permiso a Nook en GitHub, en
   *Settings → Applications*.
 
+## Addons (opcional)
+
+- Al abrir la sección **Addons** de la configuración (y al arrancar, si tienes alguno instalado),
+  Nook descarga de GitHub la lista de addons de `fate-9x/nook-addons`, y al instalar uno, sus
+  archivos. No envía nada sobre ti ni sobre tu equipo, aparte de lo que lleva cualquier conexión a
+  internet (como tu dirección IP), que trata GitHub.
+- Los addons no pueden leer tus archivos ni conectarse a internet.
+- Si conectas Nook con tu IA (por ejemplo, con **Conectar con Claude Desktop**), Nook se añade a
+  su configuración y tu IA puede usar las herramientas de tus addons: ve lo que esas herramientas
+  le cuentan (por ejemplo, cómo va una partida). Lo que hagas con tu IA lo trata quien te la
+  ofrece, según su política. Nook habla con ella solo dentro de tu equipo.
+
 ## Actualizaciones
 
 - **nook (gratuita):** de vez en cuando pregunta a GitHub si hay una versión nueva y, si la
@@ -69,7 +82,7 @@ Para cualquier duda sobre privacidad: **nooklabs929@gmail.com**
 
 # Privacy policy
 
-*Last updated: October 15, 2026*
+*Last updated: October 16, 2026*
 
 This policy explains what data **nook** (the free version, on GitHub) and **Nookly** (the paid
 version, on the Microsoft Store), both by **Nook Labs**, use. Below, "Nook" refers to both.
@@ -83,6 +96,7 @@ Nook stores in your user folder (`%APPDATA%\nook`; in Nookly, `%APPDATA%\nook Pr
 
 - your app groups, shortcuts and settings;
 - the texts you save in the **text vault**;
+- the add-ons you install and what they save (for example, the games of a mini-game);
 - if you connect a GitHub account (see below), the access to that account, encrypted with
   Windows data protection: it can only be read with your Windows user.
 
@@ -111,6 +125,18 @@ If you connect your GitHub account in the settings:
 - You can disconnect the account at any time in the settings; the Gist stays in your account
   until you delete it on GitHub. You can also revoke Nook's permission on GitHub, under
   *Settings → Applications*.
+
+## Add-ons (optional)
+
+- When you open the **Add-ons** section of the settings (and at startup, if you have any
+  installed), Nook downloads the list of add-ons of `fate-9x/nook-addons` from GitHub and, when
+  you install one, its files. It sends nothing about you or your computer, other than what any
+  internet connection carries (such as your IP address), which GitHub handles.
+- Add-ons can't read your files or connect to the internet.
+- If you connect Nook to your AI (for example, with **Connect to Claude Desktop**), Nook adds
+  itself to its settings and your AI can use the tools of your add-ons: it sees what those tools
+  tell it (for example, how a game is going). What you do with your AI is handled by whoever
+  provides it, under their policy. Nook only talks to it within your computer.
 
 ## Updates
 

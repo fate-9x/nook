@@ -32,6 +32,7 @@ lleva la marca ⭐ **Pro**.
 - [Música, volumen y micrófono](#música-volumen-y-micrófono)
 - [La hora y las notificaciones](#la-hora-y-las-notificaciones)
 - [El personaje](#el-personaje)
+- [Addons](#addons)
 - [Dónde va la barra](#dónde-va-la-barra)
 - [Sustituir la barra de tareas de Windows](#sustituir-la-barra-de-tareas-de-windows)
 - [Atajos de teclado](#atajos-de-teclado)
@@ -81,6 +82,7 @@ De izquierda a derecha, la barra tiene:
 | **Lupa** ⭐ **Pro** | Abre el [buscador de aplicaciones](#buscar-y-abrir-aplicaciones). |
 | **Tus apps** | Las que fijaste en la barra y los grupos. Con nook Pro, antes van las abiertas (con un punto). |
 | **Bóveda** | El icono de las tarjetas: abre la [bóveda de textos](#bóveda-de-textos). |
+| **Addons** | Un botón por cada [addon](#addons) instalado: abre su panel. |
 | **Música** ⭐ **Pro** | Si suena algo: la portada y los botones de anterior, pausa y siguiente (opcional). |
 | **Área de notificación** ⭐ **Pro** | Los iconos de los demás programas, si Nook [sustituye a la barra de Windows](#sustituir-la-barra-de-tareas-de-windows). |
 | **Micrófono y volumen** ⭐ **Pro** | Silenciar el micrófono y el volumen general de Windows. |
@@ -214,6 +216,24 @@ En el reproductor ves qué suena y puedes cambiar el volumen de esa app.
 
 <img src="docs/imagenes/dos-personajes.png" alt="La barra con dos personajes tras cinco clics seguidos" width="760">
 
+## Addons
+
+Los addons son paneles que se añaden a la barra, como minijuegos. Se instalan en
+*Configuración → Addons*, que muestra los disponibles (del repositorio
+[nook-addons](https://github.com/fate-9x/nook-addons)), y cada uno pone un botón en la barra que
+abre su panel. Solo se cargan al abrirlos: si no los usas, no gastan nada.
+
+- **Actualizar o quitar:** en la misma sección. El interruptor **En la barra** oculta su botón sin
+  desinstalarlo.
+- **Con tu IA:** algunos addons se pueden usar desde Claude u otra IA que admita MCP (por
+  ejemplo, para jugar contra ella). En *Configuración → Addons*, **Conectar con Claude Desktop**
+  añade Nook a Claude Desktop (después hay que reiniciarlo), y **Copiar comando para Claude Code**
+  copia el comando que lo añade a Claude Code. Luego basta con pedírselo en el chat: lo que haga se
+  ve en la barra.
+
+Los addons no pueden leer tus archivos ni conectarse a internet. Para hacer uno, mira el
+[README de nook-addons](https://github.com/fate-9x/nook-addons#readme).
+
 ## Dónde va la barra
 
 **Arrastra la barra** (desde el personaje o desde un hueco de la tira) y suéltala:
@@ -304,6 +324,7 @@ personaje → *Configuración*).
 | **Apariencia** | Transparencia, opacidad, tamaño, posición e idioma (español, inglés, japonés o coreano). |
 | **Personaje** | La figura, los accesorios y sus colores. |
 | **Música** ⭐ **Pro** | Si el reproductor va en la barra o se abre con el personaje. |
+| **Addons** | Instalar, actualizar y quitar [addons](#addons), y conectarlos con tu IA. |
 | **Acerca de** | La versión, las actualizaciones y los créditos. |
 
 <table>
@@ -355,6 +376,9 @@ cargo test
 - Las funciones de nook Pro se apoyan en unos pocos módulos que en este repositorio están en
   `src/gratis/`, en una versión que no hace nada (el código de verdad es privado).
 - Las traducciones están en `lang/<idioma>/LC_MESSAGES/nook.po`.
+- Los addons (`src/addons/`) se cargan en tiempo de ejecución: su interfaz con el intérprete de
+  Slint y su lógica con [Rhai](https://rhai.rs). `nook.exe --mcp` es el servidor MCP que los
+  conecta con la IA del usuario.
 - El instalador se compila con [Inno Setup 6](https://jrsoftware.org/isinfo.php):
   `ISCC /DVersion=0.0.0 instalador\nook.iss` (después de `cargo build --release`).
 - Las versiones se publican subiendo un tag `vX.Y.Z`: el workflow compila `nook.exe` y el

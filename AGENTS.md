@@ -9,6 +9,13 @@ Proyecto: **nook**, una barra de tareas en Rust + Slint para Windows (`src/` y `
   uno en su archivo de `ui/` (`configuracion.slint`, `boveda.slint`, `buscador.slint`…); los
   colores y datos compartidos están en `ui/tema.slint`, y los iconos y controles en
   `ui/iconos.slint` y `ui/controles.slint`.
+- Los **addons** (`src/addons/`, y su parte de la barra en `src/barra/addons.rs`) se cargan en
+  tiempo de ejecución desde `%APPDATA%\nook\addons\<id>\`: su `panel.slint` se compila con
+  `slint-interpreter` y se mete en el `ComponentContainer` de `ui/barra.slint` (es una función
+  experimental de Slint, activada en `build.rs`), y su `logica.rhai` corre en Rhai (`guion.rs`).
+  Se instalan desde el catálogo del repositorio `fate-9x/nook-addons` (`catalogo.rs`), donde
+  están los addons y la guía para hacerlos. `nook.exe --mcp` (`mcp.rs`) es el servidor MCP para
+  la IA del usuario, y habla con la barra por una tubería con nombre (`tuberia.rs`).
 
 ## nook y nook Pro
 
