@@ -9,6 +9,8 @@ export global Tema {
     in-out property <bool> acento-claro: false;
     // Opacidad del fondo: menos de 1 con transparencia (detrás se ve desenfocado).
     in-out property <float> opacidad: 1;
+    // Cuántos píxeles de pantalla tiene cada píxel lógico (la escala de la ventana; la pone Rust).
+    in-out property <float> escala: 1;
     out property <color> texto: claro ? #0B1230 : #FFFFFF;
     // Texto e iconos sobre el color de acento (botones, selección, interruptores).
     out property <color> sobre-acento: acento-claro ? #0B1230 : #FFFFFF;

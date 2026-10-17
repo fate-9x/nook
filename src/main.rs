@@ -652,10 +652,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Con transparencia, antes de cada dibujo se dice dónde está la forma visible de la barra (el
     // desenfoque va debajo): la forma animada.
     let barra = ui.as_weak();
+    ui.global::<Tema>().set_escala(ui.window().scale_factor());
     plataforma::al_presentar(ui.window(), move || {
         let Some(ui) = barra.upgrade() else { return };
-        // Para que los bordes de la forma caigan en píxeles enteros (ver `escala` en ui/barra.slint).
+        // Para que los bordes de la forma caigan en píxeles enteros (ver `escala` en ui/barra.slint)
+        // y los iconos midan un número entero de píxeles (ver `IconoApp` en ui/iconos.slint).
         ui.set_escala(ui.window().scale_factor());
+        ui.global::<Tema>().set_escala(ui.window().scale_factor());
         let forma = [ui.get_forma_tira(), ui.get_forma_panel()];
         plataforma::recortar(ui.window(), Some(recorte(ui.window(), forma)));
     });

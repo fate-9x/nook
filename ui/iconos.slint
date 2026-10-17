@@ -11,9 +11,16 @@ export component IconoApp inherits Rectangle {
     border-radius: self.height * 0.27;
     background: root.tiene-icono ? transparent : Tema.capa-fuerte;
 
+    // El icono llega dibujado a su tamaño exacto en píxeles de pantalla (`round(lado * escala)`,
+    // ver `lado_icono` en src/barra/tira.rs) y Slint, al dibujarlo, redondea cada borde por su
+    // lado: si el tamaño no es un número entero de píxeles, según dónde caiga el icono sale de 41
+    // o de 42 y, al estirarlo píxel a píxel, se repite una fila y una columna y el borde queda en
+    // sierra. Con un número entero de píxeles sale siempre del tamaño exacto.
     if root.tiene-icono : Image {
-        width: root.width;
-        height: root.height;
+        width: round(root.width * Tema.escala / 1px) * 1px / Tema.escala;
+        height: round(root.height * Tema.escala / 1px) * 1px / Tema.escala;
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
         source: root.icono;
     }
     if !root.tiene-icono : Text {
