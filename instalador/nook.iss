@@ -16,9 +16,9 @@
 
 [Setup]
 AppId={{7AA6FA16-B489-45C4-A8E4-E0F804C678B3}
-AppName=Nook
+AppName=Nookly
 AppVersion={#Version}
-AppVerName=Nook {#Version}
+AppVerName=Nookly {#Version}
 AppPublisher=fate-9x
 AppPublisherURL=https://github.com/fate-9x/nook
 AppSupportURL=https://github.com/fate-9x/nook/issues
@@ -30,7 +30,7 @@ DefaultDirName={autopf}\nook
 ; CurStepChanged, más abajo).
 DisableDirPage=no
 DisableProgramGroupPage=yes
-DefaultGroupName=Nook
+DefaultGroupName=Nookly
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
@@ -41,7 +41,7 @@ SetupIconFile=..\assets\nook.ico
 WizardImageFile=..\assets\instalador\grande-164.bmp,..\assets\instalador\grande-205.bmp,..\assets\instalador\grande-246.bmp,..\assets\instalador\grande-287.bmp,..\assets\instalador\grande-328.bmp,..\assets\instalador\grande-410.bmp
 WizardSmallImageFile=..\assets\instalador\pequena-58.bmp,..\assets\instalador\pequena-73.bmp,..\assets\instalador\pequena-87.bmp,..\assets\instalador\pequena-102.bmp,..\assets\instalador\pequena-116.bmp,..\assets\instalador\pequena-145.bmp
 UninstallDisplayIcon={app}\{#Exe}
-UninstallDisplayName=Nook
+UninstallDisplayName=Nookly
 OutputDir=..\target\instalador
 OutputBaseFilename=nook-setup
 Compression=lzma2/max
@@ -60,23 +60,23 @@ Name: "ko"; MessagesFile: "compiler:Languages\Korean.isl"
 #endif
 
 [CustomMessages]
-es.IniciarConWindows=Iniciar Nook con Windows
+es.IniciarConWindows=Iniciar Nookly con Windows
 es.Opciones=Opciones:
-es.CarpetaSinPermiso=No se puede escribir en esta carpeta sin permisos de administrador.%n%nNook necesita una carpeta en la que pueda escribir para actualizarse solo. Elige otra, por ejemplo dentro de tu carpeta de usuario.
-es.BorrarDatos=¿Borrar también tus ajustes, grupos y textos guardados de Nook?%n%nSi vas a volver a instalarlo, elige No.
-en.IniciarConWindows=Start Nook with Windows
+es.CarpetaSinPermiso=No se puede escribir en esta carpeta sin permisos de administrador.%n%nNookly necesita una carpeta en la que pueda escribir para actualizarse solo. Elige otra, por ejemplo dentro de tu carpeta de usuario.
+es.BorrarDatos=¿Borrar también tus ajustes, grupos y textos guardados de Nookly?%n%nSi vas a volver a instalarlo, elige No.
+en.IniciarConWindows=Start Nookly with Windows
 en.Opciones=Options:
-en.CarpetaSinPermiso=This folder can't be written to without administrator permissions.%n%nNook needs a folder it can write to so it can update itself. Choose another one, for example inside your user folder.
-en.BorrarDatos=Also delete your Nook settings, groups and saved texts?%n%nIf you are going to install it again, choose No.
-ja.IniciarConWindows=Windows の起動時に Nook を開始する
+en.CarpetaSinPermiso=This folder can't be written to without administrator permissions.%n%nNookly needs a folder it can write to so it can update itself. Choose another one, for example inside your user folder.
+en.BorrarDatos=Also delete your Nookly settings, groups and saved texts?%n%nIf you are going to install it again, choose No.
+ja.IniciarConWindows=Windows の起動時に Nookly を開始する
 ja.Opciones=オプション:
-ja.CarpetaSinPermiso=このフォルダーには管理者権限なしでは書き込めません。%n%nNook が自動で更新するには、書き込めるフォルダーが必要です。ユーザー フォルダー内など、別のフォルダーを選んでください。
-ja.BorrarDatos=Nook の設定、グループ、保存したテキストも削除しますか?%n%n再インストールする場合は「いいえ」を選んでください。
+ja.CarpetaSinPermiso=このフォルダーには管理者権限なしでは書き込めません。%n%nNookly が自動で更新するには、書き込めるフォルダーが必要です。ユーザー フォルダー内など、別のフォルダーを選んでください。
+ja.BorrarDatos=Nookly の設定、グループ、保存したテキストも削除しますか?%n%n再インストールする場合は「いいえ」を選んでください。
 #if HayCoreano
-ko.IniciarConWindows=Windows 시작 시 Nook 실행
+ko.IniciarConWindows=Windows 시작 시 Nookly 실행
 ko.Opciones=옵션:
-ko.CarpetaSinPermiso=관리자 권한 없이는 이 폴더에 쓸 수 없습니다.%n%nNook이 스스로 업데이트하려면 쓸 수 있는 폴더가 필요합니다. 사용자 폴더 안 등 다른 폴더를 선택하세요.
-ko.BorrarDatos=Nook의 설정, 그룹, 저장한 텍스트도 삭제할까요?%n%n다시 설치할 예정이라면 [아니요]를 선택하세요.
+ko.CarpetaSinPermiso=관리자 권한 없이는 이 폴더에 쓸 수 없습니다.%n%nNookly가 스스로 업데이트하려면 쓸 수 있는 폴더가 필요합니다. 사용자 폴더 안 등 다른 폴더를 선택하세요.
+ko.BorrarDatos=Nookly의 설정, 그룹, 저장한 텍스트도 삭제할까요?%n%n다시 설치할 예정이라면 [아니요]를 선택하세요.
 #endif
 
 [Tasks]
@@ -87,8 +87,8 @@ Name: "escritorio"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{c
 Source: "..\target\release\{#Exe}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\Nook"; Filename: "{app}\{#Exe}"
-Name: "{autodesktop}\Nook"; Filename: "{app}\{#Exe}"; Tasks: escritorio
+Name: "{autoprograms}\Nookly"; Filename: "{app}\{#Exe}"
+Name: "{autodesktop}\Nookly"; Filename: "{app}\{#Exe}"; Tasks: escritorio
 
 [Registry]
 ; El mismo valor que pone el interruptor "Iniciar con Windows" de la app (src/sistema.rs). Al
@@ -102,7 +102,7 @@ Type: files; Name: "{app}\{#Exe}.viejo"
 Type: files; Name: "{app}\{#Exe}.nuevo"
 
 [Run]
-Filename: "{app}\{#Exe}"; Description: "{cm:LaunchProgram,Nook}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#Exe}"; Description: "{cm:LaunchProgram,Nookly}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 const

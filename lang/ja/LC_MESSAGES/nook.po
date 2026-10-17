@@ -528,20 +528,20 @@ msgstr "アプリを検索して開く"
 msgid "Sustituir la barra de tareas de Windows"
 msgstr "Windows のタスクバーを置き換える"
 
-msgid "La tecla Windows abre el buscador de Nook"
-msgstr "Windows キーで Nook の検索を開く"
+msgid "La tecla Windows abre el buscador de Nookly"
+msgstr "Windows キーで Nookly の検索を開く"
 
 msgid "Pide permisos de administrador"
 msgstr "管理者権限を求めます"
 
-msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
-msgstr "Windows では、管理者として開いたプログラムで押されたキーを他のプログラムが見ることはできません。そのため Nook は小さなヘルパーを用意します。Program Files の「Nook Ayudante」フォルダーにある Nook のコピーで、タスク スケジューラが管理者権限で起動します。Windows キーを監視して Nook に知らせるだけで、Nook を閉じると終了し、アンインストール時に削除されます。権限を求められるのはオプションをオンにしたときの一度だけです。許可しなくても、それらのプログラム以外では同じように動作します。"
+msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nookly prepara un pequeño ayudante: una copia de Nookly en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nookly; se cierra al cerrar Nookly y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
+msgstr "Windows では、管理者として開いたプログラムで押されたキーを他のプログラムが見ることはできません。そのため Nookly は小さなヘルパーを用意します。Program Files の「Nook Ayudante」フォルダーにある Nookly のコピーで、タスク スケジューラが管理者権限で起動します。Windows キーを監視して Nookly に知らせるだけで、Nookly を閉じると終了し、アンインストール時に削除されます。権限を求められるのはオプションをオンにしたときの一度だけです。許可しなくても、それらのプログラム以外では同じように動作します。"
 
 
 
 
-msgid "Disponible en nook Pro"
-msgstr "nook Pro で使えます"
+msgid "Disponible en Nookly Pro"
+msgstr "Nookly Pro で使えます"
 
 msgid "Botón de apagado"
 msgstr "電源ボタン"
@@ -584,8 +584,8 @@ msgstr "アドオンを探しています…"
 msgid "No se pudo ver el catálogo: {}"
 msgstr "カタログを読み込めませんでした: {}"
 
-msgid "Necesita una versión más nueva de nook"
-msgstr "新しいバージョンの nook が必要です"
+msgid "Necesita una versión más nueva de Nookly"
+msgstr "新しいバージョンの Nookly が必要です"
 
 msgid "En la barra"
 msgstr "バーに表示"
@@ -614,8 +614,8 @@ msgstr "Claude Code 用のコマンドをコピー"
 msgid "Claude Desktop no está instalado"
 msgstr "Claude Desktop がインストールされていません"
 
-msgid "Listo: reinicia Claude Desktop para que vea nook."
-msgstr "完了: nook を認識させるため Claude Desktop を再起動してください。"
+msgid "Listo: reinicia Claude Desktop para que vea Nookly."
+msgstr "完了: Nookly を認識させるため Claude Desktop を再起動してください。"
 
 msgid "Comando copiado: pégalo en una terminal."
 msgstr "コマンドをコピーしました。ターミナルに貼り付けてください。"

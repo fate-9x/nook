@@ -102,7 +102,7 @@ pub fn pedir(peticion: &Value) -> Result<Value, String> {
     let archivo = loop {
         match std::fs::OpenOptions::new().read(true).write(true).open(NOMBRE) {
             Ok(archivo) => break archivo,
-            Err(e) if Instant::now() >= limite => return Err(format!("no se pudo hablar con nook: {e}")),
+            Err(e) if Instant::now() >= limite => return Err(format!("no se pudo hablar con Nookly: {e}")),
             Err(_) => {
                 if !abierta {
                     abierta = true;

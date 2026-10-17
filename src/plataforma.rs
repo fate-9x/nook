@@ -98,7 +98,7 @@ const NIN_KEYSELECT: u32 = NIN_SELECT | NINF_KEY;
 
 /// Clase de las ventanas del programa y título de la barra (con ellos otra copia la encuentra).
 const CLASE: PCWSTR = w!("NookVentana");
-const TITULO_BARRA: PCWSTR = w!("Nook");
+const TITULO_BARRA: PCWSTR = w!("Nookly");
 /// Clase de los "cristales" que desenfocan lo de detrás (ver `Interna::actualizar_cristal`).
 const CLASE_CRISTAL: PCWSTR = w!("NookCristal");
 
@@ -541,7 +541,7 @@ pub fn instalar() -> Result<(), PlatformError> {
 /// arrastrados; las demás empiezan ocultas.
 fn crear_interna() -> Result<Rc<Interna>, PlatformError> {
     let es_barra = VENTANAS.with(|v| v.borrow().is_empty());
-    let titulo = if es_barra { TITULO_BARRA } else { w!("Nook (emergente)") };
+    let titulo = if es_barra { TITULO_BARRA } else { w!("Nookly (emergente)") };
     let (cristal, vidrio) = crear_cristal().map_err(|e| PlatformError::Other(e.to_string()))?;
     let hwnd = crear_ventana(titulo, cristal).map_err(|e| PlatformError::Other(e.to_string()))?;
     let slint = MinimalSoftwareWindow::new(RepaintBufferType::ReusedBuffer);
@@ -1035,7 +1035,7 @@ fn crear_cristal() -> windows::core::Result<(HWND, Option<Vidrio>)> {
             // y moverla y redimensionarla en cada cuadro de las animaciones es mucho más barato.
             WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP,
             CLASE_CRISTAL,
-            w!("Nook (cristal)"),
+            w!("Nookly (cristal)"),
             WS_POPUP,
             0,
             0,

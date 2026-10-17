@@ -13,7 +13,7 @@ pub const ARG: &str = "--mcp";
 /// Versiones del protocolo que se entienden (la primera, si el cliente pide otra).
 const VERSIONES: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
-const INSTRUCCIONES: &str = "nook es la barra de tareas del usuario. Estas herramientas son de sus \
+const INSTRUCCIONES: &str = "Nookly es la barra de tareas del usuario. Estas herramientas son de sus \
 addons (minijuegos y otros paneles de la barra): lo que hagas con ellas se ve en su barra.";
 
 /// Atiende al cliente hasta que cierra la entrada.
@@ -50,7 +50,7 @@ pub fn responder(mensaje: &Value, barra: &mut dyn FnMut(Value) -> Result<Value, 
             json!({
                 "protocolVersion": version,
                 "capabilities": { "tools": {} },
-                "serverInfo": { "name": "nook", "version": crate::actualizacion::VERSION },
+                "serverInfo": { "name": "nookly", "version": crate::actualizacion::VERSION },
                 "instructions": INSTRUCCIONES,
             })
         }
@@ -96,7 +96,7 @@ mod tests {
     fn inicia_con_la_version_pedida_o_la_ultima() {
         let r = responder(&json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}), &mut sin_barra).unwrap();
         assert_eq!(r["result"]["protocolVersion"], "2025-03-26");
-        assert_eq!(r["result"]["serverInfo"]["name"], "nook");
+        assert_eq!(r["result"]["serverInfo"]["name"], "nookly");
         let r = responder(&json!({"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"1999-01-01"}}), &mut sin_barra).unwrap();
         assert_eq!(r["result"]["protocolVersion"], VERSIONES[0]);
     }

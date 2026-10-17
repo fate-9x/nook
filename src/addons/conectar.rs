@@ -5,7 +5,9 @@ use serde_json::{Map, Value, json};
 use std::path::{Path, PathBuf};
 
 /// Nombre con el que nook sale en la lista de servidores MCP.
-const SERVIDOR: &str = "nook";
+const SERVIDOR: &str = "nookly";
+/// Nombre que tenía antes, cuando la app todavía se llamaba nook: se quita al añadir el nuevo.
+const SERVIDOR_ANTIGUO: &str = "nook";
 const ARCHIVO: &str = "claude_desktop_config.json";
 
 /// Carpetas de la configuración de Claude Desktop que hay en este equipo: la del instalador
@@ -73,6 +75,10 @@ fn con_nook(texto: &str, exe: &Path) -> Result<String, String> {
     let Some(raiz) = config.as_object_mut() else { return Err(format!("{ARCHIVO} no es válido")) };
     let servidores = raiz.entry("mcpServers").or_insert_with(|| Value::Object(Map::new()));
     let Some(servidores) = servidores.as_object_mut() else { return Err(format!("{ARCHIVO}: mcpServers no es válido")) };
+    // La entrada de antes apunta a esta misma app: si se quedara, las herramientas saldrían dos veces.
+    if servidores.get(SERVIDOR_ANTIGUO).is_some_and(|s| s["args"][0] == super::mcp::ARG) {
+        servidores.remove(SERVIDOR_ANTIGUO);
+    }
     servidores.insert(
         SERVIDOR.into(),
         json!({ "command": exe.to_string_lossy(), "args": [super::mcp::ARG] }),
@@ -96,14 +102,30 @@ mod tests {
         let despues: Value = serde_json::from_str(&con_nook(antes, Path::new(r"C:\nook\nook.exe")).unwrap()).unwrap();
         assert_eq!(despues["mcpServers"]["otro"]["command"], "otro.exe");
         assert_eq!(despues["preferencias"]["tema"], "oscuro");
-        assert_eq!(despues["mcpServers"]["nook"]["command"], r"C:\nook\nook.exe");
-        assert_eq!(despues["mcpServers"]["nook"]["args"][0], "--mcp");
+        assert_eq!(despues["mcpServers"]["nookly"]["command"], r"C:\nook\nook.exe");
+        assert_eq!(despues["mcpServers"]["nookly"]["args"][0], "--mcp");
     }
 
     #[test]
     fn crea_la_configuracion_si_no_hay() {
         let despues: Value = serde_json::from_str(&con_nook("", Path::new("nook.exe")).unwrap()).unwrap();
-        assert_eq!(despues["mcpServers"]["nook"]["command"], "nook.exe");
+        assert_eq!(despues["mcpServers"]["nookly"]["command"], "nook.exe");
+    }
+
+    #[test]
+    fn quita_la_entrada_de_antes_si_es_esta_app() {
+        let antes = r#"{"mcpServers":{"nook":{"command":"nook.exe","args":["--mcp"]},"otro":{"command":"otro.exe"}}}"#;
+        let despues: Value = serde_json::from_str(&con_nook(antes, Path::new("nook.exe")).unwrap()).unwrap();
+        assert!(despues["mcpServers"].get("nook").is_none());
+        assert_eq!(despues["mcpServers"]["nookly"]["command"], "nook.exe");
+        assert_eq!(despues["mcpServers"]["otro"]["command"], "otro.exe");
+    }
+
+    #[test]
+    fn no_quita_un_servidor_nook_ajeno() {
+        let antes = r#"{"mcpServers":{"nook":{"command":"ajeno.exe","args":["--otra"]}}}"#;
+        let despues: Value = serde_json::from_str(&con_nook(antes, Path::new("nook.exe")).unwrap()).unwrap();
+        assert_eq!(despues["mcpServers"]["nook"]["command"], "ajeno.exe");
     }
 
     #[test]

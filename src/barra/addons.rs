@@ -361,7 +361,7 @@ impl Ctx {
 
     fn conectar_claude_desktop(&self) {
         let mensaje = match ia::con_claude_desktop() {
-            Ok(_) => tr("Listo: reinicia Claude Desktop para que vea nook.").to_string(),
+            Ok(_) => tr("Listo: reinicia Claude Desktop para que vea Nookly.").to_string(),
             Err(e) => e,
         };
         {
@@ -636,12 +636,12 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
             ATENDER.with(|a| match a.borrow().as_ref() {
                 Some(ctx) => ctx.peticion_mcp(peticion, en_la_interfaz),
                 None => {
-                    let _ = en_la_interfaz.send(tuberia::error("nook se está cerrando"));
+                    let _ = en_la_interfaz.send(tuberia::error("Nookly se está cerrando"));
                 }
             });
         });
         if enviada.is_err() {
-            let _ = responder.send(tuberia::error("nook se está cerrando"));
+            let _ = responder.send(tuberia::error("Nookly se está cerrando"));
         }
         respuesta
     });

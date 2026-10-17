@@ -33,7 +33,7 @@ use windows_core::HSTRING;
 const CLIENT_ID: &str = "Ov23lis2bCMFvLomh5aZ";
 /// Nombre del archivo del Gist donde va la bóveda.
 const ARCHIVO: &str = "nook-boveda.json";
-const DESCRIPCION: &str = "Bóveda de textos de nook";
+const DESCRIPCION: &str = "Bóveda de textos de Nookly";
 const API: &str = "https://api.github.com";
 /// Tras un cambio en la bóveda se espera esto antes de subirla, por si llegan más seguidos.
 const ESPERA_SUBIR: Duration = Duration::from_secs(2);

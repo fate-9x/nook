@@ -461,7 +461,7 @@ component FilaAddon inherits Rectangle {
             }
             Text {
                 text: root.addon.error != "" ? root.addon.error
-                    : !root.addon.compatible ? @tr("Necesita una versión más nueva de nook")
+                    : !root.addon.compatible ? @tr("Necesita una versión más nueva de Nookly")
                     : root.addon.descripcion;
                 color: root.addon.error != "" ? Tema.texto : Tema.texto-suave;
                 font-size: 11px;
@@ -518,7 +518,7 @@ component FilaInterruptor inherits VerticalLayout {
     callback clicked();
     property <bool> viendo-ayuda;
     property <bool> bloqueada: root.solo-pro && !Tema.pro;
-    property <string> nota-vista: root.bloqueada ? @tr("Disponible en nook Pro") : root.nota;
+    property <string> nota-vista: root.bloqueada ? @tr("Disponible en Nookly Pro") : root.nota;
 
     spacing: 4px;
 
@@ -820,10 +820,10 @@ export component PanelConfiguracion inherits Rectangle {
                     FilaInterruptor { texto: @tr("Iniciar con Windows"); activo: root.iniciar-con-windows; clicked => { root.alternar-iniciar(); } }
                     FilaInterruptor { texto: @tr("Sustituir la barra de tareas de Windows"); solo-pro: true; activo: root.sustituir-barra-de-windows; clicked => { root.alternar-sustituir-barra-de-windows(); } }
                     FilaInterruptor {
-                        texto: @tr("La tecla Windows abre el buscador de Nook");
+                        texto: @tr("La tecla Windows abre el buscador de Nookly");
                         solo-pro: true;
                         nota: @tr("Pide permisos de administrador");
-                        ayuda: @tr("Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas.");
+                        ayuda: @tr("Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nookly prepara un pequeño ayudante: una copia de Nookly en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nookly; se cierra al cerrar Nookly y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas.");
                         activo: root.tecla-windows-abre-buscador;
                         clicked => { root.alternar-tecla-windows(); }
                     }
@@ -1211,7 +1211,7 @@ export component PanelConfiguracion inherits Rectangle {
                     VerticalLayout {
                         Titulo { text: @tr("ACERCA DE"); }
                         Text {
-                            text: "Nook " + root.version;
+                            text: "Nookly " + root.version;
                             color: Tema.texto;
                             font-size: 13px;
                             font-weight: 700;

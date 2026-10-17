@@ -528,20 +528,20 @@ msgstr "Search and open an app"
 msgid "Sustituir la barra de tareas de Windows"
 msgstr "Replace the Windows taskbar"
 
-msgid "La tecla Windows abre el buscador de Nook"
-msgstr "The Windows key opens Nook's search"
+msgid "La tecla Windows abre el buscador de Nookly"
+msgstr "The Windows key opens Nookly's search"
 
 msgid "Pide permisos de administrador"
 msgstr "Asks for administrator permissions"
 
-msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
-msgstr "Windows doesn't let a program see the keys pressed in programs opened as administrator. For that, Nook sets up a small helper: a copy of Nook in the “Nook Ayudante” folder in Program Files, which a scheduled task opens with administrator permissions. It only watches the Windows key and tells Nook; it closes when Nook closes and is removed when you uninstall it. Windows asks for permission only once, when you turn the option on. If you don't give it, the option works the same except with those programs."
+msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nookly prepara un pequeño ayudante: una copia de Nookly en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nookly; se cierra al cerrar Nookly y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
+msgstr "Windows doesn't let a program see the keys pressed in programs opened as administrator. For that, Nookly sets up a small helper: a copy of Nookly in the “Nook Ayudante” folder in Program Files, which a scheduled task opens with administrator permissions. It only watches the Windows key and tells Nookly; it closes when Nookly closes and is removed when you uninstall it. Windows asks for permission only once, when you turn the option on. If you don't give it, the option works the same except with those programs."
 
 
 
 
-msgid "Disponible en nook Pro"
-msgstr "Available in nook Pro"
+msgid "Disponible en Nookly Pro"
+msgstr "Available in Nookly Pro"
 
 msgid "Botón de apagado"
 msgstr "Power button"
@@ -584,8 +584,8 @@ msgstr "Looking for add-ons…"
 msgid "No se pudo ver el catálogo: {}"
 msgstr "Couldn't load the catalog: {}"
 
-msgid "Necesita una versión más nueva de nook"
-msgstr "Needs a newer version of nook"
+msgid "Necesita una versión más nueva de Nookly"
+msgstr "Needs a newer version of Nookly"
 
 msgid "En la barra"
 msgstr "On the bar"
@@ -614,8 +614,8 @@ msgstr "Copy command for Claude Code"
 msgid "Claude Desktop no está instalado"
 msgstr "Claude Desktop isn't installed"
 
-msgid "Listo: reinicia Claude Desktop para que vea nook."
-msgstr "Done: restart Claude Desktop so it can see nook."
+msgid "Listo: reinicia Claude Desktop para que vea Nookly."
+msgstr "Done: restart Claude Desktop so it can see Nookly."
 
 msgid "Comando copiado: pégalo en una terminal."
 msgstr "Command copied: paste it into a terminal."

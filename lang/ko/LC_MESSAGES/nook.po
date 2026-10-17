@@ -528,20 +528,20 @@ msgstr "앱 검색 후 열기"
 msgid "Sustituir la barra de tareas de Windows"
 msgstr "Windows 작업 표시줄 대체"
 
-msgid "La tecla Windows abre el buscador de Nook"
-msgstr "Windows 키로 Nook 검색 열기"
+msgid "La tecla Windows abre el buscador de Nookly"
+msgstr "Windows 키로 Nookly 검색 열기"
 
 msgid "Pide permisos de administrador"
 msgstr "관리자 권한을 요청합니다"
 
-msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nook prepara un pequeño ayudante: una copia de Nook en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nook; se cierra al cerrar Nook y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
-msgstr "Windows에서는 관리자로 연 프로그램에서 누른 키를 다른 프로그램이 볼 수 없습니다. 그래서 Nook은 작은 도우미를 준비합니다. Program Files의 'Nook Ayudante' 폴더에 있는 Nook 사본으로, 예약된 작업이 관리자 권한으로 실행합니다. Windows 키만 지켜보고 Nook에 알려 주며, Nook을 닫으면 함께 닫히고 제거할 때 삭제됩니다. 권한은 옵션을 켤 때 한 번만 요청합니다. 허용하지 않아도 그런 프로그램을 빼면 똑같이 작동합니다."
+msgid "Windows no deja que un programa vea las teclas que se pulsan en los programas abiertos como administrador. Para eso, Nookly prepara un pequeño ayudante: una copia de Nookly en la carpeta «Nook Ayudante» de Archivos de programa, que una tarea programada abre con permisos de administrador. Solo vigila la tecla Windows y le avisa a Nookly; se cierra al cerrar Nookly y se quita al desinstalarlo. Windows pide el permiso una sola vez, al encender la opción. Si no lo das, la opción funciona igual salvo con esos programas."
+msgstr "Windows에서는 관리자로 연 프로그램에서 누른 키를 다른 프로그램이 볼 수 없습니다. 그래서 Nookly는 작은 도우미를 준비합니다. Program Files의 'Nook Ayudante' 폴더에 있는 Nookly 사본으로, 예약된 작업이 관리자 권한으로 실행합니다. Windows 키만 지켜보고 Nookly에 알려 주며, Nookly를 닫으면 함께 닫히고 제거할 때 삭제됩니다. 권한은 옵션을 켤 때 한 번만 요청합니다. 허용하지 않아도 그런 프로그램을 빼면 똑같이 작동합니다."
 
 
 
 
-msgid "Disponible en nook Pro"
-msgstr "nook Pro에서 사용할 수 있습니다"
+msgid "Disponible en Nookly Pro"
+msgstr "Nookly Pro에서 사용할 수 있습니다"
 
 msgid "Botón de apagado"
 msgstr "전원 버튼"
@@ -584,8 +584,8 @@ msgstr "애드온을 찾는 중…"
 msgid "No se pudo ver el catálogo: {}"
 msgstr "카탈로그를 불러오지 못했습니다: {}"
 
-msgid "Necesita una versión más nueva de nook"
-msgstr "최신 버전의 nook이 필요합니다"
+msgid "Necesita una versión más nueva de Nookly"
+msgstr "최신 버전의 Nookly가 필요합니다"
 
 msgid "En la barra"
 msgstr "바에 표시"
@@ -614,8 +614,8 @@ msgstr "Claude Code용 명령 복사"
 msgid "Claude Desktop no está instalado"
 msgstr "Claude Desktop이 설치되어 있지 않습니다"
 
-msgid "Listo: reinicia Claude Desktop para que vea nook."
-msgstr "완료: Claude Desktop을 다시 시작하면 nook이 보입니다."
+msgid "Listo: reinicia Claude Desktop para que vea Nookly."
+msgstr "완료: Claude Desktop을 다시 시작하면 Nookly가 보입니다."
 
 msgid "Comando copiado: pégalo en una terminal."
 msgstr "명령을 복사했습니다. 터미널에 붙여 넣으세요."

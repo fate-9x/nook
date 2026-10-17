@@ -40,7 +40,7 @@ pub fn poner(hwnd: HWND, rgba: &[u8], lado: u32) {
     datos.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP;
     datos.uCallbackMessage = WM_BANDEJA;
     datos.hIcon = icono;
-    for (destino, c) in datos.szTip.iter_mut().zip("Nook".encode_utf16()) {
+    for (destino, c) in datos.szTip.iter_mut().zip("Nookly".encode_utf16()) {
         *destino = c;
     }
     unsafe {
