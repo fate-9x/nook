@@ -838,6 +838,12 @@ export component Barra inherits Window {
     changed ancho => { root.recolocar(); }
     changed desvio-caja => { root.recolocar(); }
     changed n => { root.en-borde-del-ultimo = false; }
+    // Si la tira se rehace mientras se arrastra un icono (se cierra o se quita una app), sus botones
+    // se crean de nuevo y el "soltar" no llega nunca: sin esto el icono se quedaba fuera de sitio.
+    changed tira => {
+        root.reordenando = -1;
+        root.desplazamiento-reorden = 0px;
+    }
     changed destino-arrastre => { root.arrastre-al-final = root.destino-arrastre == root.n; }
     changed alto => { root.recolocar(); }
 
