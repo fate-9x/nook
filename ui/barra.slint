@@ -59,6 +59,7 @@ export component Barra inherits Window {
     in property <[AddonFila]> addons-config;    // la sección "Addons" de la configuración
     in property <bool> buscando-addons;
     in property <string> error-addons;
+    in property <string> mensaje-addons;
     in property <bool> conectado-claude;
     in property <string> mensaje-conexion;
     // Cuenta de GitHub con la que se sincroniza la bóveda: 0 sin conectar, 1 pidiendo el código,
@@ -219,6 +220,8 @@ export component Barra inherits Window {
     callback instalar-addon(int);
     callback quitar-addon(int);
     callback alternar-addon-visible(int);
+    callback anadir-addon();
+    callback ver-repositorio-addons();
     callback conectar-claude-desktop();
     callback copiar-comando-claude-code();
     callback alternar-boveda();             // botón del rombo
@@ -1230,6 +1233,7 @@ export component Barra inherits Window {
         addons: root.addons-config;
         buscando-addons: root.buscando-addons;
         error-addons: root.error-addons;
+        mensaje-addons: root.mensaje-addons;
         conectado-claude: root.conectado-claude;
         mensaje-conexion: root.mensaje-conexion;
         seccion <=> root.seccion;
@@ -1275,6 +1279,8 @@ export component Barra inherits Window {
         instalar-addon(a) => { root.instalar-addon(a); }
         quitar-addon(a) => { root.quitar-addon(a); }
         alternar-addon-visible(a) => { root.alternar-addon-visible(a); }
+        anadir-addon => { root.anadir-addon(); }
+        ver-repositorio-addons => { root.ver-repositorio-addons(); }
         conectar-claude-desktop => { root.conectar-claude-desktop(); }
         copiar-comando-claude-code => { root.copiar-comando-claude-code(); }
         salir => { root.salir(); }

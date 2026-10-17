@@ -5,6 +5,7 @@
 //! - `panel.slint`: su interfaz, que exporta el componente `Panel` (ver `panel.rs`).
 //! - `logica.rhai`: lo que hace (ver `guion.rs`).
 
+pub mod archivo;
 pub mod catalogo;
 pub mod conectar;
 pub mod guion;
@@ -146,6 +147,57 @@ pub fn id_valido(id: &str) -> bool {
         && id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
 
+/// Nombre de un archivo de un addon: sin carpetas ni nada raro.
+pub fn nombre_de_archivo_valido(nombre: &str) -> bool {
+    !nombre.is_empty()
+        && !nombre.starts_with('.')
+        && nombre.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
+}
+
+/// Escribe un archivo de un addon en su carpeta (si su nombre es válido).
+pub fn escribir_archivo(carpeta: &Path, nombre: &str, datos: &[u8]) -> Result<(), String> {
+    if !nombre_de_archivo_valido(nombre) {
+        return Err(format!("nombre de archivo no válido: {nombre}"));
+    }
+    std::fs::write(carpeta.join(nombre), datos).map_err(|e| format!("{nombre}: {e}"))
+}
+
+/// Instala el addon `id` (en lugar de la versión que hubiera): `escribir` deja sus archivos en una
+/// carpeta nueva, que se comprueba (su manifiesto tiene que ser de este addon) y se pone en su
+/// sitio. Si algo falla, lo que había se queda como estaba.
+pub fn colocar(id: &str, escribir: impl FnOnce(&Path) -> Result<(), String>) -> Result<(), String> {
+    if !id_valido(id) {
+        return Err(format!("id no válido: {id}"));
+    }
+    let base = carpeta();
+    let destino = base.join(id);
+    let nueva = base.join(format!(".{id}.nuevo"));
+    let vieja = base.join(format!(".{id}.viejo"));
+    let _ = std::fs::remove_dir_all(&nueva);
+    std::fs::create_dir_all(&nueva).map_err(|e| e.to_string())?;
+    let resultado = escribir(&nueva).and_then(|()| {
+        let addon = Addon::leer(&nueva)?;
+        if addon.manifiesto.id != id {
+            return Err(format!("addon.json dice que es {}", addon.manifiesto.id));
+        }
+        Ok(())
+    });
+    if let Err(e) = resultado {
+        let _ = std::fs::remove_dir_all(&nueva);
+        return Err(e);
+    }
+    let _ = std::fs::remove_dir_all(&vieja);
+    if destino.exists() {
+        std::fs::rename(&destino, &vieja).map_err(|e| e.to_string())?;
+    }
+    if let Err(e) = std::fs::rename(&nueva, &destino) {
+        let _ = std::fs::rename(&vieja, &destino);
+        return Err(e.to_string());
+    }
+    let _ = std::fs::remove_dir_all(&vieja);
+    Ok(())
+}
+
 /// Carpeta en la que se instalan los addons.
 pub fn carpeta() -> PathBuf {
     crate::config::carpeta().join("addons")
@@ -186,6 +238,16 @@ mod tests {
         // La carpeta de los datos no es un addon (ni se puede quitar como si lo fuera).
         assert!(!id_valido("datos"));
         assert!(id_valido("datos-2"));
+    }
+
+    #[test]
+    fn nombres_de_archivo() {
+        assert!(nombre_de_archivo_valido("addon.json"));
+        assert!(nombre_de_archivo_valido("logica.rhai"));
+        assert!(!nombre_de_archivo_valido("../addon.json"));
+        assert!(!nombre_de_archivo_valido("a/b.slint"));
+        assert!(!nombre_de_archivo_valido(".oculto"));
+        assert!(!nombre_de_archivo_valido(""));
     }
 
     #[test]

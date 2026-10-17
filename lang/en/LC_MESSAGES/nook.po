@@ -637,3 +637,24 @@ msgstr "Jonathan Turner, Stephen Chung and contributors"
 
 msgid "El lenguaje de los addons."
 msgstr "The language add-ons are written in."
+
+msgid "Descarga addons del repositorio nook-addons y añádelos aquí, o arrastra el archivo a la barra."
+msgstr "Download add-ons from the nook-addons repository and add them here, or drag the file onto the bar."
+
+msgid "También puedes añadir un archivo .nookaddon, o arrastrarlo a la barra."
+msgstr "You can also add a .nookaddon file, or drag it onto the bar."
+
+msgid "Añadir addon…"
+msgstr "Add add-on…"
+
+msgid "Ver addons en GitHub"
+msgstr "See add-ons on GitHub"
+
+msgid "Addons de Nookly"
+msgstr "Nookly add-ons"
+
+msgid "Addon añadido: {}"
+msgstr "Add-on added: {}"
+
+msgid "No se pudo añadir el addon: {}"
+msgstr "Couldn't add the add-on: {}"

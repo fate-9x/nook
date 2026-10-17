@@ -637,3 +637,24 @@ msgstr "Jonathan Turner, Stephen Chung 외 기여자"
 
 msgid "El lenguaje de los addons."
 msgstr "애드온을 작성하는 언어."
+
+msgid "Descarga addons del repositorio nook-addons y añádelos aquí, o arrastra el archivo a la barra."
+msgstr "nook-addons 저장소에서 애드온을 내려받아 여기에서 추가하거나 파일을 바로 끌어다 놓으세요."
+
+msgid "También puedes añadir un archivo .nookaddon, o arrastrarlo a la barra."
+msgstr ".nookaddon 파일을 추가하거나 바로 끌어다 놓을 수도 있습니다."
+
+msgid "Añadir addon…"
+msgstr "애드온 추가…"
+
+msgid "Ver addons en GitHub"
+msgstr "GitHub에서 애드온 보기"
+
+msgid "Addons de Nookly"
+msgstr "Nookly 애드온"
+
+msgid "Addon añadido: {}"
+msgstr "애드온을 추가했습니다: {}"
+
+msgid "No se pudo añadir el addon: {}"
+msgstr "애드온을 추가하지 못했습니다: {}"

@@ -68,63 +68,25 @@ fn leer(json: &str) -> Result<Catalogo, String> {
         addons: catalogo
             .addons
             .into_iter()
-            .filter(|a| super::id_valido(&a.id) && a.archivos.keys().all(|archivo| nombre_valido(archivo)))
+            .filter(|a| super::id_valido(&a.id) && a.archivos.keys().all(|archivo| super::nombre_de_archivo_valido(archivo)))
             .collect(),
     })
-}
-
-/// Nombre de un archivo de un addon: sin carpetas ni nada raro.
-fn nombre_valido(nombre: &str) -> bool {
-    !nombre.is_empty()
-        && !nombre.starts_with('.')
-        && nombre.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
 }
 
 /// Descarga los archivos de un addon, comprueba que son los del catálogo y lo instala (en lugar
 /// de la versión que hubiera). Si algo falla, lo que había se queda como estaba.
 pub fn instalar(entrada: &Entrada) -> Result<(), String> {
-    if !super::id_valido(&entrada.id) {
-        return Err(format!("id no válido: {}", entrada.id));
-    }
-    let carpeta = super::carpeta();
-    let destino = carpeta.join(&entrada.id);
-    let nueva = carpeta.join(format!(".{}.nuevo", entrada.id));
-    let vieja = carpeta.join(format!(".{}.viejo", entrada.id));
-    let _ = std::fs::remove_dir_all(&nueva);
-    std::fs::create_dir_all(&nueva).map_err(|e| e.to_string())?;
-    let resultado = (|| {
+    super::colocar(&entrada.id, |nueva| {
         for (archivo, hash) in &entrada.archivos {
-            if !nombre_valido(archivo) {
-                return Err(format!("nombre de archivo no válido: {archivo}"));
-            }
             let url = format!("{}/{}/addons/{}/{archivo}", repositorio(), entrada.tag, entrada.id);
             let datos = red::descargar(&url, 0, |_| {}).map_err(|e| format!("{archivo}: {}", e.message()))?;
             if !sha256(&datos).eq_ignore_ascii_case(hash) {
                 return Err(format!("{archivo}: no es el archivo del catálogo"));
             }
-            std::fs::write(nueva.join(archivo), &datos).map_err(|e| format!("{archivo}: {e}"))?;
-        }
-        // Que el manifiesto se pueda leer y sea de este addon.
-        let addon = super::Addon::leer(&nueva)?;
-        if addon.manifiesto.id != entrada.id {
-            return Err(format!("addon.json dice que es {}", addon.manifiesto.id));
+            super::escribir_archivo(nueva, archivo, &datos)?;
         }
         Ok(())
-    })();
-    if let Err(e) = resultado {
-        let _ = std::fs::remove_dir_all(&nueva);
-        return Err(e);
-    }
-    let _ = std::fs::remove_dir_all(&vieja);
-    if destino.exists() {
-        std::fs::rename(&destino, &vieja).map_err(|e| e.to_string())?;
-    }
-    if let Err(e) = std::fs::rename(&nueva, &destino) {
-        let _ = std::fs::rename(&vieja, &destino);
-        return Err(e.to_string());
-    }
-    let _ = std::fs::remove_dir_all(&vieja);
-    Ok(())
+    })
 }
 
 /// Quita un addon instalado y lo que había guardado.
@@ -177,13 +139,4 @@ mod tests {
         assert_eq!(catalogo.addons[0].archivos.len(), 2);
     }
 
-    #[test]
-    fn nombres_de_archivo() {
-        assert!(nombre_valido("addon.json"));
-        assert!(nombre_valido("logica.rhai"));
-        assert!(!nombre_valido("../addon.json"));
-        assert!(!nombre_valido("a/b.slint"));
-        assert!(!nombre_valido(".oculto"));
-        assert!(!nombre_valido(""));
-    }
 }

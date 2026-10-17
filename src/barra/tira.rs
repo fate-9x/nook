@@ -357,6 +357,12 @@ impl Ctx {
     /// se sueltan en "+".
     pub(crate) fn soltar(&self, rutas: Vec<PathBuf>) {
         let Some(ui) = self.ui.upgrade() else { return };
+        // Los archivos de addon no son apps: se instalan.
+        let (addons, rutas): (Vec<PathBuf>, Vec<PathBuf>) =
+            rutas.into_iter().partition(|r| crate::addons::archivo::es_archivo_de_addon(r));
+        for addon in &addons {
+            self.importar_addon(addon);
+        }
         let apps: Vec<App> = rutas.iter().map(|r| App::desde_ruta(r)).collect();
         if apps.is_empty() {
             return;

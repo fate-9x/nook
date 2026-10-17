@@ -649,6 +649,7 @@ export component PanelConfiguracion inherits Rectangle {
     in property <[AddonFila]> addons;
     in property <bool> buscando-addons;
     in property <string> error-addons;
+    in property <string> mensaje-addons;     // lo que pasó al añadir un addon a mano
     in property <bool> conectado-claude;
     in property <string> mensaje-conexion;
     in-out property <int> seccion;
@@ -694,6 +695,8 @@ export component PanelConfiguracion inherits Rectangle {
     callback instalar-addon(int);
     callback quitar-addon(int);
     callback alternar-addon-visible(int);
+    callback anadir-addon();
+    callback ver-repositorio-addons();
     callback conectar-claude-desktop();
     callback copiar-comando-claude-code();
     callback salir();
@@ -1145,6 +1148,35 @@ export component PanelConfiguracion inherits Rectangle {
                         text: @tr("Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos.");
                         color: Tema.texto-suave;
                         font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                    // Añadirlos a mano: un archivo .nookaddon de las releases de nook-addons (en
+                    // Nookly Pro, la única forma; en la gratuita, además del catálogo).
+                    Text {
+                        text: Tema.pro
+                            ? @tr("Descarga addons del repositorio nook-addons y añádelos aquí, o arrastra el archivo a la barra.")
+                            : @tr("También puedes añadir un archivo .nookaddon, o arrastrarlo a la barra.");
+                        color: Tema.texto-tenue;
+                        font-size: 11px;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        BotonTexto {
+                            texto: @tr("Añadir addon…");
+                            peligro: Tema.pro;
+                            clicked => { root.anadir-addon(); }
+                        }
+                        BotonTexto {
+                            texto: @tr("Ver addons en GitHub");
+                            clicked => { root.ver-repositorio-addons(); }
+                        }
+                    }
+                    if root.mensaje-addons != "" : Text {
+                        text: root.mensaje-addons;
+                        color: Tema.texto-suave;
+                        font-size: 11px;
                         wrap: word-wrap;
                     }
                     if root.buscando-addons : Text {

@@ -2,6 +2,7 @@
 //! enlazarlo con su script, pasarle los colores y atender a la IA del usuario por MCP (ver
 //! src/addons/mcp.rs).
 
+use crate::addons::archivo;
 use crate::addons::catalogo::{self, Entrada};
 use crate::addons::guion::{self, Anfitrion, Espera, Guion};
 use crate::addons::{self, Addon, conectar as ia, panel, tuberia};
@@ -9,6 +10,11 @@ use crate::*;
 use serde_json::{Value as Json, json};
 use slint_interpreter::{ComponentHandle as _, ComponentInstance, Value};
 use std::sync::mpsc;
+
+/// Sección "Addons" de la configuración (su posición en la lista de ui/configuracion.slint).
+const SECCION_ADDONS: i32 = 6;
+/// Donde se publican los archivos de los addons para añadirlos a mano.
+const REPOSITORIO_ADDONS: &str = "https://github.com/fate-9x/nook-addons/releases";
 
 /// Lo más que una herramienta MCP se queda esperando al usuario antes de responder que vuelva a
 /// intentarlo (los clientes suelen cortar hacia el minuto).
@@ -47,6 +53,8 @@ pub(crate) struct ConfigAddons {
     /// Addons que se están instalando o quitando, y el último error de cada uno.
     ocupados: HashSet<String>,
     errores: HashMap<String, String>,
+    /// Lo que pasó la última vez que se añadió un addon a mano (un .nookaddon).
+    mensaje: String,
     /// Si nook está en Claude Desktop (se mira al arrancar y al conectarlo) y lo último que pasó
     /// al conectarlo.
     conectado_claude: bool,
@@ -79,6 +87,7 @@ impl Ctx {
         ui.set_addons_config(modelo(filas(e).into_iter().map(|(_, fila)| fila).collect()));
         ui.set_buscando_addons(c.buscando);
         ui.set_error_addons(c.error.clone().into());
+        ui.set_mensaje_addons(c.mensaje.clone().into());
         ui.set_conectado_claude(c.conectado_claude);
         ui.set_mensaje_conexion(c.mensaje_conexion.clone().into());
     }
@@ -245,8 +254,12 @@ impl Ctx {
 
     // ---- Sección "Addons" de la configuración ----
 
-    /// Descarga el catálogo (en otro hilo) y lo pasa a la sección.
+    /// Descarga el catálogo (en otro hilo) y lo pasa a la sección. Nookly Pro no tiene catálogo:
+    /// sus addons se añaden a mano (ver `anadir_addon`).
     pub(crate) fn buscar_addons(&self) {
+        if PRO {
+            return;
+        }
         {
             let mut e = self.estado.borrow_mut();
             if e.config_addons.buscando {
@@ -270,6 +283,36 @@ impl Ctx {
                 ctx.refrescar();
             });
         });
+    }
+
+    /// "Añadir addon…": elegir un .nookaddon e instalarlo.
+    fn anadir_addon(&self) {
+        if let Some(ruta) = archivo::elegir(plataforma::hwnd(), tr("Addons de Nookly")) {
+            self.importar_addon(&ruta);
+        }
+    }
+
+    /// Instala el addon de un .nookaddon (elegido o arrastrado a la barra) y lo dice en la sección
+    /// "Addons" (o, si no está abierta, la abre para que se vea).
+    pub(crate) fn importar_addon(&self, ruta: &std::path::Path) {
+        let mensaje = match archivo::instalar(ruta) {
+            Ok(manifiesto) => {
+                // Si había otra versión cargada, la nueva se carga al abrirlo.
+                self.descargar_addon(&manifiesto.id);
+                self.leer_addons();
+                tr_con("Addon añadido: {}", &[&manifiesto.nombre()])
+            }
+            Err(error) => tr_con("No se pudo añadir el addon: {}", &[&error]),
+        };
+        self.estado.borrow_mut().config_addons.mensaje = mensaje;
+        if let Some(ui) = self.ui.upgrade() {
+            ui.set_seccion(SECCION_ADDONS);
+        }
+        if self.estado.borrow().modo != Modo::Config {
+            self.poner_modo(Modo::Config);
+        }
+        self.refrescar();
+        self.recolocar();
     }
 
     fn id_de_fila(&self, fila: usize) -> Option<String> {
@@ -619,6 +662,13 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_quitar_addon(move |i| c.quitar_addon(i.max(0) as usize));
     let c = ctx.clone();
     ui.on_alternar_addon_visible(move |i| c.alternar_addon_visible(i.max(0) as usize));
+    let c = ctx.clone();
+    ui.on_anadir_addon(move || c.anadir_addon());
+    ui.on_ver_repositorio_addons(|| {
+        if let Err(e) = sistema::lanzar(REPOSITORIO_ADDONS) {
+            eprintln!("{e}");
+        }
+    });
     let c = ctx.clone();
     ui.on_conectar_claude_desktop(move || c.conectar_claude_desktop());
     let c = ctx.clone();
