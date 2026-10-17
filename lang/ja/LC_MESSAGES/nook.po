@@ -653,9 +653,6 @@ msgstr "GitHub でアドオンを見る"
 msgid "Addons de Nookly"
 msgstr "Nookly アドオン"
 
-msgid "Addon añadido: {}"
-msgstr "アドオンを追加しました: {}"
-
 msgid "No se pudo añadir el addon: {}"
 msgstr "アドオンを追加できませんでした: {}"
 

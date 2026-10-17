@@ -653,9 +653,6 @@ msgstr "See add-ons on GitHub"
 msgid "Addons de Nookly"
 msgstr "Nookly add-ons"
 
-msgid "Addon añadido: {}"
-msgstr "Add-on added: {}"
-
 msgid "No se pudo añadir el addon: {}"
 msgstr "Couldn't add the add-on: {}"
 

@@ -1214,14 +1214,17 @@ export component PanelConfiguracion inherits Rectangle {
                         font-size: 12px;
                         wrap: word-wrap;
                     }
+                    // Uno bajo el otro: juntos no caben en el ancho del panel.
                     HorizontalLayout {
-                        spacing: 8px;
                         alignment: start;
                         BotonTexto {
                             texto: root.conectado-claude ? @tr("Conectado con Claude Desktop") : @tr("Conectar con Claude Desktop");
                             peligro: !root.conectado-claude;
                             clicked => { root.conectar-claude-desktop(); }
                         }
+                    }
+                    HorizontalLayout {
+                        alignment: start;
                         BotonTexto {
                             texto: @tr("Copiar comando para Claude Code");
                             clicked => { root.copiar-comando-claude-code(); }

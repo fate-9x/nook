@@ -300,7 +300,7 @@ impl Ctx {
                 // Si había otra versión cargada, la nueva se carga al abrirlo.
                 self.descargar_addon(&manifiesto.id);
                 self.leer_addons();
-                tr_con("Addon añadido: {}", &[&manifiesto.nombre()])
+                String::new()
             }
             Err(error) => tr_con("No se pudo añadir el addon: {}", &[&error]),
         };

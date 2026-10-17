@@ -653,9 +653,6 @@ msgstr "GitHub에서 애드온 보기"
 msgid "Addons de Nookly"
 msgstr "Nookly 애드온"
 
-msgid "Addon añadido: {}"
-msgstr "애드온을 추가했습니다: {}"
-
 msgid "No se pudo añadir el addon: {}"
 msgstr "애드온을 추가하지 못했습니다: {}"
 
