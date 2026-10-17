@@ -450,12 +450,18 @@ export component Barra inherits Window {
     // de la sección más alta salvo atajos y acerca de, que se desplazan si no caben.
     property <length> ancho-config: 520px;
     property <length> alto-config: 320px;
-    property <int> filas-busqueda: 8;   // buscador::MAX_RESULTADOS
+    // Buscador: tan alto como sus resultados (hasta buscador::MAX_RESULTADOS); sin ninguno, el
+    // sitio del aviso.
+    property <int> filas-busqueda: root.resultados.length == 0 ? 2 : min(8, root.resultados.length);
     property <length> fila-busqueda: 40px;
     property <length> ancho-buscar: 440px;
     property <length> alto-buscar: 14px + 36px + 8px + root.filas-busqueda * root.fila-busqueda + 10px;
-    // Bóveda (ver ui/boveda.slint).
-    property <length> zona-boveda: 280px;   // alto de lo que hay bajo el campo (cabecera y tarjetas)
+    // Bóveda (ver ui/boveda.slint): lo que hay bajo el campo (la cabecera de un grupo y las
+    // tarjetas, en 3 columnas de 76 px de alto) mide lo que ocupan sus tarjetas, de 2 filas (o el
+    // aviso de que no hay) hasta 280 px; con más, se desplazan.
+    property <length> cabecera-boveda: root.en-grupo-boveda ? 34px : 0px;
+    property <length> zona-boveda: root.cabecera-boveda
+        + min(280px - root.cabecera-boveda, max(2 * 76px, ceil(root.boveda.length / 3) * (76px + 8px) - 8px));
     property <length> alto-boveda: 14px + 36px + 8px + root.zona-boveda + 12px;
     // Reproductor: la portada a la izquierda, con el título y los botones a su lado, y el
     // volumen debajo.
@@ -679,7 +685,9 @@ export component Barra inherits Window {
     // contorno redondeado que Slint anima. La caja se ancla para que la tira de iconos quede
     // siempre en el mismo sitio de la pantalla.
     property <length> ancho-maximo: max(max(max(root.ancho-grupo, root.ancho-musica), root.ancho-sonido), max(root.ancho-config, root.ancho-buscar));
-    property <length> alto-maximo: max(max(max(root.alto-grupo, root.alto-boveda), max(root.alto-musica, root.alto-sonido)), max(root.alto-config, root.alto-buscar));
+    // La bóveda y el buscador, con su alto máximo (cambia según lo que muestran).
+    property <length> alto-maximo: max(max(max(root.alto-grupo, 14px + 36px + 8px + 280px + 12px), max(root.alto-musica, root.alto-sonido)),
+        max(root.alto-config, 14px + 36px + 8px + 8 * root.fila-busqueda + 10px));
     // El lienzo reserva ya el hueco del "+": si creciera al abrirse, la ventana iría un instante
     // por detrás del borde y la hora se vería cortada.
     property <length> largo-reservado: min(root.largo-sin-mas + (root.n == 0 ? 0px : root.boton + root.hueco), root.tope-largo);
