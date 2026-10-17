@@ -370,7 +370,8 @@ export component Barra inherits Window {
     // su largo sin eso, que es el que se centra en la pantalla: el hueco del "+" se abre hacia
     // el final de la tira sin mover los demás botones.
     property <length> extra-mas: root.n == 0 ? 0px : root.espacio-mas;
-    property <length> largo-sin-mas: root.largo-tira - root.extra-mas;
+    property <length> largo-sin-mas: root.vertical ? min(root.largo-total - root.extra-mas, root.tope-largo)
+        : root.largo-total - root.extra-mas;
     // Tras el "+" va el botón de la bóveda (justo antes de la hora), si está activada. El hueco
     // hasta él es también la zona en la que aparece el "+": lo bastante ancho para acertarle.
     property <length> hueco-mas: 8px;
@@ -410,7 +411,15 @@ export component Barra inherits Window {
     property <length> fin-con-bateria: root.bateria-en-tira ? root.eje-bateria + root.boton : root.fin-con-sonido;
     property <length> eje-energia: root.fin-con-bateria + 2px;
     property <length> fin-botones: root.boton-energia ? root.eje-energia + root.boton : root.fin-con-bateria;
-    property <length> largo-tira: root.fin-botones + 8px + root.largo-hora + 10px;
+    property <length> largo-total: root.fin-botones + 8px + root.largo-hora + 10px;
+    // Lo que se ve de la tira: en los laterales no pasa del alto de la pantalla (`tope-largo`, lo
+    // pone Rust) y, si no cabe, se recorre con la rueda del ratón.
+    in property <length> tope-largo: 100000px;
+    property <length> largo-tira: root.vertical ? min(root.largo-total, root.tope-largo) : root.largo-total;
+    property <length> exceso: root.largo-total - root.largo-tira;
+    // Cuánto se ha recorrido la tira (0 o negativo) y lo mismo sin pasarse del final.
+    property <length> recorrido;
+    property <length> recorrido-real: max(-root.exceso, min(0px, root.recorrido));
 
     property <int> columnas: root.vertical ? 4 : 6;
     property <length> celda-ancho: 64px;
@@ -581,7 +590,11 @@ export component Barra inherits Window {
         return root.vertical ? root.tira-x + (root.grosor - root.boton) / 2 : root.desfase-tira + a;
     }
     pure function py(a: length) -> length {
-        return root.vertical ? a : root.tira-y + (root.grosor - root.boton) / 2;
+        return root.vertical ? a + root.recorrido-real : root.tira-y + (root.grosor - root.boton) / 2;
+    }
+    // Recorre la tira con la rueda: positivo, hacia el principio.
+    function recorrer(giro: length) {
+        root.recorrido = max(-root.exceso, min(0px, root.recorrido-real + giro));
     }
     pure function eje-grupo(i: int) -> length {
         return root.primer-grupo + i * (root.boton + root.hueco);
@@ -623,7 +636,7 @@ export component Barra inherits Window {
 
     // Arrastrar archivos: sobre qué grupo está el cursor (n = el botón "+", -1 ninguno; las
     // apps sueltas no admiten archivos).
-    property <length> eje-arrastre: root.vertical ? root.arrastre-y : root.arrastre-x - root.desfase-tira;
+    property <length> eje-arrastre: root.vertical ? root.arrastre-y - root.recorrido-real : root.arrastre-x - root.desfase-tira;
     property <length> cruz-arrastre: root.vertical ? root.arrastre-x - root.tira-x : root.arrastre-y - root.tira-y;
     property <int> indice-arrastre: floor((root.eje-arrastre - root.primer-grupo + root.hueco / 2) / (root.boton + root.hueco));
     out property <int> destino-arrastre: !root.arrastrando ? -1
@@ -705,6 +718,9 @@ export component Barra inherits Window {
     // ---- Tira de iconos ----
     Rectangle {
         visible: root.modo >= 1;
+        // En los laterales, lo que se sale de la tira al recorrerla no se ve.
+        height: root.vertical ? root.largo-tira : parent.height;
+        clip: true;
 
         // Zona del personaje: arrastrándola también se mueve la barra. Un clic sobre el
         // personaje lo hace rebotar. Va pegada al borde de la caja (sin `y`, Slint la centraría
@@ -741,6 +757,13 @@ export component Barra inherits Window {
             y: root.tira-y;
             width: root.vertical ? root.grosor : root.largo-tira;
             height: root.vertical ? root.largo-tira : root.grosor;
+            scroll-event(evento) => {
+                if (root.exceso > 0px) {
+                    root.recorrer(evento.delta-y);
+                    return accept;
+                }
+                return reject;
+            }
             moved => {
                 if (abs(self.mouse-x - self.pressed-x) > 5px || abs(self.mouse-y - self.pressed-y) > 5px) {
                     root.mover-barra();
@@ -791,7 +814,7 @@ export component Barra inherits Window {
 
         Rectangle {
             x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-inicio;
-            y: root.vertical ? root.linea-inicio : root.tira-y + (root.grosor - 18px) / 2;
+            y: root.vertical ? root.linea-inicio + root.recorrido-real : root.tira-y + (root.grosor - 18px) / 2;
             width: root.vertical ? 18px : 1px;
             height: root.vertical ? 1px : 18px;
             background: Tema.linea;
@@ -831,6 +854,10 @@ export component Barra inherits Window {
                 }
             }
             rueda(giro) => {
+                if (root.exceso > 0px) {
+                    root.recorrer(giro);
+                    return true;
+                }
                 root.giro-rueda += giro;
                 if (abs(root.giro-rueda) < 40px) {
                     return true;
@@ -965,7 +992,7 @@ export component Barra inherits Window {
         // Reproductor.
         if root.musica-en-tira : Rectangle {
             x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica;
-            y: root.vertical ? root.linea-musica : root.tira-y + (root.grosor - 18px) / 2;
+            y: root.vertical ? root.linea-musica + root.recorrido-real : root.tira-y + (root.grosor - 18px) / 2;
             width: root.vertical ? 18px : 1px;
             height: root.vertical ? 1px : 18px;
             background: Tema.linea;
@@ -1117,7 +1144,7 @@ export component Barra inherits Window {
         if root.mostrar-hora : Boton {
             property <length> sobra: 4px;
             x: root.vertical ? root.px(0) : root.desfase-tira + root.largo-tira - 10px - root.largo-hora - self.sobra;
-            y: root.vertical ? root.largo-tira - 10px - root.largo-hora - self.sobra : root.py(0);
+            y: root.vertical ? root.largo-total - 10px - root.largo-hora - self.sobra + root.recorrido-real : root.py(0);
             width: root.vertical ? root.boton : root.largo-hora + 2 * self.sobra;
             height: root.vertical ? root.largo-hora + 2 * self.sobra : root.boton;
             clicked => { root.abrir-notificaciones(); }
