@@ -166,10 +166,12 @@ component FilaAtajo inherits Rectangle {
             if root.bloqueada : MarcaPro {}
         }
 
-        // Quitar el atajo (dejarlo sin definir). Se ve al pasar por encima de la fila.
-        if root.tiene-atajo && !root.grabando && !root.bloqueada : VerticalLayout {
+        // Quitar el atajo (dejarlo sin definir). Se ve al pasar por encima de la fila. Sin atajo no
+        // se ve, pero su hueco se queda para que todos los atajos queden alineados.
+        VerticalLayout {
             alignment: center;
             Rectangle {
+                visible: root.tiene-atajo && !root.grabando && !root.bloqueada;
                 width: 18px;
                 height: 18px;
                 border-radius: 9px;
