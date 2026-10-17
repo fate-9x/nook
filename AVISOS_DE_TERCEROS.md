@@ -1,6 +1,6 @@
 # Avisos de terceros
 
-Nook usa trabajo de otras personas. Aquí se indica qué se usa de cada proyecto, quién lo hizo y
+Nookly usa trabajo de otras personas. Aquí se indica qué se usa de cada proyecto, quién lo hizo y
 bajo qué licencia. Este mismo texto va dentro del programa: Configuración → Créditos → Ver
 licencias.
 

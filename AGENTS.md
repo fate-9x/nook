@@ -1,6 +1,6 @@
 # Guía para agentes
 
-Proyecto: **nook**, una barra de tareas en Rust + Slint para Windows (`src/` y `ui/`).
+Proyecto: **Nookly**, una barra de tareas en Rust + Slint para Windows (`src/` y `ui/`).
 
 - `src/main.rs` tiene el estado (`Estado`, `Ctx`) y arranca todo; lo que hace la barra va por
   partes en `src/barra/` (bóveda, buscador, configuración, personaje, reproductor, tira…), cada
@@ -17,14 +17,14 @@ Proyecto: **nook**, una barra de tareas en Rust + Slint para Windows (`src/` y `
   están los addons y la guía para hacerlos. `nook.exe --mcp` (`mcp.rs`) es el servidor MCP para
   la IA del usuario, y habla con la barra por una tubería con nombre (`tuberia.rs`).
 
-## nook y nook Pro
+## Nookly y Nookly Pro
 
 Hay dos versiones, cada una en su repositorio, que comparten casi todo el código:
 
 | Versión | Repositorio | Rama local | Carpeta |
 |---|---|---|---|
-| **nook** (gratuita) | `fate-9x/nook` (público), remoto `origin` | `main` | `Desktop/nook` |
-| **nook Pro** (de pago, Microsoft Store) | `fate-9x/nook-pro` (privado), remoto `pro` | `pro` | `Desktop/nook-pro` |
+| **Nookly** (gratuita) | `fate-9x/nook` (público), remoto `origin` | `main` | `Desktop/nook` |
+| **Nookly Pro** (de pago, Microsoft Store) | `fate-9x/nook-pro` (privado), remoto `pro` | `pro` | `Desktop/nook-pro` |
 
 Las dos carpetas son el mismo repositorio de git (`git worktree`): cada una tiene su rama, y los
 cambios pasan de una a otra sin subir ni bajar nada.
@@ -36,7 +36,7 @@ cambios pasan de una a otra sin subir ni bajar nada.
 - **El código de las funciones Pro** está en `src/pro/`, que solo existe en la rama `pro`. Con esa
   carpeta, `build.rs` compila con `cfg(pro)` y `src/main.rs` toma los módulos de ahí; sin ella,
   los de `src/gratis/`, que tienen lo mismo pero no hacen nada. En el código, `PRO` dice si es
-  nook Pro.
+  Nookly Pro.
 - **Una función Pro nueva:** su parte que habla con Windows va en un módulo de `src/pro/` (rama
   `pro`), con su versión vacía en `src/gratis/` (rama `main`, y de ahí a `pro` con el merge) y las
   dos líneas `#[cfg_attr(…, path = …)]` en `src/main.rs`. Sus ajustes se apagan en la gratuita en
@@ -121,7 +121,7 @@ escribir bien los commits siguientes, y el formato lo mantiene el workflow
 
 ## Publicar una versión
 
-Esto es para la versión gratuita (`main`, repositorio público). Cómo se publica nook Pro en la
+Esto es para la versión gratuita (`main`, repositorio público). Cómo se publica Nookly Pro en la
 Microsoft Store está por decidir: los tags de las dos versiones comparten el repositorio local,
 así que los de Pro no pueden llamarse también `vX.Y.Z`.
 
