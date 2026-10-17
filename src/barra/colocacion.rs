@@ -175,9 +175,10 @@ impl Ctx {
         let px = |v: f32| (v * escala).round() as i32;
         let posicion = ui.get_posicion();
         let pantalla = ventana::monitor_en(self.estado.borrow().config.ajustes.monitor);
-        // Con muchas apps, la tira lateral no pasa del alto de la pantalla (con el sitio del
-        // rebote): lo que no cabe se recorre con la rueda.
-        ui.set_tope_largo((pantalla.3 as f32 / escala - 2.0 * MARGEN_REBOTE).max(200.0));
+        // Con muchas apps, la tira no pasa del alto (en los laterales) o del ancho (arriba y
+        // abajo) de la pantalla, con el sitio del rebote: lo que no cabe se recorre con la rueda.
+        let lado = if posicion == 1 || posicion == 2 { pantalla.3 } else { pantalla.2 };
+        ui.set_tope_largo((lado as f32 / escala - 2.0 * MARGEN_REBOTE).max(200.0));
         let (w, h) = (px(ui.get_ancho()), px(ui.get_alto()));
 
         // Espacio extra para el rebote: a ambos lados si está arriba o abajo (crece desde el

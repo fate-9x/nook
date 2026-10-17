@@ -370,8 +370,7 @@ export component Barra inherits Window {
     // su largo sin eso, que es el que se centra en la pantalla: el hueco del "+" se abre hacia
     // el final de la tira sin mover los demás botones.
     property <length> extra-mas: root.n == 0 ? 0px : root.espacio-mas;
-    property <length> largo-sin-mas: root.vertical ? min(root.largo-total - root.extra-mas, root.tope-largo)
-        : root.largo-total - root.extra-mas;
+    property <length> largo-sin-mas: min(root.largo-total - root.extra-mas, root.tope-largo);
     // Tras el "+" va el botón de la bóveda (justo antes de la hora), si está activada. El hueco
     // hasta él es también la zona en la que aparece el "+": lo bastante ancho para acertarle.
     property <length> hueco-mas: 8px;
@@ -412,11 +411,12 @@ export component Barra inherits Window {
     property <length> eje-energia: root.fin-con-bateria + 2px;
     property <length> fin-botones: root.boton-energia ? root.eje-energia + root.boton : root.fin-con-bateria;
     property <length> largo-total: root.fin-botones + 8px + root.largo-hora + 10px;
-    // Lo que se ve de la tira: en los laterales no pasa del alto de la pantalla (`tope-largo`, lo
-    // pone Rust). Lo que no cabe se quita de la zona de las apps, que se recorre con la rueda del
-    // ratón; lo demás (la hora, los botones del final...) queda fijo.
+    // Lo que se ve de la tira: no pasa del alto (en los laterales) o del ancho (arriba y abajo) de
+    // la pantalla (`tope-largo`, lo pone Rust). Lo que no cabe se quita de la zona de las apps,
+    // que se recorre con la rueda del ratón; lo demás (la hora, los botones del final...) queda
+    // fijo.
     in property <length> tope-largo: 100000px;
-    property <length> largo-tira: root.vertical ? min(root.largo-total, root.tope-largo) : root.largo-total;
+    property <length> largo-tira: min(root.largo-total, root.tope-largo);
     property <length> exceso: root.largo-total - root.largo-tira;
     // Cuánto se han recorrido las apps (0 o negativo) y lo mismo sin pasarse del final.
     property <length> recorrido;
@@ -510,11 +510,14 @@ export component Barra inherits Window {
     // siempre en el mismo sitio de la pantalla.
     property <length> ancho-maximo: max(max(max(root.ancho-grupo, root.ancho-musica), root.ancho-sonido), max(root.ancho-config, root.ancho-buscar));
     property <length> alto-maximo: max(max(max(root.alto-grupo, root.alto-boveda), max(root.alto-musica, root.alto-sonido)), max(root.alto-config, root.alto-buscar));
+    // El lienzo reserva ya el hueco del "+": si creciera al abrirse, la ventana iría un instante
+    // por detrás del borde y la hora se vería cortada.
+    property <length> largo-reservado: min(root.largo-sin-mas + (root.n == 0 ? 0px : root.boton + root.hueco), root.tope-largo);
     out property <length> lienzo-ancho: root.vertical
         ? root.grosor-total + 1px + root.ancho-maximo
-        : max(root.largo-tira, root.ancho-maximo);
+        : max(max(root.largo-tira, root.largo-reservado), root.ancho-maximo);
     out property <length> lienzo-alto: root.vertical
-        ? max(root.largo-tira, root.alto-maximo)
+        ? max(max(root.largo-tira, root.largo-reservado), root.alto-maximo)
         : root.grosor-total + 1px + root.alto-maximo;
     // Posición vertical de la caja dentro del lienzo (la calcula Rust en los laterales). Abajo va
     // pegada al borde de abajo del lienzo: se calcula aquí, para que se mueva a la vez que cambia
@@ -588,7 +591,8 @@ export component Barra inherits Window {
 
     // Coordenadas de un botón de la tira a una distancia `a` del inicio.
     pure function px(a: length) -> length {
-        return root.vertical ? root.tira-x + (root.grosor - root.boton) / 2 : root.desfase-tira + a;
+        return root.vertical ? root.tira-x + (root.grosor - root.boton) / 2
+            : root.desfase-tira + (a >= root.eje-grupo(root.n) ? a - root.exceso : a);
     }
     pure function py(a: length) -> length {
         return root.vertical ? (a >= root.eje-grupo(root.n) ? a - root.exceso : a) : root.tira-y + (root.grosor - root.boton) / 2;
@@ -637,7 +641,7 @@ export component Barra inherits Window {
 
     // Arrastrar archivos: sobre qué grupo está el cursor (n = el botón "+", -1 ninguno; las
     // apps sueltas no admiten archivos).
-    property <length> eje-arrastre: root.vertical ? root.arrastre-y - root.recorrido-real : root.arrastre-x - root.desfase-tira;
+    property <length> eje-arrastre: root.vertical ? root.arrastre-y - root.recorrido-real : root.arrastre-x - root.desfase-tira - root.recorrido-real;
     property <length> cruz-arrastre: root.vertical ? root.arrastre-x - root.tira-x : root.arrastre-y - root.tira-y;
     property <int> indice-arrastre: floor((root.eje-arrastre - root.primer-grupo + root.hueco / 2) / (root.boton + root.hueco));
     out property <int> destino-arrastre: !root.arrastrando ? -1
@@ -820,20 +824,20 @@ export component Barra inherits Window {
 
         // Las apps: en los laterales, si no caben, solo se ve su zona y se recorre.
         Rectangle {
-            property <length> inicio-zona: root.vertical ? root.primer-grupo : 0px;
-            x: 0px;
-            y: self.inicio-zona;
-            width: parent.width;
-            height: root.vertical ? max(0px, root.eje-grupo(root.n) - root.exceso - root.primer-grupo) : parent.height;
-            clip: root.vertical && root.exceso > 0px;
+            property <length> largo-zona: max(0px, root.eje-grupo(root.n) - root.exceso - root.primer-grupo);
+            x: root.vertical ? 0px : root.desfase-tira + root.primer-grupo;
+            y: root.vertical ? root.primer-grupo : 0px;
+            width: root.vertical ? parent.width : self.largo-zona;
+            height: root.vertical ? self.largo-zona : parent.height;
+            clip: root.exceso > 0px;
 
         for g[i] in root.tira : Boton {
             // Efecto lupa: solo crece el dibujo del icono, desde su centro; el botón (la zona
             // en la que se detecta el cursor) no cambia, para no quitarle el cursor al de al lado.
             property <float> aumento: i == root.lupa && root.reordenando < 0 && root.modo != 0 ? root.lupa-maxima : 1;
             animate aumento { duration: root.animaciones ? 120ms : 0ms; easing: ease-out; }
-            x: root.px(root.eje-elemento(i));
-            y: root.py(root.eje-elemento(i)) + (root.vertical ? root.recorrido-real : 0px) - parent.inicio-zona;
+            x: root.px(root.eje-elemento(i)) + (root.vertical ? 0px : root.recorrido-real) - parent.x;
+            y: root.py(root.eje-elemento(i)) + (root.vertical ? root.recorrido-real : 0px) - parent.y;
             // El icono agrandado ya marca dónde está el cursor: sin el fondo de "encima".
             fondo-encima: false;
             // El que se arrastra sigue al cursor; los demás se apartan con suavidad.
@@ -1000,7 +1004,7 @@ export component Barra inherits Window {
 
         // Reproductor.
         if root.musica-en-tira : Rectangle {
-            x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica;
+            x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica - root.exceso;
             y: root.vertical ? root.linea-musica - root.exceso : root.tira-y + (root.grosor - 18px) / 2;
             width: root.vertical ? 18px : 1px;
             height: root.vertical ? 1px : 18px;
@@ -1152,7 +1156,7 @@ export component Barra inherits Window {
         // desplegar). Un clic abre las notificaciones y el calendario de Windows.
         if root.mostrar-hora : Boton {
             property <length> sobra: 4px;
-            x: root.vertical ? root.px(0) : root.desfase-tira + root.largo-tira - 10px - root.largo-hora - self.sobra;
+            x: root.vertical ? root.px(0) : root.desfase-tira + root.largo-total - 10px - root.largo-hora - self.sobra - root.exceso;
             y: root.vertical ? root.largo-total - 10px - root.largo-hora - self.sobra - root.exceso : root.py(0);
             width: root.vertical ? root.boton : root.largo-hora + 2 * self.sobra;
             height: root.vertical ? root.largo-hora + 2 * self.sobra : root.boton;
