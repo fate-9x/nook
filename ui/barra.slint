@@ -446,10 +446,11 @@ export component Barra inherits Window {
     property <length> pie: root.editando ? 50px : 34px;
     property <length> ancho-grupo: root.columnas * root.celda-ancho + (root.columnas - 1) * root.hueco + 2 * root.margen;
     property <length> alto-grupo: 14px + root.filas * root.celda-alto + (root.filas - 1) * root.hueco + 10px + root.pie;
-    // Configuración: la columna de secciones y, al lado, los ajustes de la elegida. El alto es el
-    // de la sección más alta salvo atajos y acerca de, que se desplazan si no caben.
-    property <length> ancho-config: 520px;
-    property <length> alto-config: 320px;
+    // Configuración: la columna de secciones y, al lado, los ajustes de la elegida (si no caben,
+    // se desplazan). Lo bastante ancha para que en "Personaje" quepan la vista previa y, a su
+    // lado, los accesorios con sus colores.
+    property <length> ancho-config: 600px;
+    property <length> alto-config: 360px;
     // Buscador: tan alto como sus resultados (hasta buscador::MAX_RESULTADOS); sin ninguno, el
     // sitio del aviso.
     property <int> filas-busqueda: root.resultados.length == 0 ? 2 : min(8, root.resultados.length);

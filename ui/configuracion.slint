@@ -1111,63 +1111,68 @@ export component PanelConfiguracion inherits Rectangle {
                     }
                 }
 
-                // Personaje: cómo se ve (se mueve como el de la barra), su figura y los
-                // accesorios, cada uno con su interruptor y, puesto, sus colores.
-                if root.seccion == 4 : VerticalLayout {
-                    spacing: 8px;
+                // Personaje: a la izquierda, cómo se ve (se mueve como el de la barra) y su figura,
+                // siempre a la vista; a la derecha, los accesorios, cada uno con su interruptor y,
+                // puesto, sus colores (con la rueda se desplazan sin mover la vista previa).
+                if root.seccion == 4 : HorizontalLayout {
+                    height: root.height - 26px;
+                    spacing: 14px;
 
-                    Rectangle {
-                        height: root.lado-muestra + 10px;
-                        border-radius: 14px;
-                        background: Tema.capa;
-                        Image {
-                            x: (parent.width - self.width) / 2;
-                            y: (parent.height - self.height) / 2;
-                            width: root.lado-muestra;
-                            height: root.lado-muestra;
-                            source: root.personaje-muestra;
-                        }
-                    }
                     VerticalLayout {
-                        Titulo { text: @tr("FIGURA"); }
+                        width: root.lado-muestra + 30px;
+                        alignment: start;
+                        spacing: 8px;
+
                         Rectangle {
-                            height: 34px;
+                            height: root.lado-muestra + 30px;
                             border-radius: 14px;
                             background: Tema.capa;
-                            HorizontalLayout {
-                                padding: 3px;
-                                spacing: 2px;
-                                OpcionSegmento { texto: "Nook"; elegida: root.figura == 0; clicked => { root.elegir-figura(0); } }
-                                OpcionSegmento { texto: @tr("Limón"); elegida: root.figura == 1; clicked => { root.elegir-figura(1); } }
+                            Image {
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                                width: root.lado-muestra;
+                                height: root.lado-muestra;
+                                source: root.personaje-muestra;
+                            }
+                        }
+                        VerticalLayout {
+                            Titulo { text: @tr("FIGURA"); }
+                            Rectangle {
+                                height: 34px;
+                                border-radius: 14px;
+                                background: Tema.capa;
+                                HorizontalLayout {
+                                    padding: 3px;
+                                    spacing: 2px;
+                                    OpcionSegmento { texto: "Nook"; elegida: root.figura == 0; clicked => { root.elegir-figura(0); } }
+                                    OpcionSegmento { texto: @tr("Limón"); elegida: root.figura == 1; clicked => { root.elegir-figura(1); } }
+                                }
                             }
                         }
                     }
-                    VerticalLayout {
-                        Titulo { text: @tr("ACCESORIOS"); }
-                        for a[i] in root.accesorios : VerticalLayout {
-                            FilaInterruptor {
-                                texto: a.nombre;
-                                activo: a.puesto;
-                                clicked => { root.alternar-accesorio(i); }
-                            }
-                            if a.puesto : HorizontalLayout {
-                                height: 30px;
-                                padding-top: 3px;
-                                padding-bottom: 3px;
-                                spacing: 4px;
-                                alignment: start;
-                                for c[j] in root.colores-accesorios : Muestra {
-                                    tono: c;
-                                    elegido: c == a.color;
-                                    clicked => { root.elegir-color-accesorio(i, c); }
-                                    menu => {
-                                        if (j >= root.colores-accesorios-base) {
-                                            root.menu-color-accesorio(j);
-                                        }
-                                    }
+
+                    accesorios := Flickable {
+                        horizontal-stretch: 1;
+                        content-width: self.width;
+                        content-height: max(self.height, lista-accesorios.preferred-height);
+
+                        lista-accesorios := VerticalLayout {
+                            width: accesorios.width;
+                            alignment: start;
+                            Titulo { text: @tr("ACCESORIOS"); }
+                            for a[i] in root.accesorios : VerticalLayout {
+                                FilaInterruptor {
+                                    texto: a.nombre;
+                                    activo: a.puesto;
+                                    clicked => { root.alternar-accesorio(i); }
                                 }
-                                MuestraMas {
-                                    clicked => { root.agregar-color-accesorio(i); }
+                                if a.puesto : FilaMuestras {
+                                    colores: root.colores-accesorios;
+                                    elegido: a.color;
+                                    base: root.colores-accesorios-base;
+                                    elegir(c) => { root.elegir-color-accesorio(i, c); }
+                                    menu(j) => { root.menu-color-accesorio(j); }
+                                    mas => { root.agregar-color-accesorio(i); }
                                 }
                             }
                         }
