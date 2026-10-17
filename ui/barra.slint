@@ -478,7 +478,7 @@ export component Barra inherits Window {
     // Arriba, la caja se corre a la derecha lo justo para que quepa el hueco del "+" (Rust la
     // coloca igual, ver `recolocar`).
     out property <length> desvio-caja: root.vertical || root.modo == 0 ? 0px
-        : max(0px, root.largo-sin-mas / 2 + root.extra-mas - root.ancho / 2);
+        : max(0px, root.largo-sin-mas / 2 + (root.largo-tira - root.largo-sin-mas) - root.ancho / 2);
     property <length> desfase-tira: !root.vertical ? (root.ancho - root.largo-sin-mas) / 2 - root.desvio-caja : 0px;
     property <length> tira-x: root.posicion == 2 ? root.ancho - root.grosor : 0px;
     property <length> tira-y: root.posicion == 0 ? root.zona : root.posicion == 3 ? root.alto - root.grosor : 0px;
