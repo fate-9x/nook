@@ -658,3 +658,6 @@ msgstr "Add-on added: {}"
 
 msgid "No se pudo añadir el addon: {}"
 msgstr "Couldn't add the add-on: {}"
+
+msgid "Para conectarlo, abre en Claude Desktop Configuración → Desarrollador → Editar configuración y vuelve a pulsar este botón."
+msgstr "To connect it, open Settings → Developer → Edit Config in Claude Desktop and press this button again."

@@ -658,3 +658,6 @@ msgstr "アドオンを追加しました: {}"
 
 msgid "No se pudo añadir el addon: {}"
 msgstr "アドオンを追加できませんでした: {}"
+
+msgid "Para conectarlo, abre en Claude Desktop Configuración → Desarrollador → Editar configuración y vuelve a pulsar este botón."
+msgstr "接続するには、Claude Desktop で [設定] → [開発者] → [構成を編集] を開いてから、もう一度このボタンを押してください。"
