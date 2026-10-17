@@ -575,8 +575,8 @@ msgstr "Add-ons"
 msgid "ADDONS"
 msgstr "ADD-ONS"
 
-msgid "Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos."
-msgstr "Panels you can add to the bar, like mini-games. They only load when you open them."
+msgid "Paneles que se añaden a la barra. Solo se cargan al abrirlos."
+msgstr "Panels you can add to the bar. They only load when you open them."
 
 msgid "Buscando addons…"
 msgstr "Looking for add-ons…"
@@ -599,8 +599,8 @@ msgstr "Remove"
 msgid "CONECTAR CON TU IA"
 msgstr "CONNECT YOUR AI"
 
-msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella."
-msgstr "Some add-ons can be used from Claude or another AI that supports MCP: for example, to play against it."
+msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP."
+msgstr "Some add-ons can be used from Claude or another AI that supports MCP."
 
 msgid "Conectado con Claude Desktop"
 msgstr "Connected to Claude Desktop"

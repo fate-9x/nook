@@ -575,8 +575,8 @@ msgstr "애드온"
 msgid "ADDONS"
 msgstr "애드온"
 
-msgid "Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos."
-msgstr "바에 추가하는 패널(미니게임 등)입니다. 열 때만 불러옵니다."
+msgid "Paneles que se añaden a la barra. Solo se cargan al abrirlos."
+msgstr "바에 추가하는 패널입니다. 열 때만 불러옵니다."
 
 msgid "Buscando addons…"
 msgstr "애드온을 찾는 중…"
@@ -599,8 +599,8 @@ msgstr "제거"
 msgid "CONECTAR CON TU IA"
 msgstr "AI 연결"
 
-msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella."
-msgstr "일부 애드온은 Claude 등 MCP를 지원하는 AI에서 사용할 수 있습니다. 예를 들어 AI와 대결할 수 있습니다."
+msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP."
+msgstr "일부 애드온은 Claude 등 MCP를 지원하는 AI에서 사용할 수 있습니다."
 
 msgid "Conectado con Claude Desktop"
 msgstr "Claude Desktop에 연결됨"

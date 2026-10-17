@@ -218,15 +218,15 @@ En el reproductor ves qué suena y puedes cambiar el volumen de esa app.
 
 ## Addons
 
-Los addons son paneles que se añaden a la barra, como minijuegos. Se instalan en
+Los addons son paneles que se añaden a la barra. Se instalan en
 *Configuración → Addons*, que muestra los disponibles (del repositorio
 [nook-addons](https://github.com/fate-9x/nook-addons)), y cada uno pone un botón en la barra que
 abre su panel. Solo se cargan al abrirlos: si no los usas, no gastan nada.
 
 - **Actualizar o quitar:** en la misma sección. El interruptor **En la barra** oculta su botón sin
   desinstalarlo.
-- **Con tu IA:** algunos addons se pueden usar desde Claude u otra IA que admita MCP (por
-  ejemplo, para jugar contra ella). En *Configuración → Addons*, **Conectar con Claude Desktop**
+- **Con tu IA:** algunos addons se pueden usar desde Claude u otra IA que admita MCP.
+  En *Configuración → Addons*, **Conectar con Claude Desktop**
   añade Nookly a Claude Desktop (después hay que reiniciarlo), y **Copiar comando para Claude Code**
   copia el comando que lo añade a Claude Code. Luego basta con pedírselo en el chat: lo que haga se
   ve en la barra.

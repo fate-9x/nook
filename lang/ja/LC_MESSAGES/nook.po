@@ -575,8 +575,8 @@ msgstr "アドオン"
 msgid "ADDONS"
 msgstr "アドオン"
 
-msgid "Paneles que se añaden a la barra, como minijuegos. Solo se cargan al abrirlos."
-msgstr "バーに追加できるパネル（ミニゲームなど）。開いたときだけ読み込まれます。"
+msgid "Paneles que se añaden a la barra. Solo se cargan al abrirlos."
+msgstr "バーに追加できるパネル。開いたときだけ読み込まれます。"
 
 msgid "Buscando addons…"
 msgstr "アドオンを探しています…"
@@ -599,8 +599,8 @@ msgstr "削除"
 msgid "CONECTAR CON TU IA"
 msgstr "AI と接続"
 
-msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP: por ejemplo, para jugar contra ella."
-msgstr "一部のアドオンは Claude など MCP に対応した AI から使えます。たとえば AI と対戦できます。"
+msgid "Algunos addons se pueden usar desde Claude u otra IA que admita MCP."
+msgstr "一部のアドオンは Claude など MCP に対応した AI から使えます。"
 
 msgid "Conectado con Claude Desktop"
 msgstr "Claude Desktop と接続済み"
