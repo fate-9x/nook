@@ -13,9 +13,9 @@
 //! Cuando cambia la bóveda gana el último que la guarda: al arrancar (y al abrir la bóveda) se
 //! baja la de la cuenta y sustituye a la local, y cada cambio local se sube un momento después.
 
-use crate::actualizacion::VERSION;
 use crate::boveda::Boveda;
 use crate::idioma::{tr, tr_con};
+use crate::red;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
@@ -23,11 +23,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use windows::Foundation::Uri;
 use windows::Storage::Streams::UnicodeEncoding;
-use windows::Web::Http::Filters::{HttpBaseProtocolFilter, HttpCacheReadBehavior};
-use windows::Web::Http::{HttpClient, HttpMethod, HttpRequestMessage, HttpStringContent};
+use windows::Web::Http::{HttpMethod, HttpRequestMessage, HttpStringContent};
 use windows::Win32::Foundation::{HLOCAL, LocalFree};
 use windows::Win32::Security::Cryptography::{CRYPT_INTEGER_BLOB, CRYPTPROTECT_UI_FORBIDDEN, CryptProtectData, CryptUnprotectData};
-use windows::Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx};
 use windows_core::HSTRING;
 
 /// Identificador de la OAuth App de nook en GitHub (es público: el flujo de dispositivo no usa
@@ -93,7 +91,7 @@ impl Cuenta {
             despertar: Box::new(despertar),
         };
         let _ = std::thread::Builder::new().name("cuenta".into()).spawn(move || {
-            iniciar_com();
+            red::iniciar_com();
             hilo.atender(recibidos);
         });
         if hay_sesion {
@@ -526,28 +524,12 @@ fn peticion(
             let contenido = HttpStringContent::CreateFromStringWithEncodingAndMediaType(&HSTRING::from(cuerpo), UnicodeEncoding::Utf8, &HSTRING::from(tipo))?;
             peticion.SetContent(&contenido)?;
         }
-        let respuesta = cliente()?.SendRequestAsync(&peticion)?.join()?;
+        let respuesta = red::cliente()?.SendRequestAsync(&peticion)?.join()?;
         let estado = respuesta.StatusCode()?.0 as u16;
         let texto = respuesta.Content()?.ReadAsStringAsync()?.join()?.to_string_lossy();
         Ok((estado, texto))
     })()
     .map_err(|e| e.message().to_string())
-}
-
-fn cliente() -> windows_core::Result<HttpClient> {
-    // Sin caché: cada lectura del Gist tiene que traer lo último que hay.
-    let filtro = HttpBaseProtocolFilter::new()?;
-    filtro.CacheControl()?.SetReadBehavior(HttpCacheReadBehavior::NoCache)?;
-    let cliente = HttpClient::Create(&filtro)?;
-    // La API de GitHub rechaza las peticiones sin User-Agent.
-    cliente.DefaultRequestHeaders()?.UserAgent()?.TryParseAdd(&HSTRING::from(format!("nook/{VERSION}")))?;
-    Ok(cliente)
-}
-
-fn iniciar_com() {
-    unsafe {
-        let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
-    }
 }
 
 // ---- Sesión guardada ----

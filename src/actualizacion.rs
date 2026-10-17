@@ -9,13 +9,9 @@
 //! Las llamadas a la red bloquean: hay que hacerlas en un hilo aparte.
 
 use crate::idioma::{tr, tr_con};
+use crate::red;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use windows::Foundation::Uri;
-use windows::Storage::Streams::{DataReader, InputStreamOptions};
-use windows::Web::Http::HttpClient;
-use windows::Win32::System::Com::{COINIT_MULTITHREADED, CoInitializeEx};
-use windows_core::HSTRING;
 
 /// Versión de este ejecutable, sin la "v" (por ejemplo "0.2.0").
 pub const VERSION: &str = env!("NOOK_VERSION");
@@ -26,8 +22,6 @@ pub const TRAS_ACTUALIZAR: &str = "--tras-actualizar";
 const ULTIMA_RELEASE: &str = "https://api.github.com/repos/fate-9x/nook/releases/latest";
 /// Nombre del ejecutable adjunto a cada release (lo sube el workflow de GitHub Actions).
 const ARCHIVO: &str = "nook.exe";
-/// Tamaño de cada trozo de la descarga: cada uno avanza la barra de progreso.
-const TROZO: u32 = 64 * 1024;
 
 /// Release más nueva que esta versión.
 #[derive(Clone)]
@@ -48,9 +42,8 @@ pub fn disponible() -> Option<Nueva> {
 /// Pregunta a GitHub por la última release. Si es más nueva que esta versión, la anota y la
 /// devuelve.
 pub fn buscar() -> Option<Nueva> {
-    iniciar_com();
-    let json = cliente().ok()?.GetStringAsync(&Uri::CreateUri(&HSTRING::from(ULTIMA_RELEASE)).ok()?).ok()?.join().ok()?;
-    let nueva = leer_release(&json.to_string_lossy())?;
+    let json = red::texto(ULTIMA_RELEASE).ok()?;
+    let nueva = leer_release(&json)?;
     if !es_mas_nueva(&nueva.version, VERSION) {
         return None;
     }
@@ -63,9 +56,8 @@ pub fn buscar() -> Option<Nueva> {
 /// Descarga la versión nueva, la pone en lugar de este ejecutable y la abre. `progreso` recibe
 /// cuánto se ha descargado (0–1). Si va bien, hay que cerrar este programa enseguida.
 pub fn instalar(nueva: &Nueva, progreso: impl Fn(f32)) -> Result<(), String> {
-    iniciar_com();
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let datos = descargar(nueva, progreso).map_err(|e| tr_con("no se pudo descargar: {}", &[&e.to_string()]))?;
+    let datos = red::descargar(&nueva.url, nueva.bytes, progreso).map_err(|e| tr_con("no se pudo descargar: {}", &[&e.to_string()]))?;
     // Un ejecutable de Windows empieza por "MZ": si no, se ha descargado otra cosa.
     if !datos.starts_with(b"MZ") {
         return Err(tr("lo descargado no es un ejecutable").into());
@@ -93,40 +85,6 @@ pub fn limpiar() {
     }
 }
 
-fn descargar(nueva: &Nueva, progreso: impl Fn(f32)) -> windows_core::Result<Vec<u8>> {
-    let uri = Uri::CreateUri(&HSTRING::from(&nueva.url))?;
-    let flujo = cliente()?.GetInputStreamAsync(&uri)?.join()?;
-    let lector = DataReader::CreateDataReader(&flujo)?;
-    lector.SetInputStreamOptions(InputStreamOptions::Partial)?;
-    let mut datos = Vec::with_capacity(nueva.bytes as usize);
-    loop {
-        let leidos = lector.LoadAsync(TROZO)?.join()?;
-        if leidos == 0 {
-            break;
-        }
-        let inicio = datos.len();
-        datos.resize(inicio + leidos as usize, 0);
-        lector.ReadBytes(&mut datos[inicio..])?;
-        if nueva.bytes > 0 {
-            progreso((datos.len() as f64 / nueva.bytes as f64).min(1.0) as f32);
-        }
-    }
-    Ok(datos)
-}
-
-fn cliente() -> windows_core::Result<HttpClient> {
-    let cliente = HttpClient::new()?;
-    // La API de GitHub rechaza las peticiones sin User-Agent.
-    cliente.DefaultRequestHeaders()?.UserAgent()?.TryParseAdd(&HSTRING::from(format!("nook/{VERSION}")))?;
-    Ok(cliente)
-}
-
-fn iniciar_com() {
-    unsafe {
-        let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
-    }
-}
-
 /// Versión, dirección y tamaño del `nook.exe` de una release (la respuesta JSON de GitHub).
 fn leer_release(json: &str) -> Option<Nueva> {
     let release: serde_json::Value = serde_json::from_str(json).ok()?;
@@ -140,7 +98,7 @@ fn leer_release(json: &str) -> Option<Nueva> {
 }
 
 /// Si la versión `a` es posterior a `b` ("1.2.3"; lo que vaya tras un "-" no cuenta).
-fn es_mas_nueva(a: &str, b: &str) -> bool {
+pub(crate) fn es_mas_nueva(a: &str, b: &str) -> bool {
     let numeros = |v: &str| -> Vec<u64> {
         let v = v.trim_start_matches('v');
         v.split('-').next().unwrap_or(v).split('.').map(|n| n.parse().unwrap_or(0)).collect()

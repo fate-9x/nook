@@ -16,6 +16,7 @@ mod idioma;
 mod musica;
 mod personaje;
 mod plataforma;
+mod red;
 mod portapapeles;
 mod segundo_plano;
 mod sistema;

@@ -668,8 +668,7 @@ impl Config {
 }
 
 pub fn ruta_archivo() -> PathBuf {
-    let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| ".".into());
-    base.join("nook").join("grupos.json")
+    carpeta().join("grupos.json")
 }
 
 /// Carga los grupos. Si el archivo no existe se crea uno de ejemplo; si está dañado
@@ -695,16 +694,26 @@ pub fn cargar() -> Config {
     config
 }
 
+/// Carpeta de nook en %APPDATA% (la de grupos.json).
+pub fn carpeta() -> PathBuf {
+    let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| ".".into());
+    base.join("nook")
+}
+
 pub fn guardar(config: &Config) -> io::Result<()> {
-    let ruta = ruta_archivo();
+    escribir_seguro(&ruta_archivo(), serde_json::to_string_pretty(config)?.as_bytes())
+}
+
+/// Escribe un archivo (creando su carpeta si hace falta) primero en uno temporal y luego lo
+/// reemplaza: si se corta a medias, el anterior no se pierde.
+pub fn escribir_seguro(ruta: &Path, contenido: &[u8]) -> io::Result<()> {
     if let Some(carpeta) = ruta.parent() {
         fs::create_dir_all(carpeta)?;
     }
-    // Escribir primero en un archivo temporal y luego reemplazar: si se corta a medias,
-    // el archivo anterior no se pierde.
-    let temporal = ruta.with_extension("json.tmp");
-    fs::write(&temporal, serde_json::to_string_pretty(config)?)?;
-    fs::rename(&temporal, &ruta)
+    let mut temporal = ruta.as_os_str().to_owned();
+    temporal.push(".tmp");
+    fs::write(&temporal, contenido)?;
+    fs::rename(&temporal, ruta)
 }
 
 /// Grupo de ejemplo para la primera ejecución (con los nombres en el idioma de la interfaz).
