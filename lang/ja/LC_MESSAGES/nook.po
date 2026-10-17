@@ -187,11 +187,11 @@ msgstr "アクセサリー"
 msgid "AVISO"
 msgstr "通知"
 
-msgid "Color de los ojos en el circulito de aviso"
-msgstr "通知の丸に目と同じ色を使う"
+msgid "Color automático"
+msgstr "自動の色"
 
-msgid "El circulito que sale en el personaje cuando llega una notificación"
-msgstr "通知が届いたときにキャラクターに表示される丸"
+msgid "Circulito de notificación: el de los ojos"
+msgstr "通知の丸：目と同じ色"
 
 msgid "Probar aviso"
 msgstr "通知をテスト"

@@ -1169,8 +1169,8 @@ export component PanelConfiguracion inherits Rectangle {
                             alignment: start;
                             Titulo { text: @tr("AVISO"); }
                             FilaInterruptor {
-                                texto: @tr("Color de los ojos en el circulito de aviso");
-                                nota: @tr("El circulito que sale en el personaje cuando llega una notificación");
+                                texto: @tr("Color automático");
+                                nota: @tr("Circulito de notificación: el de los ojos");
                                 activo: root.aviso-automatico;
                                 clicked => { root.alternar-aviso-automatico(); }
                             }
