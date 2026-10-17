@@ -76,6 +76,16 @@ impl Ctx {
             Posicion::Abajo => 3,
         });
         ui.set_mostrar_hora(ajustes.mostrar_hora);
+        // La fecha y, para elegir su formato, cómo se ve hoy en cada uno.
+        let formato = FormatoFecha::TODOS.iter().position(|&f| f == ajustes.fecha).unwrap_or(0);
+        ui.set_formato_fecha(formato as i32);
+        let hoy = Local::now();
+        let ejemplos = FormatoFecha::TODOS.map(|f| match f {
+            FormatoFecha::Ninguna => SharedString::from(tr("Sin fecha")),
+            f => fecha::formatear(hoy.date_naive(), f, idioma::codigo_actual()).0.into(),
+        });
+        ui.set_ejemplos_fecha(modelo(ejemplos.to_vec()));
+        actualizar_reloj(ui, hoy, ajustes.fecha);
         ui.set_boton_sonido(ajustes.boton_sonido);
         ui.set_boton_microfono(ajustes.boton_microfono);
         ui.set_boton_energia(ajustes.boton_energia);
@@ -445,6 +455,12 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     });
     let c = ctx.clone();
     ui.on_alternar_hora(move || c.modificar_ajustes(|a| a.mostrar_hora = !a.mostrar_hora));
+    let c = ctx.clone();
+    ui.on_elegir_formato_fecha(move |i| {
+        if let Some(&formato) = FormatoFecha::TODOS.get(i as usize) {
+            c.modificar_ajustes(|a| a.fecha = formato);
+        }
+    });
     let c = ctx.clone();
     ui.on_alternar_usar_boveda(move || c.alternar_usar_boveda());
     let c = ctx.clone();

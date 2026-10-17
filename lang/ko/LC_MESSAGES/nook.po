@@ -79,6 +79,15 @@ msgstr "Windows 시작 시 실행"
 msgid "Mostrar la hora"
 msgstr "시간 표시"
 
+msgid "FECHA Y HORA"
+msgstr "날짜 및 시간"
+
+msgid "Fecha"
+msgstr "날짜"
+
+msgid "Sin fecha"
+msgstr "날짜 없음"
+
 msgid "Animaciones"
 msgstr "애니메이션"
 

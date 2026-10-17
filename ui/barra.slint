@@ -34,6 +34,13 @@ export component Barra inherits Window {
     in property <string> hora: "--:--";
     in property <string> hora-vertical: "--\n--";
     in property <bool> mostrar-hora: true;
+    // La fecha, antes de la hora: en una línea y, para los laterales, en varias cortas ("" sin
+    // fecha). Y en la configuración, el formato elegido (config::FormatoFecha::TODOS) y cómo se
+    // ve hoy en cada uno.
+    in property <string> fecha;
+    in property <string> fecha-vertical;
+    in property <int> formato-fecha;
+    in property <[string]> ejemplos-fecha;
     in property <bool> usar-boveda: true;
     in property <bool> arrastrando;
     in property <length> arrastre-x;
@@ -196,6 +203,7 @@ export component Barra inherits Window {
     callback alternar-sustituir-barra-de-windows();
     callback alternar-iniciar();
     callback alternar-hora();
+    callback elegir-formato-fecha(int);
     callback alternar-usar-boveda();
     callback alternar-animaciones();
     callback agregar-color(int);            // "+" de la fila: 0 fondo, 1 acento
@@ -299,7 +307,14 @@ export component Barra inherits Window {
     // Los que se pueden cambiar de sitio (los de la barra que no están abiertos) van al final.
     property <int> primera-fija: root.n - root.fijas;
     in property <int> fijas;
-    property <length> largo-hora: !root.mostrar-hora ? 0px : root.vertical ? 28px : 40px;
+    // Lo que ocupan la fecha y la hora al final de la tira (con las dos, un hueco entre ellas).
+    // La fecha se mide con su texto: en los laterales, a lo alto (va en varias líneas).
+    property <bool> hay-fecha: (root.vertical ? root.fecha-vertical : root.fecha) != "";
+    property <length> largo-fecha: !root.hay-fecha ? 0px
+        : root.vertical ? medida-fecha-vertical.preferred-height : medida-fecha.preferred-width;
+    property <length> largo-solo-hora: !root.mostrar-hora ? 0px : root.vertical ? 28px : 40px;
+    property <length> hueco-fecha: root.hay-fecha && root.mostrar-hora ? (root.vertical ? 4px : 8px) : 0px;
+    property <length> largo-hora: root.largo-fecha + root.hueco-fecha + root.largo-solo-hora;
     // Tras el botón de la configuración, el de la lupa (si está) y una línea antes de las apps.
     property <length> eje-lupa: root.inicio + root.boton + 2px;
     property <length> linea-inicio: root.boton-buscar ? root.eje-lupa + root.boton + root.hueco : root.inicio + root.boton + root.hueco;
@@ -661,6 +676,20 @@ export component Barra inherits Window {
     changed n => { root.en-borde-del-ultimo = false; }
     changed destino-arrastre => { root.arrastre-al-final = root.destino-arrastre == root.n; }
     changed alto => { root.recolocar(); }
+
+    // Para medir la fecha (no se ven): con la misma letra que en la tira.
+    medida-fecha := Text {
+        visible: false;
+        text: root.fecha;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    medida-fecha-vertical := Text {
+        visible: false;
+        text: root.fecha-vertical;
+        font-size: 10px;
+        font-weight: 600;
+    }
 
     teclado := FocusScope {
         key-pressed(evento) => {
@@ -1152,9 +1181,9 @@ export component Barra inherits Window {
             }
         }
 
-        // La hora, al final de la tira (no del borde de la ventana, para que no se mueva al
-        // desplegar). Un clic abre las notificaciones y el calendario de Windows.
-        if root.mostrar-hora : Boton {
+        // La fecha y la hora, al final de la tira (no del borde de la ventana, para que no se
+        // muevan al desplegar). Un clic abre las notificaciones y el calendario de Windows.
+        if root.largo-hora > 0px : Boton {
             property <length> sobra: 4px;
             x: root.vertical ? root.px(0) : root.desfase-tira + root.largo-total - 10px - root.largo-hora - self.sobra - root.exceso;
             y: root.vertical ? root.largo-total - 10px - root.largo-hora - self.sobra - root.exceso : root.py(0);
@@ -1162,7 +1191,23 @@ export component Barra inherits Window {
             height: root.vertical ? root.largo-hora + 2 * self.sobra : root.boton;
             clicked => { root.abrir-notificaciones(); }
             arrastrar => { root.mover-barra(); }
-            Text {
+            if root.hay-fecha : Text {
+                x: root.vertical ? -4px : parent.sobra;
+                y: root.vertical ? parent.sobra : 0px;
+                width: root.vertical ? parent.width + 8px : root.largo-fecha;
+                height: root.vertical ? root.largo-fecha : parent.height;
+                text: root.vertical ? root.fecha-vertical : root.fecha;
+                color: Tema.texto-suave;
+                font-size: root.vertical ? 10px : 12px;
+                font-weight: 600;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            if root.mostrar-hora : Text {
+                x: root.vertical ? 0px : parent.sobra + root.largo-fecha + root.hueco-fecha;
+                y: root.vertical ? parent.sobra + root.largo-fecha + root.hueco-fecha : 0px;
+                width: root.vertical ? parent.width : root.largo-solo-hora;
+                height: root.vertical ? root.largo-solo-hora : parent.height;
                 text: root.vertical ? root.hora-vertical : root.hora;
                 color: Tema.texto;
                 font-size: root.vertical ? 12px : 13px;
@@ -1239,6 +1284,8 @@ export component Barra inherits Window {
         sustituir-barra-de-windows: root.sustituir-barra-de-windows;
         iniciar-con-windows: root.iniciar-con-windows;
         mostrar-hora: root.mostrar-hora;
+        formato-fecha: root.formato-fecha;
+        ejemplos-fecha: root.ejemplos-fecha;
         boton-sonido: root.boton-sonido;
         boton-microfono: root.boton-microfono;
         boton-energia: root.boton-energia;
@@ -1286,6 +1333,7 @@ export component Barra inherits Window {
         alternar-sustituir-barra-de-windows => { root.alternar-sustituir-barra-de-windows(); }
         alternar-iniciar => { root.alternar-iniciar(); }
         alternar-hora => { root.alternar-hora(); }
+        elegir-formato-fecha(a) => { root.elegir-formato-fecha(a); }
         alternar-boton-sonido => { root.alternar-boton-sonido(); }
         alternar-boton-microfono => { root.alternar-boton-microfono(); }
         alternar-boton-energia => { root.alternar-boton-energia(); }

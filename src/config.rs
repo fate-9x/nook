@@ -80,6 +80,8 @@ pub struct Ajustes {
     pub monitor: Option<(i32, i32)>,
     pub ocultar_en_reposo: bool,
     pub mostrar_hora: bool,
+    /// Cómo se ve la fecha en la tira, junto a la hora (o si no se ve).
+    pub fecha: FormatoFecha,
     /// Botón y atajo de la bóveda de textos.
     pub usar_boveda: bool,
     /// Animar el tamaño de la ventana al abrir y cerrar.
@@ -167,6 +169,31 @@ pub struct Personaje {
     /// inicial).
     pub accesorios: Vec<Accesorio>,
     pub colores_propios: Vec<String>,
+}
+
+/// Formato de la fecha de la tira (ver `fecha.rs`).
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FormatoFecha {
+    /// Sin fecha.
+    Ninguna,
+    /// 17/10/2026
+    Numerica,
+    /// Sábado, 17/10/2026
+    ConDia,
+    /// Sábado, 17 de octubre de 2026
+    Texto,
+    /// Sáb 17 oct. También el de un formato de una versión más nueva del programa que esta no
+    /// conoce (por eso va el último).
+    #[default]
+    #[serde(other)]
+    Corta,
+}
+
+impl FormatoFecha {
+    /// Los que hay, en el orden en que salen en la configuración.
+    pub const TODOS: [FormatoFecha; 5] =
+        [FormatoFecha::Ninguna, FormatoFecha::Numerica, FormatoFecha::ConDia, FormatoFecha::Corta, FormatoFecha::Texto];
 }
 
 /// Qué figura tiene el personaje.
@@ -316,6 +343,7 @@ impl Default for Ajustes {
             monitor: None,
             ocultar_en_reposo: false,
             mostrar_hora: true,
+            fecha: FormatoFecha::Corta,
             usar_boveda: true,
             animaciones: true,
             color_fondo: FONDO_INICIAL.into(),

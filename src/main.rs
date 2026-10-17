@@ -13,6 +13,7 @@ mod buscador;
 mod config;
 mod cuenta;
 mod dibujo;
+mod fecha;
 mod icono;
 mod idioma;
 mod musica;
@@ -80,7 +81,7 @@ use barra::personaje::*;
 use barra::reproductor::*;
 use barra::tira::*;
 use chrono::{DateTime, Local};
-use config::{Ajustes, App, COLORES_ACCESORIOS, Config, Elemento, FONDOS, Grupo, Posicion, TipoAccesorio};
+use config::{Ajustes, App, COLORES_ACCESORIOS, Config, Elemento, FONDOS, FormatoFecha, Grupo, Posicion, TipoAccesorio};
 use idioma::{tr, tr_con};
 use musica::Orden;
 use plataforma::{Arrastre, Aviso, Rect};
@@ -582,13 +583,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tecla_windows::al_pulsar(move || c.alternar_lanzador());
     tecla_windows::activar(ctx.estado.borrow().config.ajustes.tecla_windows_abre_buscador);
 
-    // Reloj: actualiza la hora cada segundo.
-    actualizar_reloj(&ui, Local::now());
+    // Reloj: actualiza la hora (y la fecha) cada segundo.
     let reloj = Timer::default();
-    let ui_reloj = ui.as_weak();
+    let c = ctx.clone();
     reloj.start(TimerMode::Repeated, Duration::from_secs(1), move || {
-        if let Some(ui) = ui_reloj.upgrade() {
-            actualizar_reloj(&ui, Local::now());
+        if let Some(ui) = c.ui.upgrade() {
+            let formato = c.estado.borrow().config.ajustes.fecha;
+            actualizar_reloj(&ui, Local::now(), formato);
         }
     });
 
@@ -741,9 +742,12 @@ fn actualizar(ui: slint::Weak<Barra>) {
     });
 }
 
-fn actualizar_reloj(ui: &Barra, ahora: DateTime<Local>) {
+fn actualizar_reloj(ui: &Barra, ahora: DateTime<Local>, formato: FormatoFecha) {
     ui.set_hora(formatear_hora(&ahora).into());
     ui.set_hora_vertical(ahora.format("%H\n%M").to_string().into());
+    let (fecha, vertical) = fecha::formatear(ahora.date_naive(), formato, idioma::codigo_actual());
+    ui.set_fecha(fecha.into());
+    ui.set_fecha_vertical(vertical.into());
 }
 
 fn formatear_hora(t: &DateTime<Local>) -> String {

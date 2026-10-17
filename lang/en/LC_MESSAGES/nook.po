@@ -79,6 +79,15 @@ msgstr "Start with Windows"
 msgid "Mostrar la hora"
 msgstr "Show the time"
 
+msgid "FECHA Y HORA"
+msgstr "DATE AND TIME"
+
+msgid "Fecha"
+msgstr "Date"
+
+msgid "Sin fecha"
+msgstr "No date"
+
 msgid "Animaciones"
 msgstr "Animations"
 

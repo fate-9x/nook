@@ -79,6 +79,15 @@ msgstr "Windows の起動時に開く"
 msgid "Mostrar la hora"
 msgstr "時刻を表示"
 
+msgid "FECHA Y HORA"
+msgstr "日付と時刻"
+
+msgid "Fecha"
+msgstr "日付"
+
+msgid "Sin fecha"
+msgstr "日付なし"
+
 msgid "Animaciones"
 msgstr "アニメーション"
 
