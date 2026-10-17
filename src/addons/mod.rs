@@ -133,10 +133,15 @@ pub fn compatible(nook_minimo: Option<&str>) -> bool {
     nook_minimo.is_none_or(|minimo| !crate::actualizacion::es_mas_nueva(minimo, crate::actualizacion::VERSION))
 }
 
-/// Nombre de un addon (el de su carpeta): minúsculas, números y guiones.
+/// Carpeta, dentro de la de los addons, con lo que guarda cada uno (ver `ruta_datos`).
+const DATOS: &str = "datos";
+
+/// Nombre de un addon (el de su carpeta): minúsculas, números y guiones. No puede llamarse como
+/// la carpeta de los datos, que está junto a las de los addons.
 pub fn id_valido(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 40
+        && id != DATOS
         && !id.starts_with('-')
         && id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
@@ -149,7 +154,7 @@ pub fn carpeta() -> PathBuf {
 /// Archivo con lo que guarda un addon (`guardar` en su script). Va fuera de su carpeta, para que
 /// no se pierda al actualizarlo.
 pub fn ruta_datos(id: &str) -> PathBuf {
-    carpeta().join("datos").join(format!("{id}.json"))
+    carpeta().join(DATOS).join(format!("{id}.json"))
 }
 
 #[cfg(test)]
@@ -178,6 +183,9 @@ mod tests {
         assert!(!id_valido("../dado"));
         assert!(!id_valido("-dado"));
         assert!(!id_valido("da do"));
+        // La carpeta de los datos no es un addon (ni se puede quitar como si lo fuera).
+        assert!(!id_valido("datos"));
+        assert!(id_valido("datos-2"));
     }
 
     #[test]
