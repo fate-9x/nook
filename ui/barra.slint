@@ -413,11 +413,12 @@ export component Barra inherits Window {
     property <length> fin-botones: root.boton-energia ? root.eje-energia + root.boton : root.fin-con-bateria;
     property <length> largo-total: root.fin-botones + 8px + root.largo-hora + 10px;
     // Lo que se ve de la tira: en los laterales no pasa del alto de la pantalla (`tope-largo`, lo
-    // pone Rust) y, si no cabe, se recorre con la rueda del ratón.
+    // pone Rust). Lo que no cabe se quita de la zona de las apps, que se recorre con la rueda del
+    // ratón; lo demás (la hora, los botones del final...) queda fijo.
     in property <length> tope-largo: 100000px;
     property <length> largo-tira: root.vertical ? min(root.largo-total, root.tope-largo) : root.largo-total;
     property <length> exceso: root.largo-total - root.largo-tira;
-    // Cuánto se ha recorrido la tira (0 o negativo) y lo mismo sin pasarse del final.
+    // Cuánto se han recorrido las apps (0 o negativo) y lo mismo sin pasarse del final.
     property <length> recorrido;
     property <length> recorrido-real: max(-root.exceso, min(0px, root.recorrido));
 
@@ -590,7 +591,7 @@ export component Barra inherits Window {
         return root.vertical ? root.tira-x + (root.grosor - root.boton) / 2 : root.desfase-tira + a;
     }
     pure function py(a: length) -> length {
-        return root.vertical ? a + root.recorrido-real : root.tira-y + (root.grosor - root.boton) / 2;
+        return root.vertical ? (a >= root.eje-grupo(root.n) ? a - root.exceso : a) : root.tira-y + (root.grosor - root.boton) / 2;
     }
     // Recorre la tira con la rueda: positivo, hacia el principio.
     function recorrer(giro: length) {
@@ -718,9 +719,6 @@ export component Barra inherits Window {
     // ---- Tira de iconos ----
     Rectangle {
         visible: root.modo >= 1;
-        // En los laterales, lo que se sale de la tira al recorrerla no se ve.
-        height: root.vertical ? root.largo-tira : parent.height;
-        clip: true;
 
         // Zona del personaje: arrastrándola también se mueve la barra. Un clic sobre el
         // personaje lo hace rebotar. Va pegada al borde de la caja (sin `y`, Slint la centraría
@@ -814,11 +812,20 @@ export component Barra inherits Window {
 
         Rectangle {
             x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-inicio;
-            y: root.vertical ? root.linea-inicio + root.recorrido-real : root.tira-y + (root.grosor - 18px) / 2;
+            y: root.vertical ? root.linea-inicio : root.tira-y + (root.grosor - 18px) / 2;
             width: root.vertical ? 18px : 1px;
             height: root.vertical ? 1px : 18px;
             background: Tema.linea;
         }
+
+        // Las apps: en los laterales, si no caben, solo se ve su zona y se recorre.
+        Rectangle {
+            property <length> inicio-zona: root.vertical ? root.primer-grupo : 0px;
+            x: 0px;
+            y: self.inicio-zona;
+            width: parent.width;
+            height: root.vertical ? max(0px, root.eje-grupo(root.n) - root.exceso - root.primer-grupo) : parent.height;
+            clip: root.vertical && root.exceso > 0px;
 
         for g[i] in root.tira : Boton {
             // Efecto lupa: solo crece el dibujo del icono, desde su centro; el botón (la zona
@@ -826,7 +833,7 @@ export component Barra inherits Window {
             property <float> aumento: i == root.lupa && root.reordenando < 0 && root.modo != 0 ? root.lupa-maxima : 1;
             animate aumento { duration: root.animaciones ? 120ms : 0ms; easing: ease-out; }
             x: root.px(root.eje-elemento(i));
-            y: root.py(root.eje-elemento(i));
+            y: root.py(root.eje-elemento(i)) + (root.vertical ? root.recorrido-real : 0px) - parent.inicio-zona;
             // El icono agrandado ya marca dónde está el cursor: sin el fondo de "encima".
             fondo-encima: false;
             // El que se arrastra sigue al cursor; los demás se apartan con suavidad.
@@ -918,6 +925,8 @@ export component Barra inherits Window {
             }
         }
 
+        } // fin de la zona de las apps
+
         // Botón "+": no ocupa sitio hasta que se ve (ver `mas-visible`); mientras, su zona es
         // solo el hueco que sigue al último icono. Clic: añadir apps sueltas; clic derecho: menú
         // para elegir entre app y grupo.
@@ -992,7 +1001,7 @@ export component Barra inherits Window {
         // Reproductor.
         if root.musica-en-tira : Rectangle {
             x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica;
-            y: root.vertical ? root.linea-musica + root.recorrido-real : root.tira-y + (root.grosor - 18px) / 2;
+            y: root.vertical ? root.linea-musica - root.exceso : root.tira-y + (root.grosor - 18px) / 2;
             width: root.vertical ? 18px : 1px;
             height: root.vertical ? 1px : 18px;
             background: Tema.linea;
@@ -1144,7 +1153,7 @@ export component Barra inherits Window {
         if root.mostrar-hora : Boton {
             property <length> sobra: 4px;
             x: root.vertical ? root.px(0) : root.desfase-tira + root.largo-tira - 10px - root.largo-hora - self.sobra;
-            y: root.vertical ? root.largo-total - 10px - root.largo-hora - self.sobra + root.recorrido-real : root.py(0);
+            y: root.vertical ? root.largo-total - 10px - root.largo-hora - self.sobra - root.exceso : root.py(0);
             width: root.vertical ? root.boton : root.largo-hora + 2 * self.sobra;
             height: root.vertical ? root.largo-hora + 2 * self.sobra : root.boton;
             clicked => { root.abrir-notificaciones(); }
