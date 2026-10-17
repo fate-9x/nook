@@ -268,6 +268,40 @@ component MuestraMas inherits Rectangle {
     }
 }
 
+// Fila de muestras de color para elegir uno, con el "+" al final para añadir otro. Si no caben,
+// siguen en la línea de abajo. Clic derecho en un color propio (desde `base`): su menú.
+component FilaMuestras inherits Rectangle {
+    in property <[color]> colores;
+    in property <color> elegido;
+    in property <int> base;
+    callback elegir(color);
+    callback menu(int);
+    callback mas();
+
+    property <length> paso: 28px;
+    property <int> por-fila: max(1, floor((self.width + 4px) / self.paso));
+    property <int> filas: ceil((root.colores.length + 1) / self.por-fila);
+    height: self.filas * self.paso + 2px;
+
+    for c[j] in root.colores : Muestra {
+        x: mod(j, root.por-fila) * root.paso;
+        y: 3px + floor(j / root.por-fila) * root.paso;
+        tono: c;
+        elegido: c == root.elegido;
+        clicked => { root.elegir(c); }
+        menu => {
+            if (j >= root.base) {
+                root.menu(j);
+            }
+        }
+    }
+    MuestraMas {
+        x: mod(root.colores.length, root.por-fila) * root.paso;
+        y: 3px + floor(root.colores.length / root.por-fila) * root.paso;
+        clicked => { root.mas(); }
+    }
+}
+
 // Preset: círculo con el fondo y un punto con el acento. Clic: aplicarlo; clic derecho: menú.
 component MuestraPreset inherits Rectangle {
     in property <color> fondo;
@@ -927,46 +961,22 @@ export component PanelConfiguracion inherits Rectangle {
                 if root.seccion == 2 : VerticalLayout {
                     Titulo { text: @tr("COLORES"); }
                     Subtitulo { text: @tr("Fondo"); }
-                    HorizontalLayout {
-                        height: 30px;
-                        padding-top: 3px;
-                        padding-bottom: 3px;
-                        spacing: 4px;
-                        alignment: start;
-                        for c[i] in root.fondos : Muestra {
-                            tono: c;
-                            elegido: c == Tema.fondo;
-                            clicked => { root.elegir-fondo(c); }
-                            menu => {
-                                if (i >= root.colores-base) {
-                                    root.menu-color(0, i);
-                                }
-                            }
-                        }
-                        MuestraMas {
-                            clicked => { root.agregar-color(0); }
-                        }
+                    FilaMuestras {
+                        colores: root.fondos;
+                        elegido: Tema.fondo;
+                        base: root.colores-base;
+                        elegir(c) => { root.elegir-fondo(c); }
+                        menu(i) => { root.menu-color(0, i); }
+                        mas => { root.agregar-color(0); }
                     }
                     Subtitulo { text: @tr("Acento"); }
-                    HorizontalLayout {
-                        height: 30px;
-                        padding-top: 3px;
-                        padding-bottom: 3px;
-                        spacing: 4px;
-                        alignment: start;
-                        for c[i] in root.acentos : Muestra {
-                            tono: c;
-                            elegido: c == Tema.acento;
-                            clicked => { root.elegir-acento(c); }
-                            menu => {
-                                if (i >= root.colores-base) {
-                                    root.menu-color(1, i);
-                                }
-                            }
-                        }
-                        MuestraMas {
-                            clicked => { root.agregar-color(1); }
-                        }
+                    FilaMuestras {
+                        colores: root.acentos;
+                        elegido: Tema.acento;
+                        base: root.colores-base;
+                        elegir(c) => { root.elegir-acento(c); }
+                        menu(i) => { root.menu-color(1, i); }
+                        mas => { root.agregar-color(1); }
                     }
                     Subtitulo { text: @tr("Presets"); }
                     HorizontalLayout {
