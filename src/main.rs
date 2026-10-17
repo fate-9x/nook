@@ -654,8 +654,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let barra = ui.as_weak();
     plataforma::al_presentar(ui.window(), move || {
         let Some(ui) = barra.upgrade() else { return };
-        let forma = (ui.get_forma_x(), ui.get_forma_y(), ui.get_forma_ancho(), ui.get_forma_alto());
-        plataforma::recortar(ui.window(), Some(recorte(ui.window(), forma, ui.get_forma_radio())));
+        // Para que los bordes de la forma caigan en píxeles enteros (ver `escala` en ui/barra.slint).
+        ui.set_escala(ui.window().scale_factor());
+        let forma = [ui.get_forma_tira(), ui.get_forma_panel()];
+        plataforma::recortar(ui.window(), Some(recorte(ui.window(), forma)));
     });
 
     ui.show()?;
@@ -761,12 +763,33 @@ fn modelo<T: Clone + 'static>(datos: Vec<T>) -> ModelRc<T> {
 /// Radio de las esquinas de las emergentes (el de su `Fondo` en ui/tema.slint).
 const RADIO_EMERGENTE: f32 = 18.0;
 
-/// Forma visible de una ventana y el radio de sus esquinas (para el desenfoque de detrás), de
-/// píxeles lógicos a físicos.
-fn recorte(ventana: &slint::Window, (x, y, ancho, alto): (f32, f32, f32, f32), radio: f32) -> (Rect, i32) {
+/// Forma visible de una ventana (para el desenfoque de detrás), de píxeles lógicos a físicos.
+fn recorte(ventana: &slint::Window, piezas: [Pieza; 2]) -> plataforma::Forma {
     let escala = ventana.scale_factor();
     let px = |v: f32| (v * escala).round() as i32;
-    ((px(x), px(y), px(ancho), px(alto)), px(radio))
+    piezas.map(|p| {
+        let (x, y) = (px(p.x), px(p.y));
+        plataforma::Pieza {
+            // Con los bordes redondeados como los dibuja Slint: así dos piezas que se tocan no
+            // dejan un hueco entre ellas.
+            rect: (x, y, px(p.x + p.ancho) - x, px(p.y + p.alto) - y),
+            radios: [px(p.arriba_izquierda), px(p.arriba_derecha), px(p.abajo_derecha), px(p.abajo_izquierda)],
+        }
+    })
+}
+
+/// Pieza rectangular con todas las esquinas del mismo radio (en píxeles lógicos).
+fn pieza_redondeada(ancho: f32, alto: f32, radio: f32) -> Pieza {
+    Pieza {
+        x: 0.0,
+        y: 0.0,
+        ancho,
+        alto,
+        arriba_izquierda: radio,
+        arriba_derecha: radio,
+        abajo_derecha: radio,
+        abajo_izquierda: radio,
+    }
 }
 
 // Tests de la lógica que no es visual. Se ejecutan con `cargo test` (los de cada parte, en su

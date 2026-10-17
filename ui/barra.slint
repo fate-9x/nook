@@ -2,7 +2,7 @@
 // que toca (cada uno en su archivo de ui/). Aquí se personaliza lo visual: colores, tamaños, qué
 // elementos aparecen y en qué orden. Cada vez que guardes y hagas `cargo run` verás los cambios.
 
-import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila } from "tema.slint";
+import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
 import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria } from "iconos.slint";
 import { Boton } from "controles.slint";
@@ -14,7 +14,7 @@ import { PanelBuscador } from "buscador.slint";
 import { PanelSonido } from "sonido.slint";
 
 // Lo que usa Rust (src/main.rs y src/barra/): los colores, los datos de las listas y las dos ventanas.
-export { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, IconoBandejaItem }
+export { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza }
 export { Emergente } from "emergente.slint";
 
 export component Barra inherits Window {
@@ -501,10 +501,30 @@ export component Barra inherits Window {
     property <length> zona-y: root.posicion == 3 ? root.alto - root.grosor-total : 0px;
     property <length> zona-x: root.posicion == 1 ? root.grosor
         : root.posicion == 2 ? root.ancho - root.grosor-total : root.desfase-tira;
+    // A lo largo de la tira, el panel se abre junto al botón que lo abrió, centrado en él sin
+    // salirse de la tira: con una tira larga queda a mano (y no en medio, lejos del botón). Si es
+    // más largo que la tira, va centrado en la caja (arriba y abajo) o desde arriba (laterales).
+    pure function a-lo-largo(a: length) -> length {
+        return root.vertical ? root.py(a) : root.px(a);
+    }
+    property <length> inicio-tira: root.vertical ? 0px : root.desfase-tira;
+    property <length> centro-boton: root.boton / 2 + (
+        root.modo == 2 ? root.a-lo-largo(root.eje-grupo(root.grupo-activo)) + root.recorrido-real
+        : root.modo == 3 ? root.a-lo-largo(root.inicio)
+        : root.modo == 4 && root.buscando-para-abrir && root.boton-buscar ? root.a-lo-largo(root.eje-lupa)
+        : root.modo == 4 && !root.buscando-para-abrir ? root.a-lo-largo(root.eje-grupo(root.n))
+        : root.modo == 5 && root.usar-boveda ? root.a-lo-largo(root.eje-boveda)
+        : root.modo == 6 && root.musica-en-tira ? root.a-lo-largo(root.eje-musica)
+        : root.modo == 7 && root.boton-sonido ? root.a-lo-largo(root.eje-sonido)
+        : root.modo == 8 && root.addon-abierto >= 0 ? root.a-lo-largo(root.eje-addons + root.addon-abierto * root.paso-addon)
+        : root.inicio-tira + (root.largo-tira - root.boton) / 2);
+    property <length> largo-panel: root.vertical ? root.alto-contenido : root.ancho-contenido;
+    property <length> desde-panel: root.largo-tira < root.largo-panel ? (root.vertical ? 0px : (root.ancho - root.largo-panel) / 2)
+        : max(root.inicio-tira, min(root.inicio-tira + root.largo-tira - root.largo-panel, root.centro-boton - root.largo-panel / 2));
     property <length> contenido-x: root.posicion == 1 ? root.grosor-total + 1px
         : root.posicion == 2 ? root.ancho - root.grosor-total - 1px - root.ancho-contenido
-        : (root.ancho - root.ancho-contenido) / 2;
-    property <length> contenido-y: root.posicion == 0 ? root.grosor-total + 1px : 0px;
+        : root.desde-panel;
+    property <length> contenido-y: root.posicion == 0 ? root.grosor-total + 1px : root.posicion == 3 ? 0px : root.desde-panel;
     // Ancho de la zona de contenido (sin la tira de iconos en los laterales).
     // Largo de la barra en reposo: en los laterales, su borde superior se mantiene fijo
     // al desplegarla para que crezca hacia abajo.
@@ -512,11 +532,146 @@ export component Barra inherits Window {
     // Forma visible en cada momento (también durante las animaciones): Rust pone debajo el
     // desenfoque de lo de detrás, para que solo se vea dentro de la barra.
     // Con la barra oculta solo se asoma el personaje, sin fondo ni desenfoque.
-    out property <length> forma-x: contorno.x;
-    out property <length> forma-y: contorno.y;
-    out property <length> forma-ancho: root.modo == 0 || root.moviendo ? 0px : contorno.width;
-    out property <length> forma-alto: root.modo == 0 || root.moviendo ? 0px : contorno.height;
-    out property <length> forma-radio: contorno.border-radius;
+    // Son las dos piezas de la barra (ver "Forma de la barra", más abajo).
+    out property <Pieza> forma-tira: root.modo == 0 || root.moviendo ? {} : {
+        x: root.sa-x0, y: root.sa-y0, ancho: root.sa-x1 - root.sa-x0, alto: root.sa-y1 - root.sa-y0,
+        arriba-izquierda: root.ra-ai, arriba-derecha: root.ra-ad, abajo-derecha: root.ra-bd, abajo-izquierda: root.ra-bi,
+    };
+    out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : {
+        x: root.sb-x0, y: root.sb-y0, ancho: max(0px, root.sb-x1 - root.sb-x0), alto: max(0px, root.sb-y1 - root.sb-y0),
+        arriba-izquierda: root.rb-ai, arriba-derecha: root.rb-ad, abajo-derecha: root.rb-bd, abajo-izquierda: root.rb-bi,
+    };
+
+    // ---- Forma de la barra ----
+    // No es un solo rectángulo: es la tira (con la zona del personaje) y, pegado a ella, el panel
+    // abierto, cada uno de su largo. Así no queda espacio vacío a los lados de un panel estrecho
+    // bajo una tira larga, ni junto a una tira corta con un panel ancho. Donde uno sobresale del
+    // otro, la esquina de dentro se suaviza con un "empalme". Cada pieza se anima por su cuenta (en
+    // coordenadas del lienzo, que no cambian al cambiar la caja); el contorno es lo que las abarca.
+    // Pieza de la tira, en la caja: con la barra oculta, lo que se asoma.
+    property <length> a-x: root.modo == 0 ? 0px : !root.vertical ? root.desfase-tira
+        : root.posicion == 1 ? 0px : root.ancho - root.grosor-total;
+    property <length> a-y: root.modo == 0 || root.vertical || root.posicion == 0 ? 0px : root.alto - root.grosor-total;
+    property <length> a-ancho: root.modo == 0 ? root.ancho : root.vertical ? root.grosor-total : root.largo-tira;
+    property <length> a-alto: root.modo == 0 ? root.alto : root.vertical ? root.largo-tira : root.grosor-total;
+    // Pieza del panel, en el lienzo (con la línea que lo separa de la tira). A lo largo, donde va
+    // el panel abierto; cerrado, se queda donde estaba, sin grosor: así se despliega y se recoge
+    // como un menú, desde la tira, sin barrerla de lado a lado.
+    property <length> panel-desde: root.vertical ? root.y-caja + root.contenido-y : root.caja-x + root.contenido-x;
+    property <length> panel-desde-guardado;
+    property <length> panel-largo-guardado;
+    changed panel-desde => {
+        if (root.abierto) {
+            root.panel-desde-guardado = self.panel-desde;
+        }
+    }
+    changed largo-panel => {
+        if (root.abierto) {
+            root.panel-largo-guardado = self.largo-panel;
+        }
+    }
+    changed abierto => {
+        if (self.abierto) {
+            root.panel-desde-guardado = self.panel-desde;
+            root.panel-largo-guardado = self.largo-panel;
+        }
+    }
+    property <length> b-desde-final: root.abierto ? root.panel-desde : root.panel-desde-guardado;
+    property <length> b-largo-final: root.abierto ? root.largo-panel : root.panel-largo-guardado;
+    // De través: junto a la tira (en la juntura), con el grosor del panel o sin él.
+    property <length> b-grosor-final: !root.abierto ? 0px : root.vertical ? root.ancho - root.grosor-total : root.alto - root.grosor-total;
+    property <length> b-cruce: root.posicion == 0 ? root.y-caja + root.a-y + root.a-alto
+        : root.posicion == 1 ? root.caja-x + root.a-x + root.a-ancho
+        : root.posicion == 2 ? root.caja-x + root.a-x - root.b-grosor-final
+        : root.y-caja + root.a-y - root.b-grosor-final;
+    // Las piezas en el lienzo, animadas como el contorno.
+    property <length> pa-x: root.caja-x + root.a-x;
+    property <length> pa-y: root.y-caja + root.a-y;
+    property <length> pa-ancho: root.a-ancho;
+    property <length> pa-alto: root.a-alto;
+    // El panel, animado a lo largo y de través por separado: a lo largo solo se anima al pasar de
+    // un panel abierto a otro; si no se veía, aparece ya en su sitio.
+    property <length> pb-desde: root.b-desde-final;
+    property <length> pb-largo: root.b-largo-final;
+    property <length> pb-cruce: root.b-cruce;
+    property <length> pb-grosor: root.b-grosor-final;
+    property <length> pb-x: root.vertical ? root.pb-cruce : root.pb-desde;
+    property <length> pb-y: root.vertical ? root.pb-desde : root.pb-cruce;
+    property <length> pb-ancho: root.vertical ? root.pb-grosor : root.pb-largo;
+    property <length> pb-alto: root.vertical ? root.pb-largo : root.pb-grosor;
+    property <duration> duracion-forma: !root.animaciones || root.saltar || (root.siguiendo-mas && root.modo == 1 && !root.cambiando-modo) ? 0ms
+        : root.abierto ? 420ms : 340ms;
+    animate pa-x, pa-y, pa-ancho, pa-alto, pb-cruce, pb-grosor {
+        duration: root.duracion-forma;
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    animate pb-desde, pb-largo {
+        duration: root.pb-grosor >= 1px ? root.duracion-forma : 0ms;
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    // A lo largo de la tira: dónde empieza y acaba cada pieza, y su grosor.
+    property <length> a-desde: root.vertical ? root.pa-y : root.pa-x;
+    property <length> a-hasta: root.a-desde + (root.vertical ? root.pa-alto : root.pa-ancho);
+    property <length> b-desde: root.vertical ? root.pb-y : root.pb-x;
+    property <length> b-hasta: root.b-desde + (root.vertical ? root.pb-alto : root.pb-ancho);
+    property <length> a-grosor: root.vertical ? root.pa-ancho : root.pa-alto;
+    property <length> b-grosor: max(0px, root.vertical ? root.pb-ancho : root.pb-alto);
+    // Cuánto sobresale el panel de la tira por el principio y por el final (negativo: sobresale
+    // la tira).
+    property <length> sobra-inicio: root.a-desde - root.b-desde;
+    property <length> sobra-final: root.b-hasta - root.a-hasta;
+    // Radio de las esquinas de fuera y de los empalmes.
+    property <length> radio: root.modo == 0 ? 3px : 18px;
+    property <length> radio-empalme: 14px;
+    property <length> empalme-inicio: max(0px, min(min(root.radio-empalme, abs(root.sobra-inicio) / 2), root.b-grosor));
+    property <length> empalme-final: max(0px, min(min(root.radio-empalme, abs(root.sobra-final) / 2), root.b-grosor));
+    // Esquinas que dan a la juntura, en cada extremo: la de la pieza que sobresale es redonda (y deja
+    // sitio al empalme); la otra, recta. Mientras el panel sale, la tira va perdiendo las suyas.
+    pure function radio-tira-juntura(sobra: length, empalme: length) -> length {
+        return sobra >= 0px ? max(0px, root.radio - root.b-grosor)
+            : min(root.radio, max(-sobra - empalme, root.radio - root.b-grosor));
+    }
+    pure function radio-panel-juntura(sobra: length, empalme: length) -> length {
+        return sobra <= 0px ? 0px : max(0px, min(min(root.radio, sobra - empalme), root.b-grosor / 2));
+    }
+    property <length> ra-inicio: min(root.radio-tira-juntura(root.sobra-inicio, root.empalme-inicio), root.a-grosor / 2);
+    property <length> ra-final: min(root.radio-tira-juntura(root.sobra-final, root.empalme-final), root.a-grosor / 2);
+    property <length> ra-fuera: min(root.radio, min(root.a-grosor, root.a-hasta - root.a-desde) / 2);
+    property <length> rb-inicio: root.radio-panel-juntura(root.sobra-inicio, root.empalme-inicio);
+    property <length> rb-final: root.radio-panel-juntura(root.sobra-final, root.empalme-final);
+    property <length> rb-fuera: max(0px, min(root.radio, min(root.b-grosor, root.b-hasta - root.b-desde) / 2));
+    // Cada esquina según el borde: arriba la juntura es el lado de abajo de la tira; abajo, el de
+    // arriba; a la izquierda, su lado derecho; a la derecha, el izquierdo.
+    property <length> ra-ai: root.posicion == 3 ? root.ra-inicio : root.posicion == 2 ? root.ra-inicio : root.ra-fuera;
+    property <length> ra-ad: root.posicion == 3 ? root.ra-final : root.posicion == 1 ? root.ra-inicio : root.ra-fuera;
+    property <length> ra-bd: root.posicion == 0 || root.posicion == 1 ? root.ra-final : root.ra-fuera;
+    property <length> ra-bi: root.posicion == 0 ? root.ra-inicio : root.posicion == 2 ? root.ra-final : root.ra-fuera;
+    property <length> rb-ai: root.posicion == 0 || root.posicion == 1 ? root.rb-inicio : root.rb-fuera;
+    property <length> rb-ad: root.posicion == 0 ? root.rb-final : root.posicion == 2 ? root.rb-inicio : root.rb-fuera;
+    property <length> rb-bd: root.posicion == 3 || root.posicion == 2 ? root.rb-final : root.rb-fuera;
+    property <length> rb-bi: root.posicion == 3 ? root.rb-inicio : root.posicion == 1 ? root.rb-final : root.rb-fuera;
+    // Dónde se juntan (en el eje que cruza la tira).
+    property <length> juntura: root.posicion == 0 ? root.pa-y + root.pa-alto : root.posicion == 3 ? root.pa-y
+        : root.posicion == 1 ? root.pa-x + root.pa-ancho : root.pa-x;
+    // La tira va antes que la juntura (arriba o a la izquierda).
+    property <bool> tira-antes: root.posicion == 0 || root.posicion == 1;
+    // Los bordes de las piezas, en píxeles enteros de la pantalla (`escala` la pone Rust). Slint
+    // redondea cada borde por su lado y, si cayera justo en medio de un píxel, la tira y el panel
+    // podrían redondearse hacia lados distintos y dejar una raya entre ellos: así no, y la
+    // juntura es el mismo valor para las dos.
+    in property <float> escala: 1;
+    pure function ajustar(v: length) -> length {
+        return round(v * root.escala / 1px) * 1px / root.escala;
+    }
+    property <length> j: root.ajustar(root.juntura);
+    property <length> sa-x0: root.posicion == 2 ? root.j : root.ajustar(root.pa-x);
+    property <length> sa-x1: root.posicion == 1 ? root.j : root.ajustar(root.pa-x + root.pa-ancho);
+    property <length> sa-y0: root.posicion == 3 ? root.j : root.ajustar(root.pa-y);
+    property <length> sa-y1: root.posicion == 0 ? root.j : root.ajustar(root.pa-y + root.pa-alto);
+    property <length> sb-x0: root.posicion == 1 ? root.j : root.ajustar(root.pb-x);
+    property <length> sb-x1: root.posicion == 2 ? root.j : root.ajustar(root.pb-x + root.pb-ancho);
+    property <length> sb-y0: root.posicion == 0 ? root.j : root.ajustar(root.pb-y);
+    property <length> sb-y1: root.posicion == 3 ? root.j : root.ajustar(root.pb-y + root.pb-alto);
 
     // La ventana real ("lienzo") es transparente, tiene el tamaño máximo que puede ocupar la
     // barra y no cambia al abrir y cerrar: así nunca hay que mover la ventana (eso causaba
@@ -714,19 +869,65 @@ export component Barra inherits Window {
             : root.abierto ? 420ms : 340ms;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
-    border-radius: root.modo == 0 ? 3px : 18px;
+    // Las esquinas las ponen las piezas; con la barra oculta, recorta lo que se asoma.
+    border-radius: root.modo == 0 ? 3px : 0px;
     background: transparent;
     clip: true;
 
-    Fondo {
-        width: parent.width;
-        height: parent.height;
-        border-radius: parent.border-radius;
+    // Fondo: las dos piezas y los empalmes entre ellas (ver "Forma de la barra").
+    Rectangle {
         // Oculta, casi invisible: lo justo para que pasar el ratón por la zona la despliegue.
         // Con opacidad 0 Windows dejaría pasar el ratón; con la mínima (2 de 255) no se ve.
-        background: root.modo == 0 ? Tema.fondo.with-alpha(2 / 255) : Tema.fondo.with-alpha(Tema.opacidad);
+        property <color> tono: root.modo == 0 ? Tema.fondo.with-alpha(2 / 255) : Tema.fondo.with-alpha(Tema.opacidad);
         opacity: root.moviendo ? 0 : 1;
         animate opacity { duration: root.animaciones ? 150ms : 0ms; }
+
+        Rectangle {
+            x: root.sa-x0 - contorno.x;
+            y: root.sa-y0 - contorno.y;
+            width: root.sa-x1 - root.sa-x0;
+            height: root.sa-y1 - root.sa-y0;
+            background: parent.tono;
+            border-top-left-radius: root.ra-ai;
+            border-top-right-radius: root.ra-ad;
+            border-bottom-right-radius: root.ra-bd;
+            border-bottom-left-radius: root.ra-bi;
+        }
+        if root.sb-x1 > root.sb-x0 && root.sb-y1 > root.sb-y0 : Rectangle {
+            x: root.sb-x0 - contorno.x;
+            y: root.sb-y0 - contorno.y;
+            width: root.sb-x1 - root.sb-x0;
+            height: root.sb-y1 - root.sb-y0;
+            background: parent.tono;
+            border-top-left-radius: root.rb-ai;
+            border-top-right-radius: root.rb-ad;
+            border-bottom-right-radius: root.rb-bd;
+            border-bottom-left-radius: root.rb-bi;
+        }
+        // Empalmes: en cada extremo, junto a la pieza que no sobresale, contra la otra.
+        for extremo in 2 : Empalme {
+            property <length> sobra: extremo == 0 ? root.sobra-inicio : root.sobra-final;
+            property <length> lado: extremo == 0 ? root.empalme-inicio : root.empalme-final;
+            // La pieza que no sobresale: dónde empieza y acaba a lo largo (con sus bordes
+            // ajustados), y si va antes de la juntura.
+            property <bool> de-la-tira: self.sobra >= 0px;
+            property <length> desde: root.vertical ? (self.de-la-tira ? root.sa-y0 : root.sb-y0) : (self.de-la-tira ? root.sa-x0 : root.sb-x0);
+            property <length> hasta: root.vertical ? (self.de-la-tira ? root.sa-y1 : root.sb-y1) : (self.de-la-tira ? root.sa-x1 : root.sb-x1);
+            property <bool> antes: root.tira-antes == self.de-la-tira;
+            // Sus bordes a lo largo y de través.
+            property <length> largo-0: extremo == 0 ? root.ajustar(self.desde - self.lado) : self.hasta;
+            property <length> largo-1: extremo == 0 ? self.desde : root.ajustar(self.hasta + self.lado);
+            property <length> traves-0: self.antes ? root.ajustar(root.j - self.lado) : root.j;
+            property <length> traves-1: self.antes ? root.j : root.ajustar(root.j + self.lado);
+            visible: self.lado > 0.5px;
+            x: (root.vertical ? self.traves-0 : self.largo-0) - contorno.x;
+            y: (root.vertical ? self.largo-0 : self.traves-0) - contorno.y;
+            width: root.vertical ? self.traves-1 - self.traves-0 : self.largo-1 - self.largo-0;
+            height: root.vertical ? self.largo-1 - self.largo-0 : self.traves-1 - self.traves-0;
+            fill: parent.tono;
+            derecha: root.vertical ? self.antes : extremo == 0;
+            abajo: root.vertical ? extremo == 0 : self.antes;
+        }
     }
 
     caja := Rectangle {
@@ -1218,13 +1419,29 @@ export component Barra inherits Window {
         }
     }
 
-    // Línea que separa la tira del contenido.
+    // ---- Panel abierto: lo recorta su pieza, que lo va descubriendo al crecer ----
     Rectangle {
-        visible: root.abierto;
-        x: !root.vertical ? 16px : root.posicion == 1 ? root.grosor-total : root.ancho - root.grosor-total - 1px;
-        y: root.posicion == 0 ? root.grosor-total : root.posicion == 3 ? root.alto - root.grosor-total - 1px : 14px;
-        width: !root.vertical ? root.ancho - 32px : 1px;
-        height: !root.vertical ? 1px : root.alto - 28px;
+    x: root.pb-x - root.caja-x;
+    y: root.pb-y - root.y-caja;
+    width: max(0px, root.pb-ancho);
+    height: max(0px, root.pb-alto);
+    clip: true;
+    // Dentro, todo va en coordenadas de la caja.
+    Rectangle {
+    x: -parent.x;
+    y: -parent.y;
+    width: root.ancho;
+    height: root.alto;
+
+    // Línea que separa la tira del contenido: donde se juntan, a lo largo de lo que comparten.
+    Rectangle {
+        property <length> desde: max(root.a-desde, root.b-desde) + 16px;
+        property <length> hasta: min(root.a-hasta, root.b-hasta) - 16px;
+        visible: root.abierto && self.hasta > self.desde;
+        x: !root.vertical ? self.desde - root.caja-x : root.posicion == 1 ? root.grosor-total : root.ancho - root.grosor-total - 1px;
+        y: root.vertical ? self.desde - root.y-caja : root.posicion == 0 ? root.grosor-total : root.alto - root.grosor-total - 1px;
+        width: !root.vertical ? self.hasta - self.desde : 1px;
+        height: !root.vertical ? 1px : self.hasta - self.desde;
         background: Tema.linea;
     }
 
@@ -1234,16 +1451,16 @@ export component Barra inherits Window {
         x: root.contenido-x;
         y: root.contenido-y;
         width: root.ancho-grupo;
-        // Hasta el final de la caja: en los laterales, el pie va abajo del todo.
-        height: root.alto - root.contenido-y;
+        height: root.alto-grupo;
         columnas: root.columnas;
         celda-ancho: root.celda-ancho;
         celda-alto: root.celda-alto;
         hueco: root.hueco;
         margen: root.margen;
         pie: root.pie;
-        desde-x: root.contenido-x;
-        ancho-caja: root.ancho;
+        // El nombre de una app no se sale del panel (lo de fuera ya no es de la barra).
+        desde-x: 0px;
+        ancho-caja: root.ancho-grupo;
         listo => { root.enfocar(); }
         apps: root.apps;
         editando <=> root.editando;
@@ -1475,6 +1692,9 @@ export component Barra inherits Window {
         height: root.alto-addon;
         component-factory: root.panel-addon;
     }
+
+    } // fin de las coordenadas de la caja
+    } // fin del panel abierto
 
     } // fin de la caja
 

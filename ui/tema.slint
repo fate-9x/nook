@@ -87,6 +87,32 @@ export component Fondo inherits Rectangle {
     background: Tema.fondo.with-alpha(Tema.opacidad);
 }
 
+// Pieza de la forma visible de la barra (la tira o el panel): dónde está en la ventana y el
+// radio de cada esquina. Rust pone debajo el desenfoque (ver `recorte` en src/main.rs).
+export struct Pieza {
+    x: length,
+    y: length,
+    ancho: length,
+    alto: length,
+    arriba-izquierda: length,
+    arriba-derecha: length,
+    abajo-derecha: length,
+    abajo-izquierda: length,
+}
+
+// Esquina hacia dentro donde se juntan la tira y el panel: un cuadrado al que le falta un cuarto
+// de círculo. `derecha` y `abajo` dicen en qué esquina está lo lleno (la que toca las dos piezas).
+export component Empalme inherits Path {
+    in property <bool> derecha;
+    in property <bool> abajo;
+    viewbox-width: 1;
+    viewbox-height: 1;
+    commands: !root.derecha && !root.abajo ? "M 0 0 L 1 0 A 1 1 0 0 0 0 1 Z"
+        : root.derecha && !root.abajo ? "M 1 0 L 0 0 A 1 1 0 0 1 1 1 Z"
+        : !root.derecha ? "M 0 1 L 1 1 A 1 1 0 0 1 0 0 Z"
+        : "M 1 1 L 0 1 A 1 1 0 0 0 1 0 Z";
+}
+
 // Botón de un addon en la tira: su icono (un trazado SVG en una caja de 24×24) y su nombre.
 export struct BotonAddonItem {
     icono: string,

@@ -43,7 +43,7 @@ use windows_core::Interface;
 use windows_numerics::{Vector2, Vector3};
 use windows::Win32::Graphics::Gdi::{
     AC_SRC_ALPHA, AC_SRC_OVER, BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BLENDFUNCTION,
-    CreateCompatibleDC, CreateDIBSection, CreateRectRgn, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetMonitorInfoW, HBITMAP, HDC,
+    CombineRgn, CreateCompatibleDC, CreateDIBSection, CreateRectRgn, HRGN, RGN_OR, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetMonitorInfoW, HBITMAP, HDC,
     HGDIOBJ, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint, ScreenToClient, SelectObject, SetWindowRgn,
 
 };
@@ -83,6 +83,25 @@ use windows_core::{Ref, implement};
 
 /// Rectángulo en píxeles físicos de pantalla: (x, y, ancho, alto).
 pub type Rect = (i32, i32, i32, i32);
+
+/// Parte de la forma visible de una ventana: un rectángulo (relativo a la ventana, en píxeles
+/// físicos) y el radio de cada esquina, desde la de arriba a la izquierda en el sentido de las
+/// agujas del reloj.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct Pieza {
+    pub rect: Rect,
+    pub radios: [i32; 4],
+}
+
+impl Pieza {
+    fn vacia(&self) -> bool {
+        self.rect.2 <= 0 || self.rect.3 <= 0
+    }
+}
+
+/// Forma visible de una ventana: en la barra, la tira y el panel abierto (cada uno de su largo,
+/// ver ui/barra.slint); en las emergentes, una sola pieza. Las piezas sin tamaño no cuentan.
+pub type Forma = [Pieza; 2];
 
 /// El ratón salió de la ventana (lo pide `TrackMouseEvent`).
 const WM_MOUSELEAVE: u32 = 0x02A3;
@@ -131,8 +150,8 @@ struct Escena {
 /// Windows 10), el cristal usa el desenfoque antiguo, que solo sabe redondear 8 px.
 struct Vidrio {
     _destino: DesktopWindowTarget,
-    visual: SpriteVisual,
-    recorte: RectangleClip,
+    /// Uno por pieza de la forma, cada uno con su recorte.
+    piezas: [(SpriteVisual, RectangleClip); 2],
 }
 
 /// Cuánto se mete el cristal hacia dentro de la forma visible con el desenfoque antiguo, en
@@ -189,11 +208,10 @@ struct Interna {
     /// ventana, así que Windows la mantiene siempre por debajo.
     cristal: HWND,
     vidrio: Option<Vidrio>,
-    /// Forma visible (relativa a la ventana) y el radio de sus esquinas, dónde está puesto el
-    /// cristal ahora, y lo que se llama antes de cada dibujo para actualizar la forma (cambia
-    /// durante las animaciones).
-    recorte: Cell<Option<(Rect, i32)>>,
-    cristal_puesto: Cell<Option<(Rect, i32)>>,
+    /// Forma visible (relativa a la ventana), dónde está puesto el cristal ahora, y lo que se
+    /// llama antes de cada dibujo para actualizar la forma (cambia durante las animaciones).
+    recorte: Cell<Option<Forma>>,
+    cristal_puesto: Cell<Option<Forma>>,
     /// Dónde está la ventana del cristal (con la composición, cubre todo el lienzo).
     cristal_ventana: Cell<Option<Rect>>,
     al_presentar: RefCell<Option<Box<dyn Fn()>>>,
@@ -405,35 +423,55 @@ impl Interna {
             // Las esquinas de Windows miden 8 px (con el zoom de la pantalla): más pequeño no cabe.
             ((MARGEN_CRISTAL * self.escala.get()).ceil() as i32, (2.0 * 8.0 * self.zoom.get()) as i32)
         };
+        // En la pantalla y sin las piezas demasiado pequeñas.
         let destino = self
             .recorte
             .get()
-            .map(|((rx, ry, ancho, alto), radio)| ((x + rx + margen, y + ry + margen, ancho - 2 * margen, alto - 2 * margen), radio))
-            .filter(|&((_, _, ancho, alto), _)| visible && ancho >= minimo && alto >= minimo);
+            .filter(|_| visible)
+            .map(|forma| {
+                forma.map(|Pieza { rect: (rx, ry, ancho, alto), radios }| {
+                    let rect = (x + rx + margen, y + ry + margen, ancho - 2 * margen, alto - 2 * margen);
+                    if rect.2 >= minimo && rect.3 >= minimo { Pieza { rect, radios } } else { Pieza::default() }
+                })
+            })
+            .filter(|forma| forma.iter().any(|p| !p.vacia()));
         if self.cristal_puesto.replace(destino) == destino {
             return;
         }
         unsafe {
-            let Some(((x, y, ancho, alto), radio)) = destino else {
+            let Some(forma) = destino else {
                 self.cristal_ventana.set(None);
                 let _ = ShowWindow(self.cristal, SW_HIDE);
                 return;
             };
             if let Some(vidrio) = &self.vidrio {
                 let lienzo = self.lienzo.get();
-                let r = radio.min(ancho / 2).min(alto / 2).max(0) as f32;
-                let esquina = Vector2::new(r, r);
-                let _ = vidrio.visual.SetOffset(Vector3::new((x - lienzo.0) as f32, (y - lienzo.1) as f32, 0.0));
-                let _ = vidrio.visual.SetSize(Vector2::new(ancho as f32, alto as f32));
-                let _ = vidrio.recorte.SetRight(ancho as f32);
-                let _ = vidrio.recorte.SetBottom(alto as f32);
-                let _ = vidrio.recorte.SetTopLeftRadius(esquina);
-                let _ = vidrio.recorte.SetTopRightRadius(esquina);
-                let _ = vidrio.recorte.SetBottomRightRadius(esquina);
-                let _ = vidrio.recorte.SetBottomLeftRadius(esquina);
-                let (rx, ry) = (x - lienzo.0, y - lienzo.1);
-                // Windows se queda la región (la libera él).
-                let _ = SetWindowRgn(self.cristal, Some(CreateRectRgn(rx, ry, rx + ancho, ry + alto)), false);
+                // Windows se queda la región (la libera él): las piezas juntas.
+                let region = CreateRectRgn(0, 0, 0, 0);
+                for (pieza, (visual, recorte)) in forma.iter().zip(&vidrio.piezas) {
+                    if pieza.vacia() {
+                        let _ = visual.SetIsVisible(false);
+                        continue;
+                    }
+                    let (px, py, ancho, alto) = pieza.rect;
+                    let (rx, ry) = (px - lienzo.0, py - lienzo.1);
+                    let tope = ancho.min(alto) / 2;
+                    let esquina = |r: i32| {
+                        let r = r.clamp(0, tope) as f32;
+                        Vector2::new(r, r)
+                    };
+                    let _ = visual.SetOffset(Vector3::new(rx as f32, ry as f32, 0.0));
+                    let _ = visual.SetSize(Vector2::new(ancho as f32, alto as f32));
+                    let _ = recorte.SetRight(ancho as f32);
+                    let _ = recorte.SetBottom(alto as f32);
+                    let _ = recorte.SetTopLeftRadius(esquina(pieza.radios[0]));
+                    let _ = recorte.SetTopRightRadius(esquina(pieza.radios[1]));
+                    let _ = recorte.SetBottomRightRadius(esquina(pieza.radios[2]));
+                    let _ = recorte.SetBottomLeftRadius(esquina(pieza.radios[3]));
+                    let _ = visual.SetIsVisible(true);
+                    unir_rectangulo(region, (rx, ry, ancho, alto));
+                }
+                let _ = SetWindowRgn(self.cristal, Some(region), false);
                 if self.cristal_ventana.replace(Some(lienzo)) != Some(lienzo) {
                     let (lx, ly, lw, lh) = lienzo;
                     let _ = SetWindowPos(
@@ -448,6 +486,21 @@ impl Interna {
                 }
                 return;
             }
+            // Con el desenfoque antiguo, la ventana abarca las piezas y, si hay dos, una región
+            // la limita a ellas.
+            let piezas: Vec<Rect> = forma.iter().filter(|p| !p.vacia()).map(|p| p.rect).collect();
+            let x = piezas.iter().map(|r| r.0).min().unwrap_or(0);
+            let y = piezas.iter().map(|r| r.1).min().unwrap_or(0);
+            let ancho = piezas.iter().map(|r| r.0 + r.2).max().unwrap_or(0) - x;
+            let alto = piezas.iter().map(|r| r.1 + r.3).max().unwrap_or(0) - y;
+            let region = (piezas.len() > 1).then(|| {
+                let region = CreateRectRgn(0, 0, 0, 0);
+                for &(px, py, w, h) in &piezas {
+                    unir_rectangulo(region, (px - x, py - y, w, h));
+                }
+                region
+            });
+            let _ = SetWindowRgn(self.cristal, region, false);
             let _ = SetWindowPos(
                 self.cristal,
                 None,
@@ -807,9 +860,8 @@ pub fn poner_desenfoque(activo: bool) {
     }
 }
 
-/// Forma visible de la ventana (rectángulo relativo a ella y radio de sus esquinas, en píxeles
-/// físicos): el desenfoque de detrás solo se ve ahí.
-pub fn recortar(ventana: &slint::Window, recorte: Option<(Rect, i32)>) {
+/// Forma visible de la ventana: el desenfoque de detrás solo se ve ahí.
+pub fn recortar(ventana: &slint::Window, recorte: Option<Forma>) {
     if let Some(i) = de_slint(ventana) {
         i.recorte.set(recorte);
     }
@@ -1018,13 +1070,29 @@ fn crear_vidrio(cristal: HWND) -> Option<Vidrio> {
                 .ok()?;
         }
         let destino = unsafe { compositor.cast::<ICompositorDesktopInterop>().ok()?.CreateDesktopWindowTarget(cristal, false) }.ok()?;
-        let visual = compositor.CreateSpriteVisual().ok()?;
-        visual.SetBrush(&compositor.CreateHostBackdropBrush().ok()?).ok()?;
-        let recorte = compositor.CreateRectangleClip().ok()?;
-        visual.SetClip(&recorte).ok()?;
-        destino.SetRoot(&visual).ok()?;
-        Some(Vidrio { _destino: destino, visual, recorte })
+        let raiz = compositor.CreateContainerVisual().ok()?;
+        let pincel = compositor.CreateHostBackdropBrush().ok()?;
+        let pieza = || -> Option<(SpriteVisual, RectangleClip)> {
+            let visual = compositor.CreateSpriteVisual().ok()?;
+            visual.SetBrush(&pincel).ok()?;
+            let recorte = compositor.CreateRectangleClip().ok()?;
+            visual.SetClip(&recorte).ok()?;
+            raiz.Children().ok()?.InsertAtTop(&visual).ok()?;
+            Some((visual, recorte))
+        };
+        let piezas = [pieza()?, pieza()?];
+        destino.SetRoot(&raiz).ok()?;
+        Some(Vidrio { _destino: destino, piezas })
     })
+}
+
+/// Añade a `region` el rectángulo `(x, y, ancho, alto)`.
+unsafe fn unir_rectangulo(region: HRGN, (x, y, ancho, alto): Rect) {
+    unsafe {
+        let parte = CreateRectRgn(x, y, x + ancho, y + alto);
+        CombineRgn(Some(region), Some(region), Some(parte), RGN_OR);
+        let _ = DeleteObject(parte.into());
+    }
 }
 
 /// Crea el cristal de una ventana (empieza oculto) con el desenfoque de Windows.
