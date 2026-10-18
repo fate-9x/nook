@@ -7,7 +7,7 @@
 
 use super::accesorios::{self, Estilo, Puesto};
 use super::estados::{OJO_ALTO, OJO_ANCHO};
-use super::figura::{Apendice, Capa, Delante, Dibujo, Figura, Forma, Fotograma, Imagenes, Orientacion, TipoCapa};
+use super::figura::{Apendice, Capa, Delante, Dibujo, Figura, Forma, Fotograma, Hacia, Imagenes, Orientacion, TipoCapa};
 use super::forma::Punto;
 use super::motor::{Cabeza, Cuadro, Ojo};
 use super::svg::{Extremo, Pintura, Subtrazo, Union};
@@ -119,11 +119,21 @@ fn poligono(puntos: &[[f32; 2]]) -> Vec<Command> {
 
 /// Contorno de una franja (unidades de radio) a partir de su borde: el borde, pintado en la cara
 /// para que se mueva con ella (solo la parte que se ve: la que queda al otro lado de la cabeza se
-/// doblaría sobre sí misma), sigue en horizontal hasta fuera del cuerpo por los dos lados y se
-/// cierra por fuera, arriba o abajo hasta `fuera`, como un cartel. Luego se recorta por el cuerpo.
-fn franja(cabeza: &Cabeza, borde: &[Punto], fuera: f32) -> Vec<Punto> {
-    // De izquierda a derecha, lo dibuje como lo dibuje.
-    let al_reves = borde.first().zip(borde.last()).is_some_and(|(a, b)| a.0 > b.0);
+/// doblaría sobre sí misma), sigue a lo largo hasta fuera del cuerpo por sus dos extremos y se
+/// cierra por fuera, hacia `hacia`, como un cartel. Luego se recorta por el cuerpo. Una franja
+/// hacia arriba o abajo tiene el borde de lado a lado; una hacia un lado, de arriba abajo.
+fn franja(cabeza: &Cabeza, borde: &[Punto], hacia: Hacia) -> Vec<Punto> {
+    // `a` lleva una posición a lo largo del borde y otra a través de él a (x, y), y `fuera` es
+    // hasta dónde se rellena a través de él.
+    let (a, fuera): (fn(f32, f32) -> Punto, f32) = match hacia {
+        Hacia::Arriba => (|l, t| (l, t), -FUERA_FRANJA),
+        Hacia::Abajo => (|l, t| (l, t), FUERA_FRANJA),
+        Hacia::Izquierda => (|l, t| (t, l), -FUERA_FRANJA),
+        Hacia::Derecha => (|l, t| (t, l), FUERA_FRANJA),
+    };
+    let a_lo_largo = |p: &Punto| if matches!(hacia, Hacia::Arriba | Hacia::Abajo) { p.0 } else { p.1 };
+    // De un extremo al otro (de izquierda a derecha, o de arriba abajo), lo dibuje como lo dibuje.
+    let al_reves = borde.first().zip(borde.last()).is_some_and(|(p, q)| a_lo_largo(p) > a_lo_largo(q));
     let borde: Vec<Punto> = if al_reves { borde.iter().rev().copied().collect() } else { borde.to_vec() };
     let puntos: Vec<Punto> = borde
         .iter()
@@ -134,15 +144,15 @@ fn franja(cabeza: &Cabeza, borde: &[Punto], fuera: f32) -> Vec<Punto> {
         .collect();
     let (Some(&primero), Some(&ultimo)) = (puntos.first(), puntos.last()) else { return Vec::new() };
     let centro = cabeza.cartel([0.0; 3], (0.0, 0.0));
-    let hacia = |p: Punto, d: Punto| {
+    let alargar = |p: Punto, d: Punto| {
         let q = cabeza.cartel([0.0; 3], d);
         (p.0 + q.0 - centro.0, p.1 + q.1 - centro.1)
     };
-    let mut contorno = vec![hacia(primero, (-1.0, 0.0))];
+    let mut contorno = vec![alargar(primero, a(-1.0, 0.0))];
     contorno.extend(puntos);
-    contorno.push(hacia(ultimo, (1.0, 0.0)));
-    contorno.push(cabeza.cartel([0.0; 3], (FUERA_FRANJA, fuera)));
-    contorno.push(cabeza.cartel([0.0; 3], (-FUERA_FRANJA, fuera)));
+    contorno.push(alargar(ultimo, a(1.0, 0.0)));
+    contorno.push(cabeza.cartel([0.0; 3], a(FUERA_FRANJA, fuera)));
+    contorno.push(cabeza.cartel([0.0; 3], a(-FUERA_FRANJA, fuera)));
     contorno
 }
 
@@ -335,12 +345,11 @@ impl Pintor<'_> {
                     }
                 }
             }
-            TipoCapa::Franja { arriba, encima, recorte } => {
-                let fuera = if arriba { -FUERA_FRANJA } else { FUERA_FRANJA };
+            TipoCapa::Franja { hacia, encima, recorte } => {
                 let recorte = encima.then(|| recorte.map(|r| self.silueta(r, capa.muelle))).flatten();
                 for forma in &capa.formas {
                     for borde in &forma.subtrazos {
-                        let contorno: Vec<[f32; 2]> = franja(cabeza, &borde.puntos, fuera).into_iter().map(|p| (self.pantalla)(muelle(p))).collect();
+                        let contorno: Vec<[f32; 2]> = franja(cabeza, &borde.puntos, hacia).into_iter().map(|p| (self.pantalla)(muelle(p))).collect();
                         let pintura = Pintura::Relleno { par_impar: false };
                         let mut cubre = a_mascara(cobertura(&poligono(&contorno), pintura, self.escala, self.lado), forma.alfa);
                         let color = self.color(forma.color);
@@ -755,6 +764,27 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn una_franja_de_un_lado_cubre_la_parte_de_atras_de_la_cabeza_al_girar() {
+        // Una cabeza redonda con una franja a la izquierda, con el borde pegado al de la cabeza.
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+            <circle id="cuerpo" r="40" fill="#e0d0c0"/>
+            <path id="nuca" d="M -36 -18 L -39 0 L -36 18" fill="none" stroke="#1020f0"/>
+        </svg>"##;
+        let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "nuca", "tipo": "franja", "hacia": "izquierda"}]}"#;
+        let figura = std::sync::Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err("no".into())).unwrap());
+        let azules = |guinada: f32| {
+            let mut motor = Motor::new();
+            motor.poner_figura(figura.clone());
+            motor.poner_mirada(Mirar { guinada, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
+            let imagen = dibujar(&motor.muestrear(1.0), 128, &aspecto([0; 3], [0; 3]));
+            pixeles(&imagen).iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == [16, 32, 240]).count()
+        };
+        let (de_frente, a_la_derecha, a_la_izquierda) = (azules(0.0), azules(35.0), azules(-35.0));
+        assert!(a_la_derecha > de_frente * 4 + 200, "de frente {de_frente}, a la derecha {a_la_derecha}");
+        assert!(a_la_izquierda <= de_frente, "a la izquierda {a_la_izquierda}, de frente {de_frente}");
     }
 
     #[test]

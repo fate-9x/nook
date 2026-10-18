@@ -88,7 +88,7 @@ sale del nombre (`cuerpo`, `ojo`, `ojo-izquierdo`, `ojo-alegre`, `boca`) o es `p
 |---|---|
 | `cuerpo` | La silueta. Solo puede haber una. |
 | `pintado` | Pintado en la cara (manchas, coloretes, pecas): gira con ella y no se sale del cuerpo. |
-| `franja` | Una franja de color de lado a lado (un flequillo, una barriga). Se dibuja **solo su borde**, como una línea de izquierda a derecha, y se rellena hasta fuera del cuerpo hacia `hacia`. |
+| `franja` | Una franja de color de lado a lado (un flequillo, una barriga) o de arriba abajo (el pelo de los lados de la cabeza). Se dibuja **solo su borde**, como una línea, y se rellena hasta fuera del cuerpo hacia `hacia`. |
 | `ojo`, `ojo-izquierdo`, `ojo-alegre`, `boca` | Los rasgos: miran al cursor, se sorprenden, parpadean. |
 | `cabeza` | Algo que sale de la cabeza (orejas, cuernos, antenas, un rulo): se mueve con ella. |
 
@@ -96,7 +96,7 @@ Opciones de las capas:
 
 | Opción | Para | Qué hace |
 |---|---|---|
-| `"hacia": "arriba"` o `"abajo"` | `franja` | Hacia dónde se rellena desde su borde (por defecto, arriba). |
+| `"hacia"` | `franja` | Hacia dónde se rellena desde su borde: `"arriba"` (por defecto) o `"abajo"`, con el borde de lado a lado, o `"izquierda"` o `"derecha"`, con el borde de arriba abajo. Una franja de un lado con el borde pegado al de la cabeza casi no se ve de frente, y al girar la cabeza cubre su parte de atrás (ver [la guía](guia-personajes.md#la-parte-de-atrás-de-la-cabeza)). |
 | `"encima": true` | `franja` | Va por encima de los ojos y la boca (pelo que los tapa). |
 | `"recorte": 1.06` | `franja` con `encima` | Puede salirse del cuerpo hasta esas veces su tamaño (de 1 a 1,5). |
 | `"muelle": true` | cualquiera | Se mueve como el pelo: se queda atrás cuando la cabeza se mueve y luego se asienta. |

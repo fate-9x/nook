@@ -271,6 +271,7 @@ van hacia delante y los negativos hacia atrás.
 | Qué es | Cómo ponerlo |
 |---|---|
 | **Pelo que rodea la cabeza** (pinchos alrededor, una melena que asoma por los lados) | `"detras": true`, `"delante": "nunca"` y una profundidad **pequeña**, de `0` a `-0.15`. Sin profundidad, al girar se va hacia donde mira, como si estuviera pegado a la frente; con mucha, se va entero hacia el otro lado y parece que está en la nuca. |
+| **La parte de atrás de la cabeza cubierta de pelo** (la que se ve al girar) | Dos franjas a los lados, ver [abajo](#la-parte-de-atrás-de-la-cabeza). |
 | **Algo en la nuca** (una coleta, un moño, una capucha) | `"detras": true`, `"delante": "nunca"` y una profundidad **negativa**, de `-0.3` a `-0.5`: al girar se va hacia el otro lado, como la parte de atrás de una cabeza. |
 | **Orejas, cuernos o alas a los lados** | **Una capa por lado**, cada una con su ancla en su base (donde se pega a la cabeza), `"detras": true`, `"delante": "girar"` y una profundidad de `0` a `-0.2`. Si las dos van en una capa con un ancla en medio, se mueven juntas con la cara y no se esconde la del otro lado. |
 | **Algo encima de la cabeza** (una antena, un rulo, un sombrerito) | El ancla en su base, sobre la cabeza. No hace falta profundidad. |
@@ -285,6 +286,33 @@ Por ejemplo, el pelo de un personaje con pinchos alrededor de la cabeza:
 Lo que sale de la cabeza es una pieza plana y rígida: al girar se desplaza entera, sin cambiar de
 forma. Por eso el pelo que rodea la cabeza casi no tiene que moverse (como la silueta de la cabeza,
 que tampoco se mueve), y lo que se ve girar es la cara.
+
+### La parte de atrás de la cabeza
+
+Al mirar a un lado, la cara se desliza hacia ese lado y, por el otro, queda a la vista lo que sería
+la parte de atrás de la cabeza. Si tu personaje tiene pelo ahí (Rick, por ejemplo), dibújalo con
+**dos franjas, una a cada lado**:
+
+1. Dibuja una línea pegada al borde izquierdo de la cabeza, por dentro, desde arriba hasta donde
+   acaba el pelo (a la altura de la oreja, por ejemplo), y al final llévala hacia fuera de la cabeza:
+   así la franja no sigue hacia abajo. Ponle el ID `nuca-izquierda` y el color del pelo. Haz lo
+   mismo en el lado derecho: `nuca-derecha`.
+2. En `capas`, antes de los ojos:
+   ```json
+   { "id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda" },
+   { "id": "nuca-derecha", "tipo": "franja", "hacia": "derecha" },
+   ```
+
+De frente, como el borde está pegado al de la cabeza, casi no se ven. Al mirar a la derecha, la
+línea izquierda se va con la cara y la franja cubre de pelo lo que queda detrás; al mirar a la
+izquierda, al revés.
+
+Por ejemplo, para una cabeza de 64 de ancho (de -32 a 32) con el centro en (0, 0):
+
+```svg
+<path id="nuca-izquierda" d="M -12 -44 C -24 -42 -31 -28 -30 -8 L -30 6 L -36 14" fill="none" stroke="#a6dcf0"/>
+<path id="nuca-derecha" d="M 12 -44 C 24 -42 31 -28 30 -8 L 30 6 L 36 14" fill="none" stroke="#a6dcf0"/>
+```
 
 ### La cara, sin pegarla a los bordes
 
@@ -323,6 +351,7 @@ pueden leer»**. Mientras lo arreglas, se queda la última versión que funciona
 | Un texto del dibujo no aparece | Los textos no se dibujan: en Inkscape, **Trayecto → Objeto a trayecto**. |
 | Un degradado sale de un solo color | Los degradados se pintan con su primer color. |
 | De frente se ve bien, pero al mirar a un lado el pelo o las orejas se despegan de la cabeza | Les falta la profundidad: mira [Que gire bien](#que-gire-bien-lo-que-sale-de-la-cabeza). |
+| Al mirar a un lado, la parte de atrás de la cabeza se ve sin pelo | Añade dos franjas a los lados: mira [La parte de atrás de la cabeza](#la-parte-de-atrás-de-la-cabeza). |
 | El personaje se ve pequeño | Si algo sale mucho del cuerpo (una antena muy alta), todo se encoge para que quepa en la barra al saltar. |
 | Los ojos no siguen al cursor | Los personajes de imágenes miran siempre de frente. Para que mire, hazlo en SVG. |
 | «todas las imágenes tienen que medir lo mismo» | Exporta todas las imágenes con el mismo tamaño de lienzo. |

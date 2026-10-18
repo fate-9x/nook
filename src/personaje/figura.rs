@@ -101,10 +101,14 @@ pub enum TipoCapa {
     Cuerpo,
     /// Pintado en la cara: gira con ella sobre una esfera y no se sale del cuerpo.
     Pintado,
-    /// Una franja de color pintada en la cara (un flequillo, una barriga): su línea es el borde y
-    /// se rellena hasta fuera del cuerpo por arriba o por abajo. Con `encima`, va sobre los ojos
-    /// y la boca y puede salirse del cuerpo hasta `recorte` veces su tamaño (el pelo del Limón).
-    Franja { arriba: bool, encima: bool, recorte: Option<f32> },
+    /// Una franja de color pintada en la cara (un flequillo, una barriga, el pelo de los lados
+    /// de la cabeza): su línea es el borde y se rellena hasta fuera del cuerpo por arriba, por
+    /// abajo o por un lado. Con `encima`, va sobre los ojos y la boca y puede salirse del cuerpo
+    /// hasta `recorte` veces su tamaño (el pelo del Limón). Una franja de un lado, con su borde
+    /// pegado al de la cabeza, casi no se ve de frente; al girar la cabeza hacia el otro lado, el
+    /// borde se va con la cara y la franja cubre lo que queda detrás: la parte de atrás de la
+    /// cabeza.
+    Franja { hacia: Hacia, encima: bool, recorte: Option<f32> },
     /// El ojo derecho, dibujado en su sitio; el izquierdo es su reflejo, salvo que haya
     /// `OjoIzquierdo`. `OjoAlegre` es el ojo derecho cuando está contento (si no hay, el ojo se
     /// recorta en arco «∩», si es relleno).
@@ -347,11 +351,14 @@ enum Tipo {
     Cabeza,
 }
 
+/// Hacia dónde se rellena una franja desde su borde.
 #[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum Hacia {
+pub enum Hacia {
     Arriba,
     Abajo,
+    Izquierda,
+    Derecha,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -580,7 +587,7 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
             Tipo::Pintado => (TipoCapa::Pintado, (0.0, 0.0)),
             Tipo::Franja => {
                 let recorte = d.recorte.map(|r| r.clamp(1.0, 1.5));
-                (TipoCapa::Franja { arriba: d.hacia != Some(Hacia::Abajo), encima: d.encima, recorte }, (0.0, 0.0))
+                (TipoCapa::Franja { hacia: d.hacia.unwrap_or(Hacia::Arriba), encima: d.encima, recorte }, (0.0, 0.0))
             }
             Tipo::Ojo => (TipoCapa::Ojo, ojo),
             Tipo::OjoAlegre => (TipoCapa::OjoAlegre, ojo),
