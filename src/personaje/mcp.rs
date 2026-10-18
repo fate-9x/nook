@@ -2,12 +2,12 @@
 //! ellas, la IA del usuario puede leer la guía para hacer personajes, comprobar el de una carpeta
 //! (errores, avisos y un resumen de cómo lo entiende Nookly) y verlo dibujado. Se atienden aquí
 //! mismo, sin pasar por la barra: el motor de personajes es una librería. Para poner el personaje
-//! en la barra va por la tubería (con `poner`, ver más adelante).
+//! en la barra, en cambio, se manda la elección por la tubería (`tuberia.rs`).
 
 use super::cara;
 use super::figura::{Figura, TipoCapa};
 use super::{Aspecto, Cuadro, Estado, Mirar, Motor, dibujar};
-use crate::addons::traducido;
+use crate::addons::{traducido, tuberia};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -67,6 +67,17 @@ pub fn herramientas() -> Vec<Value> {
                 "required": ["carpeta"],
             },
         }),
+        json!({
+            "name": format!("{PREFIJO}poner"),
+            "description": "Pone el personaje en la barra del usuario: pasa a estar elegido en su lista y lo ve enseguida. Para que pille uno que estés editando, ha de estar en la carpeta de personajes de Nookly.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "carpeta": { "type": "string", "description": "La carpeta del personaje: el nombre de la carpeta dentro de la de personajes de Nookly (o una ruta entera), o «nook» o «limon»" },
+                },
+                "required": ["carpeta"],
+            },
+        }),
     ]
 }
 
@@ -79,6 +90,7 @@ pub fn llamar(nombre: &str, argumentos: &Value) -> Result<Resultado, String> {
             let datos = ver(argumentos)?;
             Ok(Resultado::Imagen { datos, tipo: "image/png" })
         }
+        Some("poner") => Ok(Resultado::texto(poner(argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?)?)),
         _ => Err(format!("herramienta desconocida: {nombre}")),
     }
 }
@@ -251,6 +263,41 @@ fn png_de(lienzo: &[u8], ancho: u32, alto: u32) -> Result<Vec<u8>, String> {
     Ok(salida)
 }
 
+// ---- Ponerlo en la barra ----
+
+/// El personaje de una carpeta pasa a ser el de la barra: se lo manda a ella, por la tubería (si
+/// no está abierta, la abre).
+fn poner(carpeta: &str) -> Result<String, String> {
+    let nombre = nombre_de_carpeta(carpeta)?;
+    de_la_barra(&tuberia::pedir(&json!({ "orden": "figura", "nombre": nombre }))?)
+}
+
+/// El nombre de la figura que la barra entenderá: el de la carpeta (o «nook» y «limon» tal
+/// cual); de una ruta, el de su carpeta final. La ruta tiene que existir.
+fn nombre_de_carpeta(carpeta: &str) -> Result<String, String> {
+    let nombre = if carpeta.contains(['/', '\\']) || carpeta.contains("..") {
+        let dada = Path::new(carpeta);
+        if !dada.is_dir() {
+            return Err(format!("no encuentro la carpeta «{carpeta}»"));
+        }
+        dada.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+    } else {
+        carpeta.trim().into()
+    };
+    if nombre.is_empty() {
+        return Err("falta la carpeta del personaje".into());
+    }
+    Ok(nombre)
+}
+
+/// La respuesta de la barra a «figura»: su texto o su error.
+fn de_la_barra(respuesta: &Value) -> Result<String, String> {
+    match respuesta.get("error").and_then(Value::as_str) {
+        Some(e) => Err(e.into()),
+        None => Ok(respuesta["texto"].as_str().unwrap_or_default().into()),
+    }
+}
+
 /// Cómo se ve un personaje para Nookly: su nombre, sus avisos, sus capas, dónde quedan los ojos
 /// y la boca, cuánto mide y qué hace solo.
 fn resumen(figura: &Figura) -> String {
@@ -308,11 +355,11 @@ mod tests {
     #[test]
     fn lista_sus_herramientas() {
         let herramientas = herramientas();
-        assert_eq!(herramientas.len(), 3);
-        assert_eq!(herramientas[0]["name"], format!("{PREFIJO}guia"));
-        assert_eq!(herramientas[1]["name"], format!("{PREFIJO}comprobar"));
+        assert_eq!(herramientas.len(), 4);
+        for (i, nombre) in ["guia", "comprobar", "ver", "poner"].iter().enumerate() {
+            assert_eq!(herramientas[i]["name"], format!("{PREFIJO}{nombre}"));
+        }
         assert_eq!(herramientas[1]["inputSchema"]["required"][0], "carpeta");
-        assert_eq!(herramientas[2]["name"], format!("{PREFIJO}ver"));
         let vistas: Vec<&str> = herramientas[2]["inputSchema"]["properties"]["vista"]["enum"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
         assert_eq!(vistas, VISTAS.to_vec());
     }
@@ -395,5 +442,17 @@ mod tests {
         };
         assert!(texto(llamar(&format!("{PREFIJO}comprobar"), &json!({}))).contains("falta"));
         assert!(texto(llamar("otra", &json!({}))).contains("desconocida"));
+    }
+
+    #[test]
+    fn el_nombre_de_la_carpeta_que_va_a_la_barra() {
+        assert_eq!(nombre_de_carpeta("nook").unwrap(), "nook");
+        let gato = ejemplos().join("gato");
+        assert_eq!(nombre_de_carpeta(&gato.to_string_lossy()).unwrap(), "gato");
+        // Una ruta que no existe, error; un nombre suelto que no está pasa a la barra (ella avisa).
+        assert!(nombre_de_carpeta("./no-esta").is_err());
+        assert_eq!(nombre_de_carpeta("gato-no-esta").unwrap(), "gato-no-esta");
+        assert_eq!(de_la_barra(&json!({ "texto": "listo" })).unwrap(), "listo");
+        assert_eq!(de_la_barra(&json!({ "error": "no hay ninguno" })).unwrap_err(), "no hay ninguno");
     }
 }

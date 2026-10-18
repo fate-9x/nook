@@ -440,6 +440,21 @@ impl Ctx {
                     let _ = responder.send(tuberia::error(&e));
                 }
             }
+            // `personaje__poner` (ver personaje/mcp.rs): el personaje «nombre» pasa a estar
+            // elegido.
+            Some("figura") => {
+                let nombre = peticion["nombre"].as_str().unwrap_or_default().trim();
+                let figura_de_buscar = if nombre.is_empty() { None } else { figura_de_coleccion(&self.personaje.borrow().coleccion, nombre) };
+                match figura_de_buscar {
+                    Some((id, mostrado)) => {
+                        self.elegir_figura(id);
+                        let _ = responder.send(json!({ "texto": format!("«{mostrado}» ya está en la barra.") }));
+                    }
+                    None => {
+                        let _ = responder.send(tuberia::error(&format!("no hay ningún personaje llamado «{nombre}»: tiene que estar en la carpeta de personajes de Nookly (o ser «nook» o «limon»)")));
+                    }
+                }
+            }
             _ => {
                 let _ = responder.send(tuberia::error("petición desconocida"));
             }
@@ -542,6 +557,14 @@ impl Ctx {
 fn visibles(e: &Estado) -> Vec<&Addon> {
     let ocultos = &e.config.ajustes.addons_ocultos;
     e.addons.iter().filter(|a| a.compatible() && !ocultos.contains(&a.manifiesto.id)).collect()
+}
+
+/// La figura llamada `nombre` (el nombre de su carpeta en la de personajes, o «nook» y «limon»
+/// tal cual): su id y cómo se muestra su nombre. Con una carpeta del usuario llamada como uno
+/// del programa, gana la del usuario.
+fn figura_de_coleccion(coleccion: &personaje::coleccion::Coleccion, nombre: &str) -> Option<(String, String)> {
+    let posibles = [format!("usuario/{nombre}"), nombre.to_string()];
+    posibles.iter().find_map(|id| coleccion.figuras.iter().find(|f| &f.id == id).map(|f| (f.id.clone(), addons::traducido(&f.nombre))))
 }
 
 /// Las filas de la sección "Addons", con su id: primero los instalados y luego los demás del
@@ -695,4 +718,18 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
         }
         respuesta
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encuentra_al_personaje_que_la_ia_pide() {
+        let coleccion = personaje::coleccion::Coleccion::default();
+        let (id, nombre) = figura_de_coleccion(&coleccion, "limon").expect("el Limón está");
+        assert_eq!((id.as_str(), nombre.as_str()), ("limon", "Limón"));
+        // La IA puede pedir por el nombre de su carpeta; una carpeta que no está, no encuentra nada.
+        assert!(figura_de_coleccion(&coleccion, "gato").is_none());
+    }
 }

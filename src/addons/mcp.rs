@@ -153,7 +153,7 @@ mod tests {
         };
         let r = responder(&json!({"jsonrpc":"2.0","id":3,"method":"tools/list"}), &mut barra).unwrap();
         let nombres: Vec<&str> = r["result"]["tools"].as_array().unwrap().iter().map(|h| h["name"].as_str().unwrap()).collect();
-        assert_eq!(nombres.iter().filter(|n| n.starts_with(personaje::PREFIJO)).count(), 3, "{nombres:?}");
+        assert_eq!(nombres.iter().filter(|n| n.starts_with(personaje::PREFIJO)).count(), 4, "{nombres:?}");
         assert!(nombres.contains(&"dado__tirar"), "{nombres:?}");
     }
 
