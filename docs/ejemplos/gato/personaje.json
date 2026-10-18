@@ -2,7 +2,8 @@
   "nombre": { "es": "Gato", "en": "Cat" },
   "colores": { "aviso": "#e0455a" },
   "capas": [
-    { "id": "orejas", "tipo": "cabeza", "detras": true, "delante": "girar" },
+    { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1 },
+    { "id": "oreja-derecha", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1 },
     { "id": "cuerpo" },
     { "id": "rayas" },
     { "id": "ojo" },

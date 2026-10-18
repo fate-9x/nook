@@ -849,10 +849,28 @@ mod tests {
 
     #[test]
     fn los_ejemplos_de_la_guia_se_leen() {
+        use super::super::motor::{Mirar, Motor};
         let ejemplos = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ejemplos");
         let gato = Figura::leer(&ejemplos.join("gato"), "usuario/gato".into()).unwrap();
-        assert!(gato.mira() && gato.capas().len() == 5);
+        assert!(gato.mira() && gato.capas().len() == 6);
         assert!(gato.tiene(|t| matches!(t, TipoCapa::Cabeza(Apendice { delante: Delante::Girar, detras: true, .. }))));
+        // Lo que cuenta la guía: mirando a la derecha, la oreja derecha queda detrás de la cabeza
+        // y la izquierda delante, y lo que está hacia atrás (profundidad negativa) se va al revés
+        // que la cara.
+        let mut motor = Motor::new();
+        motor.poner_figura(Arc::new(gato));
+        motor.poner_mirada(Mirar { guinada: 35.0, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
+        let cabeza = motor.muestrear(1.0).cabeza;
+        let anclas: Vec<Vec3> = cabeza.figura.capas().iter().filter_map(|c| match c.tipo {
+            TipoCapa::Cabeza(a) => Some(a.ancla),
+            _ => None,
+        }).collect();
+        let [izquierda, derecha] = [anclas[0], anclas[1]];
+        assert!(izquierda[0] < 0.0 && derecha[0] > 0.0);
+        assert!(cabeza.profundidad(derecha) < -0.3, "la oreja derecha no se esconde");
+        assert!(cabeza.profundidad(izquierda) > -0.15, "la oreja izquierda no se ve");
+        let (centro, delante, detras) = (cabeza.punto([0.0; 3]).0, cabeza.punto([0.0, 0.0, 0.5]).0, cabeza.punto([0.0, 0.0, -0.5]).0);
+        assert!(delante > centro + 0.1 && detras < centro - 0.1);
         let fantasma = Figura::leer(&ejemplos.join("fantasma"), "usuario/fantasma".into()).unwrap();
         let Dibujo::Imagenes(imagenes) = &fantasma.dibujo else { panic!("no es de imágenes") };
         assert!(imagenes.pixelado && imagenes.tiene(Animacion::Aviso) && !imagenes.tiene(Animacion::Musica));

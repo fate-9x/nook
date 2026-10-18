@@ -97,11 +97,16 @@ aparecerá `gato`. Elígelo. Si mueves el cursor, te seguirá con la mirada.
 Las orejas salen de la cabeza, así que no van en el cuerpo: van en su propia capa, que se moverá con
 la cabeza.
 
-1. Dibuja las dos orejas (dos triángulos), agrúpalas y ponle al grupo el ID `orejas`.
-2. Dibuja un circulito pequeño donde las orejas se «enganchan» a la cabeza (arriba, en medio) y
-   ponle el ID `ancla-orejas`. Quítale el relleno: las anclas no se dibujan, solo marcan un sitio.
+1. Dibuja la oreja izquierda (un triángulo) y ponle el ID `oreja-izquierda`. Haz lo mismo con la
+   derecha: `oreja-derecha`. Cada oreja va **en su propia capa**: así Nookly puede esconder detrás
+   de la cabeza la que queda al otro lado cuando el gato gira.
+2. Dibuja un circulito pequeño en la base de cada oreja, donde se «engancha» a la cabeza, y ponles
+   los ID `ancla-oreja-izquierda` y `ancla-oreja-derecha`. Quítales el relleno: las anclas no se
+   dibujan, solo marcan un sitio.
 
 Si guardas ahora, las orejas **no aparecen**: falta decirle a Nookly qué son. Eso va en el paso 7.
+Para entender bien cómo se mueve lo que sale de la cabeza (y no llevarte sorpresas con el pelo o las
+orejas de tus personajes), mira [Que gire bien](#que-gire-bien-lo-que-sale-de-la-cabeza).
 
 ### Paso 6. Añade las rayas
 
@@ -118,7 +123,8 @@ cualquier editor) con esto:
   "nombre": { "es": "Gato", "en": "Cat" },
   "colores": { "aviso": "#e0455a" },
   "capas": [
-    { "id": "orejas", "tipo": "cabeza", "detras": true, "delante": "girar" },
+    { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1 },
+    { "id": "oreja-derecha", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1 },
     { "id": "cuerpo" },
     { "id": "rayas" },
     { "id": "ojo" },
@@ -132,9 +138,11 @@ Qué dice:
 - **`nombre`**: cómo sale en la lista, en cada idioma.
 - **`colores.aviso`**: el color del circulito que sale cuando llega una notificación.
 - **`capas`**: las partes del dibujo **en el orden en que se pintan** (las primeras quedan debajo).
-  - `orejas` es de tipo **`cabeza`**: se mueve con la cabeza. Con `"detras": true` se ve también
-    por detrás del cuerpo, y con `"delante": "girar"` pasa por delante cuando el gato gira la cabeza
-    hacia su lado. Por eso va la primera: debajo de todo.
+  - Las orejas son de tipo **`cabeza`**: se mueven con la cabeza. Con `"detras": true` se ven
+    también por detrás del cuerpo, y con `"delante": "girar"` cada una pasa por delante cuando el
+    gato gira la cabeza hacia su lado y se esconde detrás cuando la gira hacia el otro. Con
+    `"profundidad": -0.1` están un poco hacia atrás, en los lados de la cabeza (ver [Que gire
+    bien](#que-gire-bien-lo-que-sale-de-la-cabeza)). Por eso van las primeras: debajo de todo.
   - `cuerpo`, `ojo` y `boca` no necesitan tipo: lo saben por su nombre.
   - `rayas` no dice tipo, así que es **pintado** (pintado en la cara).
 
@@ -145,7 +153,8 @@ Guarda. Las orejas aparecen, y el nombre en la lista pasa a ser «Gato».
 
 ### Paso 8. Pruébalo
 
-- Mueve el cursor alrededor del gato: gira la cabeza, y las orejas pasan de detrás a delante.
+- Mueve el cursor de un lado a otro del gato: gira la cabeza, y la oreja del lado contrario se
+  esconde detrás.
 - En la configuración, **Probar aviso**: salta y le sale el circulito rojo.
 - Pon música: baila.
 - Ponle accesorios (gafas, gorro…): se colocan sobre su cara y su cabeza.
@@ -234,6 +243,58 @@ arándano que asoma).
 
 ---
 
+## Que gire bien: lo que sale de la cabeza
+
+Cuando el personaje mira a un lado, su silueta no cambia: lo que gira es lo que va **sobre** la
+cabeza. Los ojos, la boca y lo pintado se deslizan por la cara como sobre una pelota, y lo que sale
+de la cabeza (capas de tipo `cabeza`: pelo, orejas, cuernos, antenas…) se mueve según **dónde está
+enganchado**. Si eso no está bien puesto, al girar la cabeza el pelo o las orejas se despegan de
+ella, aunque de frente se vea perfecto.
+
+### Dónde se engancha: el ancla y su profundidad
+
+Cada capa de tipo `cabeza` se engancha a la cabeza en un punto, su **ancla**:
+
+- **Dónde está en el dibujo** lo dice el circulito `ancla-<capa>` (sin él, abajo y en medio de lo
+  que dibuja la capa).
+- **Cuánto hacia delante o hacia atrás** está lo dice `"profundidad"`. Sin ella, Nookly pone el
+  ancla **en la superficie de la cara** que hay delante de ese punto: como si estuviera pegada a la
+  piel, por delante.
+
+Eso es lo que quieres para algo pegado por delante (un rulo en la frente, una antena en lo alto),
+pero **no** para lo que está detrás de la cabeza o a sus lados. Al girar, lo de delante se va hacia
+donde mira el personaje y lo de detrás hacia el otro lado, como en una cabeza de verdad.
+
+`"profundidad"` se mide en radios del cuerpo: `0` es el plano del centro de la cabeza, los positivos
+van hacia delante y los negativos hacia atrás.
+
+| Qué es | Cómo ponerlo |
+|---|---|
+| **Pelo o algo detrás de la cabeza** (una melena, unos pinchos, una coleta, una capucha) | `"detras": true`, `"delante": "nunca"` y una **profundidad negativa**, entre `-0.2` y `-0.5`. Si no, al girar se va hacia donde mira, como si estuviera pegado a la frente. |
+| **Orejas, cuernos o alas a los lados** | **Una capa por lado**, cada una con su ancla en su base (donde se pega a la cabeza), `"detras": true`, `"delante": "girar"` y una profundidad de `0` a `-0.2`. Si las dos van en una capa con un ancla en medio, se mueven juntas con la cara y no se esconde la del otro lado. |
+| **Algo encima de la cabeza** (una antena, un rulo, un sombrerito) | El ancla en su base, sobre la cabeza. No hace falta profundidad. |
+| **Algo delante de la cara** (una nariz grande, un bigote, un pico) | Mejor de tipo `pintado` (o `boca`, si va con ella): así se desliza por la cara con los ojos. |
+
+Por ejemplo, el pelo de un personaje con pinchos por detrás:
+
+```json
+{ "id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.4 }
+```
+
+### La cara, sin pegarla a los bordes
+
+Al girar, lo que está cerca del borde de la cabeza se aplasta contra él. Deja algo de sitio entre
+los ojos (o la uniceja, las mejillas…) y el borde: si los ojos ocupan todo el ancho de la cabeza,
+de lado se verán apretados.
+
+### Cómo comprobarlo
+
+Con la configuración abierta en **Personaje**, mueve el cursor muy a la izquierda, muy a la
+derecha, arriba y abajo, y mira la vista previa: el personaje gira hasta unos 35° a los lados.
+Si algo se despega, cambia su profundidad de 0,1 en 0,1 y guarda: el cambio se ve al momento.
+
+---
+
 ## Compartir tu personaje
 
 Comprime la carpeta del personaje en un `.zip` y compártela. Quien la reciba solo tiene que
@@ -256,6 +317,7 @@ pueden leer»**. Mientras lo arreglas, se queda la última versión que funciona
 | Algo del dibujo no aparece | Si hay `capas` en el JSON, solo se dibuja lo que está en la lista. Y lo que no tiene ID (ni está en un grupo con ID) no se dibuja. |
 | Un texto del dibujo no aparece | Los textos no se dibujan: en Inkscape, **Trayecto → Objeto a trayecto**. |
 | Un degradado sale de un solo color | Los degradados se pintan con su primer color. |
+| De frente se ve bien, pero al mirar a un lado el pelo o las orejas se despegan de la cabeza | Les falta la profundidad: mira [Que gire bien](#que-gire-bien-lo-que-sale-de-la-cabeza). |
 | El personaje se ve pequeño | Si algo sale mucho del cuerpo (una antena muy alta), todo se encoge para que quepa en la barra al saltar. |
 | Los ojos no siguen al cursor | Los personajes de imágenes miran siempre de frente. Para que mire, hazlo en SVG. |
 | «todas las imágenes tienen que medir lo mismo» | Exporta todas las imágenes con el mismo tamaño de lienzo. |

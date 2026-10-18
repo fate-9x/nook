@@ -105,7 +105,7 @@ Opciones de las capas:
 | `"delante"` | `cabeza` | Cuándo se ve delante: `"siempre"` (por defecto), `"nunca"`, `"girar"` (al girar la cabeza hacia su lado, como las orejas) o `"revelar"` (de frente se ve su mitad de arriba; mirándolo, entero). |
 | `"fundir": true` | `cabeza` | Se suma al cuerpo, como si fuera parte de él (el rulo de Nook). |
 | `"tapable": false` | `cabeza` | Que un gorro no lo esconda (por defecto, los accesorios de la cabeza lo tapan). |
-| `"profundidad": 0.2` | `cabeza` | Cuánto sale hacia delante su ancla (en radios del cuerpo), si no es la del punto de la cabeza que tiene detrás. |
+| `"profundidad": -0.4` | `cabeza` | Cuánto hacia delante (positivo) o hacia atrás (negativo) está su ancla, en radios del cuerpo: `0` es el plano del centro de la cabeza. Sin ella, el ancla está en la superficie de la cara, por delante. Lo de detrás de la cabeza (pelo, coletas) necesita una negativa, y las orejas, una por lado, de `0` a `-0.2` (ver [la guía](guia-personajes.md#que-gire-bien-lo-que-sale-de-la-cabeza)). |
 
 ### Consejos
 
