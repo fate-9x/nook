@@ -20,7 +20,10 @@ Proyecto: **Nookly**, una barra de tareas en Rust + Slint para Windows (`src/` y
   carpeta con `personaje.json` y un `personaje.svg` por capas o unos PNG (`figura.rs`, que lee el
   SVG con `svg.rs`): Nook y el Limón están en `personajes/` y el usuario hace los suyos en
   `%APPDATA%\nook\personajes\<carpeta>\` (`coleccion.rs`, que los vuelve a leer al cambiar). La
-  guía para hacerlos es `docs/personajes.md`.
+  guía para hacerlos es `docs/personajes.md`. Los accesorios propios son carpetas con un
+  `accesorio.svg` y un `accesorio.json` en `%APPDATA%\nook\accesorios\` (o en la carpeta de un
+  personaje): `accesorio_archivo.rs` los lee y los coloca en la figura, y `config::Accesorio` los
+  guarda por su id de texto (`usuario/<carpeta>`), con un color por cada color de su dibujo.
 
 ## Nookly y Nookly Pro
 

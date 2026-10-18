@@ -2,7 +2,8 @@
 
 El personaje de la barra puede ser cualquiera: lo dibujas tú y Nookly lo anima (mira al cursor,
 parpadea, salta con los avisos, baila con la música y lleva los accesorios). Nook y el Limón están
-hechos así: sus archivos, en [`personajes/`](../personajes), sirven de ejemplo.
+hechos así: sus archivos, en [`personajes/`](../personajes), sirven de ejemplo. Los accesorios
+también pueden ser tuyos: ver [Accesorios propios](#accesorios-propios).
 
 ## Empezar
 
@@ -143,3 +144,81 @@ La carpeta tiene los PNG y un `personaje.json` que dice cuáles son:
 - Para los accesorios, `"ojo": [x, y]` y `"boca": [x, y]` (en píxeles de las imágenes) dicen dónde
   están el ojo derecho y la boca.
 - Como mucho, 64 imágenes de hasta 1024 × 1024.
+
+## Accesorios propios
+
+Los accesorios (gorros, gafas, bigotes, capas…) también pueden ser tuyos: cada uno es una carpeta
+con un dibujo y una descripción, que sirve para cualquier personaje. En la configuración, sección
+**Personaje**, **Abrir carpeta de accesorios** abre `%APPDATA%\nook\accesorios\`: copia ahí la
+carpeta de uno y sale en la lista de accesorios, con todos los que trae el programa. Como con los
+personajes, al guardar sus archivos se ve el cambio al momento, y si algo está mal la
+configuración dice qué.
+
+Tres ejemplos listos, para copiar y cambiar, en [`ejemplos-accesorios/`](ejemplos-accesorios): un
+sombrero, una aureola y un bigote.
+
+Uno que es solo de un personaje va en la carpeta de este, en `personajes\<carpeta>\accesorios\<carpeta>\`,
+y solo sale en la lista cuando ese personaje está elegido.
+
+### El dibujo: accesorio.svg
+
+Se dibuja sobre **Nook**: el (0, 0) del dibujo (da igual dónde pongas el viewBox) es el centro de
+su cuerpo, que mide 98 de ancho (de -49 a 49) y llega a -39 por arriba y a 37,5 por abajo; la boca
+está en (0, 15) y los ojos en (±13, 0). Con otro personaje, el accesorio se coloca solo: se mueve
+con él como diga su `ancla` (ver abajo).
+
+Lo que se pinta son los trazados con relleno o con borde (con sus curvas, grupos, transformaciones
+y opacidades; los textos hay que convertirlos en trazados, y de un degradado se usa su primer
+color). Como mucho, 30 000 puntos.
+
+### Los colores
+
+**Cada color distinto del dibujo es un color que el usuario puede cambiar**, con su propia fila de
+colores en la configuración. Empieza siendo el del dibujo, y siempre puede volver a él (es la primera
+opción de la fila). Como mucho, 8 colores distintos: si necesitas más, o hay uno que no debe cambiar
+(el blanco de un ojo, por ejemplo), márcalo como fijo en el json.
+
+### accesorio.json
+
+```json
+{
+  "nombre": { "es": "Sombrero", "en": "Hat" },
+  "modo": "cartel",
+  "ancla": "coronilla",
+  "hueco": "cabeza",
+  "orden": 6,
+  "tapa": ["cabeza"],
+  "colores": {
+    "fijos": ["#ffffff"],
+    "nombres": { "#e0455a": { "es": "Cinta", "en": "Band" } }
+  }
+}
+```
+
+| Campo | Qué dice |
+|---|---|
+| `nombre` | Cómo sale en la lista, por idioma (`es`, `en`, `ja`, `ko`). Sin él, el de la carpeta. |
+| `modo` | **Obligatorio.** Cómo va puesto: `cara`, `cartel` o `alrededor` (ver abajo). |
+| `ancla` | A qué sitio de Nook se pega y con qué se mueve en otro personaje: `coronilla` (sube lo que sea más alto que Nook), `ojos` y `boca` (bajan o suben con los de ese personaje), `cuello` y `espalda` (con la parte de abajo del cuerpo) o `cuerpo` (no se mueve; es lo que hay si no dices otra). |
+| `hueco` | El sitio que ocupa: `cabeza`, `ojos`, `boca`, `cuello` o `espalda`. En cada hueco solo cabe un accesorio: al poner uno, se quita el que hubiera (los que trae el programa también los tienen: la corona, el gorro y los cuernos son de la cabeza). Sin él, no estorba a ninguno. |
+| `orden` | En qué orden se dibuja, de abajo arriba. Los que trae el programa van del 0 (la capa) al 9 (los audífonos); sin él, el tuyo va el 10, encima de todos. |
+| `tapa` | Lo que no se dibuja mientras lo llevas puesto: `cabeza` (lo que sale de lo alto de la cabeza: el rulo de Nook, el arándano del Limón, lo que haya puesto el autor…), `ojos` o `boca`. |
+| `colores` | `fijos`: colores del dibujo que no se pueden cambiar. `nombres`: cómo se llama cada color que sí (por su color en el dibujo y por idioma); sin nombre, solo salen las filas. |
+
+### Los tres modos
+
+- **`cara`**: pintado en la cara, como los ojos. Gira sobre ella y se desvanece al pasar al otro
+  lado de la cabeza, y no se sale del cuerpo. Para gafas, antifaces, bigotes, pecas, mascarillas…
+- **`cartel`**: se pega a la cabeza y siempre mira de frente: se inclina, se estira y salta con el
+  cuerpo, pero no se estrecha al girar la cabeza. Para gorros, lazos, corbatines… Con el ancla
+  `espalda` va detrás del cuerpo (capas, mochilas, alas).
+- **`alrededor`**: rodea la cabeza, como una diadema o una aureola: lo que queda del lado que no se
+  ve pasa por detrás del cuerpo. Cada forma es del lado en el que está su centro (a la izquierda o a
+  la derecha de x = 0); lo que está en medio se ve siempre delante.
+
+### Consejos
+
+- Empieza copiando uno de los ejemplos y cambiando lo que quieras.
+- Para ver cómo queda en otros personajes, elige el Limón, uno de imágenes… y mira que sube, baja
+  y se coloca bien. Si no, prueba con otra `ancla`.
+- Los bordes (`stroke`) se dibujan siempre con los extremos y las uniones redondeados.
