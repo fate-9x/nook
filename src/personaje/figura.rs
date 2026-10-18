@@ -272,7 +272,9 @@ impl Figura {
             rasgos: descripcion.colores.rasgos.as_deref().map(color).transpose()?,
             aviso: descripcion.colores.aviso.as_deref().map(color).transpose()?,
         };
-        let nombre = if descripcion.nombre.is_empty() { HashMap::from([("es".to_string(), id.clone())]) } else { descripcion.nombre.clone() };
+        // Sin nombre, el de su carpeta (el id sin lo de delante, ver `coleccion`).
+        let carpeta = id.rsplit('/').next().unwrap_or(&id).to_string();
+        let nombre = if descripcion.nombre.is_empty() { HashMap::from([("es".to_string(), carpeta)]) } else { descripcion.nombre.clone() };
         if let Some(imagenes) = &descripcion.imagenes {
             if descripcion.capas.is_some() {
                 return Err("personaje.json: lleva «capas» e «imagenes»: es uno u otro".into());
@@ -803,7 +805,7 @@ mod tests {
             <path id="boca" d="M90 130 L110 130" stroke="#000" stroke-width="3"/>
             <rect id="sin-capa" width="10" height="10"/>
         </svg>"##;
-        let figura = Figura::desde("gato".into(), None, Some(svg), &sin_archivos).unwrap();
+        let figura = Figura::desde("usuario/gato".into(), None, Some(svg), &sin_archivos).unwrap();
         let tipos: Vec<_> = figura.capas().iter().map(|c| c.tipo).collect();
         assert_eq!(tipos, vec![TipoCapa::Cuerpo, TipoCapa::Ojo, TipoCapa::Boca]);
         // Da igual el tamaño del dibujo: el cuerpo mide 1 de radio a lo ancho.
@@ -843,6 +845,18 @@ mod tests {
         let TipoCapa::Cabeza(apendice) = antena.tipo else { panic!("no es de la cabeza") };
         let arriba = apendice.ancla[1] + antena.caja.0.1;
         assert!(arriba >= -CABE_ARRIBA - 0.05, "{arriba}");
+    }
+
+    #[test]
+    fn los_ejemplos_de_la_guia_se_leen() {
+        let ejemplos = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ejemplos");
+        let gato = Figura::leer(&ejemplos.join("gato"), "usuario/gato".into()).unwrap();
+        assert!(gato.mira() && gato.capas().len() == 5);
+        assert!(gato.tiene(|t| matches!(t, TipoCapa::Cabeza(Apendice { delante: Delante::Girar, detras: true, .. }))));
+        let fantasma = Figura::leer(&ejemplos.join("fantasma"), "usuario/fantasma".into()).unwrap();
+        let Dibujo::Imagenes(imagenes) = &fantasma.dibujo else { panic!("no es de imágenes") };
+        assert!(imagenes.pixelado && imagenes.tiene(Animacion::Aviso) && !imagenes.tiene(Animacion::Musica));
+        assert_eq!(imagenes.fotogramas(Animacion::Reposo).len(), 4);
     }
 
     #[test]
