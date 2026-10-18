@@ -1,8 +1,9 @@
 # Guía: crea tu propio personaje para Nookly
 
 Esta guía te lleva paso a paso, desde una carpeta vacía hasta tener tu personaje en la barra. No
-hace falta programar: un personaje es un dibujo y un archivo de texto corto. Cuando quieras ver
-todas las opciones, están en la [referencia](personajes.md).
+hace falta programar: un personaje es un dibujo y un archivo de texto corto. Al final está la
+[referencia](#referencia-todas-las-opciones) con todas las opciones del motor, una por una: cada
+nombre de parte, cada campo del json, cada valor que puede tener y lo que hace Nookly solo.
 
 Hay dos maneras de hacerlo:
 
@@ -36,9 +37,15 @@ Cada personaje es **una carpeta** dentro de la carpeta de personajes de Nookly:
 Para llegar a ella: abre la **configuración** de Nookly → sección **Personaje** → **Abrir carpeta**
 (en el apartado «Tus personajes»). Si no existe todavía, se crea.
 
+La carpeta de cada personaje va directamente dentro de la de personajes (no una dentro de otra).
+Las carpetas cuyo nombre empieza por un punto (`.`) se ignoran. El nombre de la carpeta es solo
+para ti y para el archivo: el que sale en Nookly lo pondrás en el `personaje.json`.
+
 Nookly vigila esa carpeta: **en cuanto guardas un archivo, el cambio se ve en la barra** (en un
 segundo más o menos), sin reiniciar nada. Deja la configuración abierta en la sección Personaje
-mientras trabajas: la vista previa grande se mueve igual que el personaje de la barra.
+mientras trabajas: la vista previa grande se mueve igual que el personaje de la barra. Si algo está
+mal, la configuración lo dice en el apartado **«Personajes que no se pueden leer»**, y mientras lo
+arreglas se queda la última versión que funcionaba.
 
 ### El camino más rápido
 
@@ -158,7 +165,7 @@ Guarda. Las orejas aparecen, y el nombre en la lista pasa a ser «Gato».
 - En la configuración, **Probar aviso**: salta y le sale el circulito rojo.
 - Pon música: baila.
 - Ponle accesorios (gafas, gorro…): se colocan sobre su cara y su cabeza.
-  ¿Quieres hacer tú los accesorios? Mira [Accesorios propios](personajes.md#accesorios-propios).
+  ¿Quieres hacer tú los accesorios? Mira [Accesorios propios](#accesorios-propios).
 
 ¡Ya tienes tu gato! El resultado completo está en [`ejemplos/gato`](ejemplos/gato).
 
@@ -224,7 +231,7 @@ El resultado completo está en [`ejemplos/fantasma`](ejemplos/fantasma).
 ## Darle más vida (dibujo vectorial)
 
 Algunas ideas, todas con capas del `personaje.json` (los detalles están en la
-[referencia](personajes.md)):
+[referencia](#referencia-todas-las-opciones)):
 
 | Quiero… | Cómo |
 |---|---|
@@ -346,8 +353,24 @@ pueden leer»**. Mientras lo arreglas, se queda la última versión que funciona
 |---|---|
 | «falta la capa «cuerpo»» | Ponle el ID `cuerpo` a la silueta (paso 2). Revisa que esté escrito igual, en minúsculas. |
 | «no hay nada llamado «x» en el dibujo» | En `capas` hay un `id` que no existe en el SVG. Revisa el nombre en el dibujo y en el JSON. |
+| «la capa «x» está dos veces» | En `capas` hay un `id` repetido: cada capa va una sola vez. |
+| «la capa «x» no puede llamarse ancla-…» | Las capas no pueden empezar por `ancla-`: eso reserva el nombre para las anclas, que no van en la lista `capas`. |
+| «solo puede haber una capa de tipo «cuerpo»» | Hay dos capas de tipo `cuerpo` (o dos partes llamadas `cuerpo` en el dibujo). Deja una. |
+| «el cuerpo está vacío» o «el cuerpo no tiene superficie» | Lo que llamas `cuerpo` no tiene trazados o no ocupa ni de ancho ni de alto: revísalo en el dibujo. |
+| «el dibujo es demasiado grande» o «demasiados puntos: simplifícalo» | El SVG pasa de 2 MB o de 30 000 puntos: simplifícalo o aplana los trazados. |
+| «el dibujo no se puede leer» | El archivo no es un SVG válido. Ábrelo con Inkscape y guárdalo de nuevo. |
+| «falta personaje.svg (o «imagenes» en personaje.json)» | El json no tiene `capas` ni `imagenes`, y no hay SVG. |
+| «personaje.json: lleva «capas» e «imagenes»: es uno u otro» | Un personaje es de un solo tipo: quita uno de los dos. |
 | «personaje.json: unknown field …» | Hay una opción mal escrita (por ejemplo, `encma` en vez de `encima`). |
 | «personaje.json: expected …» o «EOF» | Al JSON le falta o le sobra algo: una coma, una comilla, una llave. Pégalo en un validador de JSON. |
+| «personaje.json: «imagenes» necesita al menos una imagen en «reposo»» | La lista `reposo` está vacía o falta. |
+| «demasiadas imágenes (n; como mucho 64)» | Entre todas las animaciones, hay más de 64 PNG. |
+| «es demasiado grande» (un PNG) | Ese PNG pasa de 8 MB. |
+| «mide ancho×alto (como mucho 1024×1024)» | Un PNG es más grande de 1024 × 1024 píxeles. |
+| «tipo de color no admitido» | El PNG no es a color con transparencia (RGBA) ni en escala de grises con transparencia: expórtalo de nuevo. |
+| «nombre de archivo no válido» | En `imagenes` hay un nombre con carpetas o caracteres raros. Usa letras, números, puntos, guiones, guiones bajos o espacios. |
+| «todas las imágenes tienen que medir lo mismo» | Exporta todas las imágenes con el mismo tamaño de lienzo. |
+| «la primera imagen del reposo es transparente» | Todo el primer PNG del reposo es transparente: dibuja el cuerpo. |
 | Algo del dibujo no aparece | Si hay `capas` en el JSON, solo se dibuja lo que está en la lista. Y lo que no tiene ID (ni está en un grupo con ID) no se dibuja. |
 | Un texto del dibujo no aparece | Los textos no se dibujan: en Inkscape, **Trayecto → Objeto a trayecto**. |
 | Un degradado sale de un solo color | Los degradados se pintan con su primer color. |
@@ -355,6 +378,347 @@ pueden leer»**. Mientras lo arreglas, se queda la última versión que funciona
 | Al mirar a un lado, la parte de atrás de la cabeza se ve sin pelo | Añade dos franjas a los lados: mira [La parte de atrás de la cabeza](#la-parte-de-atrás-de-la-cabeza). |
 | El personaje se ve pequeño | Si algo sale mucho del cuerpo (una antena muy alta), todo se encoge para que quepa en la barra al saltar. |
 | Los ojos no siguen al cursor | Los personajes de imágenes miran siempre de frente. Para que mire, hazlo en SVG. |
-| «todas las imágenes tienen que medir lo mismo» | Exporta todas las imágenes con el mismo tamaño de lienzo. |
 | Las imágenes se ven borrosas | Si es pixel art, añade `"pixelado": true`. |
 | No aparece en la lista y no hay error | La carpeta tiene que estar dentro de la de personajes (no más adentro) y tener un `personaje.svg` o un `personaje.json`. Las carpetas que empiezan por un punto se ignoran. |
+| Un accesorio no sale en la lista | Mira el apartado **«Accesorios que no se pueden leer»** de la configuración: allí dice qué le pasa ([Accesorios propios](#accesorios-propios)). |
+
+---
+
+# Referencia: todas las opciones
+
+Aquí está todo lo que el motor sabe hacer, opción por opción. Si solo quieres hacer tu personaje,
+con los tutoriales de arriba te basta; esto es para afinar o para consultar mientras dibujas.
+
+## Los archivos y las carpetas
+
+Un personaje de dibujo vectorial es una carpeta con:
+
+- **`personaje.svg`**: el dibujo, con cada parte con su nombre.
+- **`personaje.json`**: qué es cada parte. Es opcional si el dibujo solo tiene `cuerpo`, `ojo` y
+  `boca`.
+
+Un personaje de imágenes es una carpeta con los PNG y un `personaje.json` que los describe (no lleva
+SVG). Un personaje no puede ser de los dos: si el json lleva `capas` e `imagenes`, da un error.
+
+Los accesorios propios van en su propia carpeta, dentro de la de accesorios o de la de un personaje
+(ver [Accesorios propios](#accesorios-propios)).
+
+## Cómo se lee el dibujo (SVG)
+
+- **Cómo se nombra cada parte.** Vale el atributo `id` de un trazado, el de un grupo, o la
+  **etiqueta de capa de Inkscape** (lo que se ve en el panel *Capas y objetos*). Cuando un trazado
+  está dentro de grupos con nombre, cuenta primero su propio `id`, después su etiqueta y después
+  los de los grupos que lo contienen, del más cercano al más lejano. Un elemento pertenece a la
+  primera capa (o ancla) que coincida con alguno de esos nombres.
+- **Un grupo con nombre reúne a todo lo que hay dentro.** Si agrupas varias piezas de la boca y
+  llamas al grupo `boca`, todo eso es la boca.
+- **Relleno y borde van por separado.** Un trazado con relleno y con línea se pinta dos veces:
+  primero el relleno y encima la línea. Esto importa sobre todo en las [franjas](#franja).
+- **Lo que sí se respeta:** curvas de Bézier, grupos y sus transformaciones, la opacidad de cada
+  elemento (multiplicada por la de sus grupos) y la regla de relleno par-impar (`fill-rule:
+  evenodd`, para formas con agujeros).
+- **Lo que no:** los textos no se dibujan (conviértelos en trazados), de los degradados se usa su
+  primer color y los patrones no se pintan.
+- **Lo que no se ve también cuenta.** Un trazado oculto (`display: none`) o sin relleno ni borde no
+  se pinta, pero sí marca su sitio: así se hacen las anclas.
+- **El orden de pintado** es el del documento: lo de abajo del todo del archivo queda debajo. Cuando
+  el json tiene `capas`, lo que manda es ese orden; dentro de una capa, el del documento.
+- **El tamaño del lienzo da igual.** Todas las medidas se pasan a radios del cuerpo: da igual a qué
+  escala dibujes o dónde pongas el origen del `viewBox`.
+- **Límites:** como mucho 2 MB de archivo y 30 000 puntos en total (los puntos son los trazados ya
+  convertidos en tramos rectos; cuantas más curvas y detalle, más puntos).
+
+## Las partes del dibujo por su nombre
+
+Estos nombres se reconocen solos, sin necesidad de `personaje.json`:
+
+| Nombre | Qué es |
+|---|---|
+| `cuerpo` | La silueta. Obligatorio. Si hay varios elementos con ese nombre (o dentro de un grupo así llamado), su unión es la silueta. El color del primero de ellos es el color de base del cuerpo; los demás se pintan encima. |
+| `ojo` | El ojo **derecho** (el de la derecha según lo miras), en su sitio. El izquierdo es su reflejo, salvo que haya `ojo-izquierdo`. |
+| `ojo-izquierdo` | El ojo izquierdo, en su sitio, para cuando los ojos no son iguales. |
+| `ojo-alegre` | El ojo derecho **cuando está contento** (al hacer clic o con música); el izquierdo sale como el reflejo del alegre. Si no lo hay, un ojo relleno se recorta solo por abajo y queda un arco «∩». |
+| `boca` | La boca, en su sitio. |
+| `pintado` | Todo lo que va pintado en la cara (manchas, coloretes, pecas), si quieres que sea una sola capa. |
+
+Cualquier otro nombre es libre: lo que quieras (orejas, pelo, manchas…). Sin `personaje.json`, esas
+partes libres no se dibujan; con él, se dice qué es cada una en `capas`.
+
+## Las anclas
+
+Las anclas marcan sitios y **no se dibujan**: hazlas como un circulito pequeño sin relleno (o un
+trazado oculto) en el lugar que marcan. Su posición es el centro de lo que ocupa su forma. No se
+ponen en la lista `capas`: con que existan en el dibujo vale.
+
+| Nombre | Qué marca |
+|---|---|
+| `ancla-cuerpo` | El centro del cuerpo, si no quieres que sea el centro de su caja. Desde ahí se miden todas las distancias. |
+| `ancla-ojo` | El centro de los ojos (por defecto, el centro del dibujo del ojo derecho). Es donde se colocan las gafas y demás accesorios de los ojos. |
+| `ancla-boca` | El centro de la boca (por defecto, el centro del dibujo de la boca). |
+| `ancla-muelle` | La altura desde la que el pelo con `muelle` se mueve (por defecto, un poco por debajo del borde superior de la cabeza). |
+| `ancla-<capa>` | Dónde se pega a la cabeza una capa de tipo `cabeza` (por ejemplo, `ancla-oreja-izquierda` para la capa `oreja-izquierda`). Por defecto, abajo y en medio de lo que dibuja esa capa. |
+
+Si no hay capa de ojos ni boca (por ejemplo, un personaje sin boca), las anclas `ancla-ojo` y
+`ancla-boca` siguen sirviendo para colocar los accesorios. Sin nada, se usan las proporciones de
+Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de la mitad de abajo.
+
+## El personaje.json: nombre y colores
+
+```json
+{
+  "nombre": { "es": "Gato", "en": "Cat" },
+  "colores": { "cuerpo": "#3cb371", "rasgos": "#0b1230", "aviso": "#e0455a" }
+}
+```
+
+- **`nombre`**: cómo sale en la lista de personajes, por idioma. Los idiomas de la interfaz son
+  `es`, `en`, `ja` y `ko`; si falta el del usuario, se usa el español y, si no hay, el primero que
+  haya. Sin `nombre`, sale el nombre de la carpeta.
+- **`colores`** (los tres opcionales): colores del dibujo que Nookly cambia por colores que elige el
+  usuario. La sustitución va por color exacto: **cada trazado del dibujo que sea exactamente de ese
+  color** (en el formato `#rrggbb` o `#rgb`) pasa a llevar el color del usuario, sea del cuerpo, de
+  una mancha, de una oreja o de lo que sea.
+  - `cuerpo`: se cambia por el **color de acento** que elige el usuario en la configuración.
+  - `rasgos`: se cambia por el color que se lee bien sobre el acento (blanco o azul oscuro). Es para
+    los ojos, la boca y los contornos.
+  - `aviso`: el color del circulito de las notificaciones, para cuando el usuario no elige uno él
+    mismo. Si falta, se usa el color de los rasgos.
+
+## Las capas
+
+`capas` es la lista de las partes del dibujo **en el orden en que se pintan**: las primeras quedan
+debajo. Cuando hay `capas`, **solo se dibuja lo que está en la lista** (más las anclas, que no se
+dibujan). Sin `capas`, Nookly busca en el dibujo, por este orden: `cuerpo`, `pintado`, `ojo`,
+`ojo-izquierdo`, `ojo-alegre` y `boca`, y usa los que haya.
+
+Reglas de la lista:
+
+- Cada capa es `{"id": "…"}` más sus opciones. El `id` es el nombre de la parte en el dibujo.
+- No puede haber dos capas con el mismo `id`.
+- Ningún `id` puede empezar por `ancla-` (eso es de las anclas, que no van en la lista).
+- Tiene que haber exactamente una capa de tipo `cuerpo`.
+- Cada `id` tiene que existir en el dibujo: si no, error.
+
+El `tipo` de cada capa, si no lo dices, sale de su nombre (`cuerpo`, `ojo`, `ojo-izquierdo`,
+`ojo-alegre` o `boca`) y cualquier otro nombre es de tipo `pintado`.
+
+## Los tipos de capa
+
+| Tipo | Qué hace |
+|---|---|
+| `cuerpo` | La silueta. Solo puede haber una. Todo lo que va pintado en la cara se recorta por ella, y ella manda el tamaño de todo el personaje. |
+| `pintado` | Pintado en la cara (manchas, coloretes, pecas): gira con ella como si estuviera sobre una pelota y nunca se sale del cuerpo. Lo que queda al otro lado de la cabeza se desvanece poco a poco en vez de desaparecer de golpe. |
+| `franja` | Una franja de color (un flequillo, una barriga, el pelo de los lados). Ver [Franja](#franja). |
+| `ojo`, `ojo-izquierdo`, `ojo-alegre`, `boca` | Los rasgos: siguen al cursor, parpadean, se sorprenden y se vuelven arcos de alegría. |
+| `cabeza` | Algo que sale de la cabeza (orejas, cuernos, antenas, un rulo): se mueve con ella. Ver [Que gire bien](#que-gire-bien-lo-que-sale-de-la-cabeza). |
+
+### Franja
+
+Una franja es una zona de color que se extiende desde una línea (su **borde**) hasta fuera del
+cuerpo. Se dibuja distinto de lo que parece:
+
+- **El borde** es el trazado de la parte, dibujado **solo con su línea** (`stroke`), como una línea
+  normal, de un extremo al otro. De frente casi no se ve si está pegada al borde de la cabeza.
+- **El relleno** (`fill`) es el **color de la franja**: no se dibuja la forma, se rellena desde el
+  borde hasta fuera del cuerpo, hacia donde diga `hacia`, y luego se recorta por la silueta.
+  Un trazado con relleno y línea hace las dos cosas: la franja y su borde marcado.
+- El borde va pintado en la cara, así que se mueve con ella: al girar la cabeza, el borde se va
+  hacia donde mira y la franja cubre lo que queda detrás (por eso sirven para el pelo de la nuca).
+- Con `hacia` (`"arriba"` por defecto, `"abajo"`, `"izquierda"` o `"derecha"`) dices hacia dónde se
+  rellena. Un borde de lado a lado se rellena hacia arriba o hacia abajo; un borde de arriba abajo
+  (como el de una nuca), hacia un lado.
+- Con `"encima": true`, la franja va **sobre los ojos y la boca** (un flequillo que los tapa). Por
+  defecto se recorta igualmente por el cuerpo; con `"recorte"` (un número de `1` a `1.5`) puede
+  salirse hasta esas veces su tamaño, agrandada desde el centro del cuerpo (el pelo del Limón va con
+  `1.06` para que asome un poco por encima de la cabeza).
+- Con `"muelle": true`, se mueve como el pelo (ver la opción `muelle` más abajo).
+
+## Las opciones de cada capa
+
+Además del `id` y el `tipo`, cada capa puede llevar estas opciones (las que no corresponden a su
+tipo no hacen nada):
+
+| Opción | Tipo | Para | Qué hace |
+|---|---|---|---|
+| `"muelle"` | `true`/`false` | cualquier capa | Se mueve como el pelo: se queda atrás cuando la cabeza se mueve y luego se asienta, como un mechón que se dobla. El movimiento nulo empieza en la altura de `ancla-muelle` (o un poco por debajo del borde superior de la cabeza) y crece hacia arriba. |
+| `"hacia"` | `"arriba"` (por defecto), `"abajo"`, `"izquierda"` o `"derecha"` | `franja` | Hacia dónde se rellena la franja desde su borde. |
+| `"encima"` | `true`/`false` | `franja` | Va por encima de los ojos y la boca (pelo que los tapa). |
+| `"recorte"` | número, de `1` a `1.5` | `franja` con `encima` | Cuánto puede salirse del cuerpo: la silueta se agranda esas veces desde su centro y la franja se recorta por ella. Sin `recorte`, una franja `encima` se recorta por el cuerpo como las demás. |
+| `"orientacion"` | `"cabeza"` (por defecto) o `"cuerpo"` | `cabeza` | Si se inclina con la cabeza (como un cartel pegado a ella) o solo se gira y se estira con el cuerpo (el rulo de Nook va con `"cuerpo"`). |
+| `"detras"` | `true`/`false` | `cabeza` | También se dibuja detrás del cuerpo (las orejas de un lado se ven por detrás al girar). |
+| `"delante"` | `"siempre"` (por defecto), `"nunca"`, `"girar"` o `"revelar"` | `cabeza` | Cuándo se ve delante del cuerpo: `"siempre"`, nunca (solo detrás), `"girar"` (pasa delante al girar la cabeza hacia su lado, como una oreja, y se esconde al girar hacia el otro) o `"revelar"` (de frente solo se ve su mitad de arriba; al mirar el personaje hacia él, asoma poco a poco hasta verse entero, como el arándano del Limón). |
+| `"fundir"` | `true`/`false` | `cabeza` | Se suma a la silueta del cuerpo, como si fuera parte de él (el rulo de Nook es del mismo color y se funde con el cuerpo). |
+| `"tapable"` | `true` (por defecto)/`false` | `cabeza` | Si vale `false`, los accesorios de la cabeza no lo esconden (un gorro tapa el pelo, pero no las orejas de un gato con `"tapable": false`). |
+| `"profundidad"` | número | `cabeza` | Cuánto hacia delante (positivo) o hacia atrás (negativo) está su ancla, en radios del cuerpo: `0` es el plano del centro de la cabeza. Sin ella, el ancla queda en la superficie de la cara que hay delante de su punto, como pegada a la piel. |
+
+Ejemplo con todo:
+
+```json
+{ "id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.15, "muelle": true }
+```
+
+## Lo que Nookly mueve solo
+
+No hay que animar nada: el motor mueve el personaje según lo que pasa.
+
+- **Mira al cursor.** La cara gira hasta unos 35° a cada lado y hacia arriba y abajo. Los ojos y la
+  boca se deslizan por la cara como sobre una pelota; lo de tipo `cabeza`, según su ancla y su
+  profundidad.
+- **Parpadea y respira.** Los ojos se cierran de vez en cuando (se estiran desde su centro) y el
+  cuerpo respira muy de vez en cuando.
+- **Aviso (notificación).** Se agacha, salta, cae aplastándose y rebota; abre mucho los ojos; le
+  sale un circulito (la pastilla) al lado y lo mira un momento. El color de la pastilla es el que
+  elija el usuario, o el `colores.aviso` del personaje, o el de los rasgos.
+- **Clic.** Al hacer clic en él, da un salto más grande con rebotes y ojos de alegría: si hay
+  `ojo-alegre`, se ve; si no, los ojos rellenos se recortan en arco «∩».
+- **Música.** Se balancea al ritmo, inclina la cabeza, entorna los ojos con arcos de alegría y salta
+  con cada golpe fuerte.
+- **Accesorios.** Los accesorios se colocan solos sobre el personaje (ver
+  [Accesorios propios](#accesorios-propios)); los que tapan la cabeza esconden las capas de tipo
+  `cabeza` que sean `tapable`, y los que tapan ojos o boca no las dibujan.
+- **El tamaño se adapta.** El radio del cuerpo es la mitad de su ancho o de su alto (lo que sea
+  mayor), y el dibujo entero tiene que caber hacia arriba (1,55 radios), hacia abajo (1,05) y a los
+  lados (1,35) para que quepa en la barra cuando salta: si algo sale más, todo se encoge un poco.
+
+## El modo de imágenes: todas las opciones
+
+```json
+{
+  "nombre": { "es": "Fantasma pixel", "en": "Pixel ghost" },
+  "colores": { "aviso": "#e0455a" },
+  "imagenes": {
+    "reposo": ["reposo-1.png", "reposo-2.png"],
+    "aviso": ["aviso-1.png"],
+    "musica": ["baile-1.png", "baile-2.png"],
+    "clic": ["salto.png"],
+    "fps": 8,
+    "pixelado": false,
+    "ojo": [14, 10],
+    "boca": [12, 16]
+  }
+}
+```
+
+- **`reposo`** (obligatorio, al menos una imagen), **`aviso`** (cuando llega una notificación),
+  **`musica`** (cuando suena música) y **`clic`** (al hacer clic en él): cada una es la lista de
+  archivos PNG de esa animación, en orden, que se repite sin parar. Si falta una animación (o su
+  lista está vacía), se usan las del reposo.
+- **`fps`**: a cuántas imágenes por segundo se repite cada animación. Por defecto, 8; se admite de
+  0,5 a 60.
+- **`pixelado`**: con `true`, las imágenes se amplían sin suavizar (pixel art nítido). Para dibujos
+  normales, quítalo o déjalo en `false`.
+- **`ojo`** y **`boca`**: dónde están el ojo derecho y la boca en las imágenes, **en píxeles** de las
+  imágenes (contando desde la esquina de arriba a la izquierda). Sirven para colocar los accesorios:
+  con `"ancla": "ojos"` o `"boca"`, el accesorio se lleva a esos puntos. Si faltan, se usan las
+  proporciones de Nook (ojos a un 27 % del ancho a cada lado del centro, a la altura del centro; boca
+  a un 38 % de la mitad de abajo del cuerpo).
+- **El cuerpo** es lo que no es transparente en la **primera imagen del reposo**: su centro es el
+  centro del personaje y su tamaño manda en todos los movimientos (saltos, estirones…).
+- **Reglas de los archivos:**
+  - Todos los PNG del personaje miden lo mismo, con el personaje en el mismo sitio en todos.
+  - Como mucho 64 imágenes en total, de hasta 1024 × 1024 píxeles y 8 MB cada una.
+  - Guardados como PNG a color con transparencia (RGBA) o en escala de grises con transparencia.
+  - Nombres de archivo solo con letras, números, puntos, guiones, guiones bajos o espacios, sin
+    carpetas (todo va junto en la carpeta del personaje) y sin empezar por punto.
+- El personaje de imágenes **no mira al cursor ni parpadea** (no tiene cara que mover), pero salta,
+  se estira, rebota al clic, baila con la música, lleva accesorios y tiene su pastilla de aviso como
+  cualquier otro.
+
+## Accesorios propios
+
+Los accesorios (gorros, gafas, bigotes, capas…) también pueden ser tuyos: cada uno es una carpeta
+con un dibujo y una descripción, y sirve para todos los personajes. Hay tres ejemplos listos para
+copiar y cambiar en [`ejemplos-accesorios/`](ejemplos-accesorios): un sombrero, una aureola y un
+bigote.
+
+### Dónde van
+
+- **Para todos los personajes:** `%APPDATA%\nook\accesorios\<carpeta>\`. La abre la configuración →
+  Personaje → **Abrir carpeta de accesorios**.
+- **Para un solo personaje:** dentro de su carpeta, en
+  `personajes\<personaje>\accesorios\<carpeta>\`. Solo sale en la lista cuando ese personaje está
+  elegido.
+
+Como con los personajes, al guardar sus archivos se ve el cambio al momento, y si algo está mal, la
+configuración lo dice en el apartado **«Accesorios que no se pueden leer»**.
+
+### El dibujo: accesorio.svg
+
+Se dibuja sobre **Nook**, que hace de plantilla: el (0, 0) del dibujo es el centro de su cuerpo, que
+mide 98 de ancho (de -49 a 49) y llega a -39 por arriba y a 37,5 por abajo; los ojos están en
+(±13, 0) y la boca en (0, 15). Da igual dónde pongas el `viewBox` o a qué tamaño dibujes: valen las
+coordenadas del dibujo. Con otro personaje, el accesorio se coloca solo, moviéndose como diga su
+`ancla`.
+
+Vale lo mismo que con los personajes: curvas, grupos, transformaciones, opacidades y regla
+par-impar; los textos hay que convertirlos en trazados; de un degradado se usa su primer color; y
+como mucho 30 000 puntos. Los bordes (`stroke`) se dibujan siempre con los extremos y las uniones
+redondeados, sea cual sea su `stroke-linecap` o `stroke-linejoin`.
+
+### Los colores
+
+**Cada color distinto del dibujo es un color que el usuario puede cambiar**, con su propia fila de
+colores en la configuración. Empieza siendo el del dibujo, y siempre puede volver a él (es la
+primera opción de la fila). Como mucho, **8 colores distintos**: si necesitas más, o hay uno que no
+debe cambiar (el blanco de un ojo, por ejemplo), márcalo como fijo en el json.
+
+### El accesorio.json
+
+```json
+{
+  "nombre": { "es": "Sombrero", "en": "Hat" },
+  "modo": "cartel",
+  "ancla": "coronilla",
+  "hueco": "cabeza",
+  "orden": 6,
+  "tapa": ["cabeza"],
+  "colores": {
+    "fijos": ["#ffffff"],
+    "nombres": { "#e0455a": { "es": "Cinta", "en": "Band" } }
+  }
+}
+```
+
+| Campo | Qué dice |
+|---|---|
+| `nombre` | Cómo sale en la lista, por idioma (`es`, `en`, `ja`, `ko`). Sin él, el de la carpeta. |
+| `modo` | **Obligatorio.** Cómo va puesto: `cara`, `cartel` o `alrededor` (ver [los tres modos](#los-tres-modos)). |
+| `ancla` | A qué sitio de la plantilla se pega y con qué se mueve en otro personaje: `coronilla`, `ojos`, `boca`, `cuello`, `espalda` o `cuerpo` (ver [Las anclas de un accesorio](#las-anclas-de-un-accesorio)). Sin él, `cuerpo`. |
+| `hueco` | El sitio que ocupa: `cabeza`, `ojos`, `boca`, `cuello` o `espalda`. En cada hueco solo cabe un accesorio: al poner uno, se quita el que hubiera (los que trae el programa también los ocupan: la corona, el gorro y los cuernos son de la cabeza). Sin él, no estorba a ninguno. |
+| `orden` | En qué orden se dibuja, de abajo arriba. Los que trae el programa van del 0 (la capa) al 9 (los audífonos); sin él, el tuyo va el 10, encima de todos. |
+| `tapa` | Lista de lo que no se dibuja mientras lo llevas puesto: `"cabeza"` (lo que sale de lo alto de la cabeza y sea `tapable`: el rulo de Nook, el arándano del Limón, lo que haya puesto el autor…), `"ojos"` o `"boca"`. |
+| `colores` | `fijos`: colores del dibujo (`#rrggbb` o `#rgb`) que el usuario no puede cambiar. `nombres`: cómo se llama cada color que sí (por su color en el dibujo y por idioma); sin nombre, el color sale igual en la configuración, pero sin etiqueta. Un nombre que hable de un color que no está en el dibujo (o que sea fijo) da un error. |
+
+### Los tres modos
+
+- **`cara`**: pintado en la cara, como los ojos. Gira sobre ella y se desvanece al pasar al otro
+  lado de la cabeza, y no se sale del cuerpo. Para gafas, antifaces, bigotes, pecas, mascarillas…
+- **`cartel`**: se pega a la cabeza y siempre mira de frente: se inclina, se estira y salta con el
+  cuerpo, pero no se estrecha al girar la cabeza. Para gorros, lazos, corbatines… Con el ancla
+  `espalda` va detrás del cuerpo (capas, mochilas, alas).
+- **`alrededor`**: rodea la cabeza, como una diadema o una aureola: lo que queda del lado que no se
+  ve pasa por detrás del cuerpo. Cada forma es del lado en el que está su centro (a la izquierda o a
+  la derecha de x = 0); lo que está en medio se ve siempre delante.
+
+### Las anclas de un accesorio
+
+El `ancla` decide a qué punto de la plantilla de Nook se pega el dibujo y cómo se mueve cuando el
+personaje mide distinto:
+
+| Ancla | Dónde se pega | Cómo se mueve en otro personaje |
+|---|---|---|
+| `coronilla` | Lo alto de la cabeza | Sube (o baja) lo que ese personaje mida de más (o de menos) que Nook hacia arriba. |
+| `ojos` | A la altura de los ojos | Baja o sube hasta los ojos de ese personaje. |
+| `boca` | A la altura de la boca | Baja o sube (y se corre a los lados) hasta la boca de ese personaje. |
+| `cuello` | A la altura de la base del cuerpo | Baja o sube con la parte de abajo del cuerpo (para corbatines, bufandas). |
+| `espalda` | Detrás del cuerpo | Igual que `cuello`, pero el accesorio se dibuja detrás del cuerpo (capas, mochilas, alas). |
+| `cuerpo` | El centro del cuerpo | No se mueve: vale para dibujos que rodean todo el cuerpo. |
+
+Con `modo: "cara"`, el accesorio pegado a los ojos o a la boca se desvanece al pasar al otro lado de
+la cabeza, como lo pintado en ella.
+
+### Consejos
+
+- Empieza copiando uno de los ejemplos y cambiando lo que quieras.
+- Para ver cómo queda en otros personajes, elige el Limón, uno de imágenes… y mira que sube, baja
+  y se coloca bien. Si no, prueba con otra `ancla`.
