@@ -1,0 +1,21 @@
+{
+  "nombre": {
+    "es": "Bigote",
+    "en": "Moustache"
+  },
+  "modo": "cara",
+  "ancla": "boca",
+  "hueco": "boca",
+  "colores": {
+    "nombres": {
+      "#4a2f1f": {
+        "es": "Pelo",
+        "en": "Hair"
+      },
+      "#8a5a3a": {
+        "es": "Brillo",
+        "en": "Highlight"
+      }
+    }
+  }
+}

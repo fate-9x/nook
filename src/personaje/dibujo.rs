@@ -5,7 +5,7 @@
 //! toque, girado, estirado y movido como el cuerpo. Las formas se rasterizan con `zeno`, el mismo
 //! que usa Slint para sus trazados, con los bordes suavizados.
 
-use super::accesorios::{self, Accesorio, Estilo};
+use super::accesorios::{self, Estilo, Puesto};
 use super::estados::{OJO_ALTO, OJO_ANCHO};
 use super::figura::{Apendice, Capa, Delante, Dibujo, Figura, Forma, Fotograma, Imagenes, Orientacion, TipoCapa};
 use super::forma::Punto;
@@ -23,7 +23,7 @@ pub struct Aspecto {
     pub rasgos: [u8; 3],
     /// Color de la pastilla de aviso; sin él, el de la figura (o el de los rasgos).
     pub aviso: Option<[u8; 3]>,
-    pub accesorios: Vec<Accesorio>,
+    pub accesorios: Vec<Puesto>,
 }
 
 /// Radio del cuerpo respecto al lado de la imagen (deja margen para lo que sale de él y los
@@ -531,9 +531,9 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
     let n = (lado * lado) as usize;
     let mut capas = Capas { detras: Vec::new(), cuerpo: vec![0.0; n], base: Base::Color(aspecto.cuerpo), pinturas: Vec::new(), delante: Vec::new() };
     let tapado = Tapado {
-        cabeza: aspecto.accesorios.iter().any(|a| a.tipo.tapa_la_cabeza()),
-        ojos: aspecto.accesorios.iter().any(|a| a.tipo.tapa_los_ojos()),
-        boca: aspecto.accesorios.iter().any(|a| a.tipo.tapa_la_boca()),
+        cabeza: aspecto.accesorios.iter().any(Puesto::tapa_la_cabeza),
+        ojos: aspecto.accesorios.iter().any(Puesto::tapa_los_ojos),
+        boca: aspecto.accesorios.iter().any(Puesto::tapa_la_boca),
     };
     match &figura.dibujo {
         Dibujo::Vectorial(lista) => lista.iter().for_each(|capa| pintor.capa(capa, &mut capas, tapado)),
@@ -542,10 +542,10 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
 
     // Accesorios, de abajo arriba: cada pieza va delante del cuerpo con su opacidad (recortada
     // por él si va pintada en la cara) y, si le toca, también detrás.
-    let mut puestos: Vec<&Accesorio> = aspecto.accesorios.iter().collect();
-    puestos.sort_by_key(|a| a.tipo.orden());
+    let mut puestos: Vec<&Puesto> = aspecto.accesorios.iter().collect();
+    puestos.sort_by_key(|a| a.orden());
     for accesorio in puestos {
-        for pieza in accesorios::piezas(accesorio, &cuadro.cabeza, &pantalla, escala) {
+        for pieza in accesorios::piezas_de(accesorio, &cuadro.cabeza, &pantalla, escala) {
             if pieza.delante <= 0.0 && !pieza.detras {
                 continue;
             }
@@ -556,10 +556,10 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
             };
             let cubre = cobertura(&pieza.trazo, pintura, escala, lado);
             if pieza.detras {
-                capas.detras.push((pieza.color, a_mascara(cubre.clone(), 1.0)));
+                capas.detras.push((pieza.color, a_mascara(cubre.clone(), pieza.alfa)));
             }
             if pieza.delante > 0.0 {
-                capas.delante.push((pieza.color, a_mascara(cubre, pieza.delante), pieza.recortar));
+                capas.delante.push((pieza.color, a_mascara(cubre, pieza.delante * pieza.alfa), pieza.recortar));
             }
         }
     }
@@ -655,16 +655,16 @@ mod tests {
 
     #[test]
     fn con_gafas_de_sol_no_se_dibujan_los_ojos() {
-        use super::super::accesorios::Tipo;
+        use super::super::accesorios::{Accesorio, Tipo};
         let lado = 128;
         let cuadro = Motor::new().muestrear(0.5);
         // Ojos de un color que no usa nada más: con las gafas (negras) no queda ningún píxel así.
         let ojos = [1, 2, 250];
-        let con = |accesorios: Vec<Accesorio>| {
+        let con = |accesorios: Vec<Puesto>| {
             let imagen = dibujar(&cuadro, lado, &Aspecto { cuerpo: VERDE, rasgos: ojos, aviso: None, accesorios });
             pixeles(&imagen).iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == ojos).count()
         };
-        let gafas = Accesorio { tipo: Tipo::GafasDeSol, color: [34, 37, 45] };
+        let gafas = Accesorio { tipo: Tipo::GafasDeSol, color: [34, 37, 45] }.into();
         let sin_gafas = con(Vec::new());
         let con_gafas = con(vec![gafas]);
         assert!(sin_gafas > 0);
@@ -674,10 +674,10 @@ mod tests {
 
     #[test]
     fn con_gorro_no_se_dibuja_el_rulo() {
-        use super::super::accesorios::Tipo;
+        use super::super::accesorios::{Accesorio, Tipo};
         let lado = 128;
         let cuadro = Motor::new().muestrear(0.5);
-        let gorro = Accesorio { tipo: Tipo::GorroDeLana, color: [1, 2, 250] };
+        let gorro = Accesorio { tipo: Tipo::GorroDeLana, color: [1, 2, 250] }.into();
         let imagen = dibujar(&cuadro, lado, &Aspecto { accesorios: vec![gorro], ..aspecto(VERDE, [18, 32, 58]) });
         // Por encima del gorro (que llega a lo alto del rulo) no asoma nada del color del cuerpo.
         let verdes_arriba = pixeles(&imagen)[..(lado * lado / 5) as usize].iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == VERDE).count();

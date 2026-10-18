@@ -2,7 +2,7 @@
 // que toca (cada uno en su archivo de ui/). Aquí se personaliza lo visual: colores, tamaños, qué
 // elementos aparecen y en qué orden. Cada vez que guardes y hagas `cargo run` verás los cambios.
 
-import { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme } from "tema.slint";
+import { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
 import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria } from "iconos.slint";
 import { Boton } from "controles.slint";
@@ -14,7 +14,7 @@ import { PanelBuscador } from "buscador.slint";
 import { PanelSonido } from "sonido.slint";
 
 // Lo que usa Rust (src/main.rs y src/barra/): los colores, los datos de las listas y las dos ventanas.
-export { Tema, ElementoItem, ItemBoveda, AccesorioItem, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza }
+export { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza }
 export { Emergente } from "emergente.slint";
 
 export component Barra inherits Window {
@@ -250,9 +250,10 @@ export component Barra inherits Window {
     callback nuevo-personaje();             // crea uno a partir de Nook y abre su carpeta
     callback abrir-carpeta-personajes();
     callback elegir-idioma(int);
-    callback alternar-accesorio(int);               // poner o quitar el accesorio n
-    callback elegir-color-accesorio(int, color);
-    callback agregar-color-accesorio(int);          // "+" de la fila de colores del accesorio n
+    callback alternar-accesorio(string);            // poner o quitar el accesorio de este id
+    callback elegir-color-accesorio(string, int, color);   // id, número del color y el color
+    callback agregar-color-accesorio(string, int);  // "+" de la fila de colores del accesorio y su color n
+    callback abrir-carpeta-accesorios();
     callback menu-color-accesorio(int);             // clic derecho en un color propio: índice
     callback alternar-aviso-automatico();           // usar el color de los ojos o uno elegido
     callback elegir-color-aviso(color);
@@ -1606,8 +1607,9 @@ export component Barra inherits Window {
         nuevo-personaje => { root.nuevo-personaje(); }
         abrir-carpeta-personajes => { root.abrir-carpeta-personajes(); }
         alternar-accesorio(a) => { root.alternar-accesorio(a); }
-        elegir-color-accesorio(a, b) => { root.elegir-color-accesorio(a, b); }
-        agregar-color-accesorio(a) => { root.agregar-color-accesorio(a); }
+        elegir-color-accesorio(a, b, c) => { root.elegir-color-accesorio(a, b, c); }
+        agregar-color-accesorio(a, b) => { root.agregar-color-accesorio(a, b); }
+        abrir-carpeta-accesorios => { root.abrir-carpeta-accesorios(); }
         menu-color-accesorio(a) => { root.menu-color-accesorio(a); }
         alternar-aviso-automatico => { root.alternar-aviso-automatico(); }
         elegir-color-aviso(a) => { root.elegir-color-aviso(a); }

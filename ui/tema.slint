@@ -54,11 +54,24 @@ export struct ItemBoveda {
     etiqueta: string,   // etiqueta del texto ("" sin etiqueta)
 }
 
-// Accesorio del personaje en la personalización: si lo lleva puesto y de qué color.
+// Un color de un accesorio del personaje (los que trae el programa tienen uno; los de archivos,
+// uno por cada color de su dibujo): su nombre (vacío si no lo tiene), el elegido y la fila de
+// colores entre los que elegir (con el del dibujo el primero, si es de un archivo), cuántos son
+// fijos de la fila (los demás son propios y se pueden quitar) y cuántos van delante de ella.
+export struct ColorAccesorio {
+    nombre: string,
+    color: color,
+    paleta: [color],
+    base: int,
+    desplazamiento: int,
+}
+
+// Accesorio del personaje en la personalización: su id, si lo lleva puesto y sus colores.
 export struct AccesorioItem {
+    id: string,
     nombre: string,
     puesto: bool,
-    color: color,
+    colores: [ColorAccesorio],
 }
 
 // Combinación de colores guardada.

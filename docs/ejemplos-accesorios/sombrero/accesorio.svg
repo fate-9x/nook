@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -80 120 120" width="240" height="240">
+  <!-- Se dibuja sobre Nook: el (0, 0) es el centro de su cuerpo, que mide 98 de ancho (de -49 a 49)
+       y llega a -39 por arriba. Cada color distinto es un color que el usuario puede cambiar. -->
+  <ellipse id="ala" cx="0" cy="-38" rx="36" ry="6" fill="#2b2b3a"/>
+  <path id="copa" d="M -20 -38 L -16 -66 Q 0 -72 16 -66 L 20 -38 Z" fill="#3a6ea5"/>
+  <rect id="cinta" x="-19" y="-48" width="38" height="7" fill="#e0455a"/>
+  <circle id="adorno" cx="12" cy="-44.5" r="2.5" fill="#ffffff"/>
+</svg>

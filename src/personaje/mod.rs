@@ -6,6 +6,7 @@
 //! (deriva de la mirada y parpadeos) como función pura del tiempo y las transiciones que frenan
 //! sin pasarse. Las figuras (forma, ojos, colores) son propias.
 
+pub mod accesorio_archivo;
 mod accesorios;
 mod cara;
 pub mod coleccion;
@@ -16,7 +17,7 @@ mod forma;
 mod motor;
 mod svg;
 
-pub use accesorios::{Accesorio, Tipo as TipoAccesorio};
+pub use accesorios::{Accesorio, Puesto, Tipo as TipoAccesorio};
 pub use dibujo::{Aspecto, RADIO, dibujar};
 pub use estados::Estado;
 pub use figura::Figura;

@@ -1,0 +1,31 @@
+{
+  "nombre": {
+    "es": "Sombrero",
+    "en": "Hat"
+  },
+  "modo": "cartel",
+  "ancla": "coronilla",
+  "hueco": "cabeza",
+  "tapa": [
+    "cabeza"
+  ],
+  "colores": {
+    "fijos": [
+      "#ffffff"
+    ],
+    "nombres": {
+      "#2b2b3a": {
+        "es": "Ala",
+        "en": "Brim"
+      },
+      "#3a6ea5": {
+        "es": "Copa",
+        "en": "Crown"
+      },
+      "#e0455a": {
+        "es": "Cinta",
+        "en": "Band"
+      }
+    }
+  }
+}

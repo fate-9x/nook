@@ -217,17 +217,42 @@ fn leer_figura<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Erro
     Ok(if figura == "menta" { FIGURA_INICIAL.into() } else { figura })
 }
 
-/// Un accesorio del personaje: si lo lleva puesto y de qué color (se recuerda aunque se quite).
+/// Un accesorio del personaje: si lo lleva puesto y de qué colores (se recuerdan aunque se quite).
+/// `tipo` es su id: el de uno de los que trae el programa ("corona") o el de uno de los archivos
+/// del usuario ("usuario/<carpeta>"). Si ya no existe (se borró su carpeta, o es de una versión más
+/// nueva), se conserva pero no se muestra ni se dibuja.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Accesorio {
-    pub tipo: TipoAccesorio,
+    pub tipo: String,
     pub puesto: bool,
+    /// Su primer color (el único de los que trae el programa). Vacío: el del dibujo.
     pub color: String,
+    /// Los colores siguientes de uno de archivo, en el orden de su dibujo; los que faltan o están
+    /// vacíos, los del dibujo.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub colores_extra: Vec<String>,
 }
 
-/// Los accesorios que hay, en el orden en que salen en la personalización.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+impl Accesorio {
+    /// Su color número `ranura` (0 el primero): vacío si es el del dibujo.
+    pub fn color_de(&self, ranura: usize) -> &str {
+        if ranura == 0 { &self.color } else { self.colores_extra.get(ranura - 1).map_or("", String::as_str) }
+    }
+
+    fn poner_color(&mut self, ranura: usize, color: String) {
+        if ranura == 0 {
+            self.color = color;
+        } else {
+            if self.colores_extra.len() < ranura {
+                self.colores_extra.resize(ranura, String::new());
+            }
+            self.colores_extra[ranura - 1] = color;
+        }
+    }
+}
+
+/// Los accesorios que trae el programa, en el orden en que salen en la personalización.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TipoAccesorio {
     Audifonos,
     Corona,
@@ -239,18 +264,22 @@ pub enum TipoAccesorio {
     Mascarilla,
     Corbatin,
     CapaDeVampiro,
-    /// Uno de una versión más nueva del programa: se conserva pero no se muestra.
-    #[serde(other)]
-    Otro,
 }
 
 /// Sitio del personaje que ocupa un accesorio: en cada uno solo cabe uno a la vez.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub enum Hueco {
     /// Lo alto de la cabeza (corona, gorro, cuernos).
     Cabeza,
     /// Los ojos (gafas, monóculo, antifaz).
     Ojos,
+    /// La boca (mascarilla).
+    Boca,
+    /// El cuello (corbatín).
+    Cuello,
+    /// La espalda (capa).
+    Espalda,
 }
 
 impl TipoAccesorio {
@@ -267,6 +296,27 @@ impl TipoAccesorio {
         TipoAccesorio::CapaDeVampiro,
     ];
 
+    /// El id con el que se guarda.
+    pub fn id(self) -> &'static str {
+        match self {
+            TipoAccesorio::Audifonos => "audifonos",
+            TipoAccesorio::Corona => "corona",
+            TipoAccesorio::GorroDeLana => "gorro_de_lana",
+            TipoAccesorio::Cuernos => "cuernos",
+            TipoAccesorio::GafasDeSol => "gafas_de_sol",
+            TipoAccesorio::Monoculo => "monoculo",
+            TipoAccesorio::Antifaz => "antifaz",
+            TipoAccesorio::Mascarilla => "mascarilla",
+            TipoAccesorio::Corbatin => "corbatin",
+            TipoAccesorio::CapaDeVampiro => "capa_de_vampiro",
+        }
+    }
+
+    /// El accesorio con ese id, si es de los que trae el programa.
+    pub fn de_id(id: &str) -> Option<TipoAccesorio> {
+        TipoAccesorio::TODOS.into_iter().find(|t| t.id() == id)
+    }
+
     /// Su nombre, en el idioma de la interfaz.
     pub fn nombre(self) -> &'static str {
         match self {
@@ -280,7 +330,6 @@ impl TipoAccesorio {
             TipoAccesorio::Mascarilla => tr("Mascarilla"),
             TipoAccesorio::Corbatin => tr("Corbatín"),
             TipoAccesorio::CapaDeVampiro => tr("Capa de vampiro"),
-            TipoAccesorio::Otro => "",
         }
     }
 
@@ -288,7 +337,7 @@ impl TipoAccesorio {
     pub fn color_inicial(self) -> &'static str {
         let [lila, blanco, negro, rosa, amarillo, rojo] = COLORES_ACCESORIOS;
         match self {
-            TipoAccesorio::Audifonos | TipoAccesorio::Otro => lila,
+            TipoAccesorio::Audifonos => lila,
             TipoAccesorio::Corona | TipoAccesorio::Monoculo => amarillo,
             TipoAccesorio::GorroDeLana => rosa,
             TipoAccesorio::Mascarilla => blanco,
@@ -301,9 +350,24 @@ impl TipoAccesorio {
         match self {
             TipoAccesorio::Corona | TipoAccesorio::GorroDeLana | TipoAccesorio::Cuernos => Some(Hueco::Cabeza),
             TipoAccesorio::GafasDeSol | TipoAccesorio::Monoculo | TipoAccesorio::Antifaz => Some(Hueco::Ojos),
-            _ => None,
+            TipoAccesorio::Mascarilla => Some(Hueco::Boca),
+            TipoAccesorio::Corbatin => Some(Hueco::Cuello),
+            TipoAccesorio::CapaDeVampiro => Some(Hueco::Espalda),
+            TipoAccesorio::Audifonos => None,
         }
     }
+}
+
+/// El hueco del accesorio `id` si es de los que trae el programa (los de archivos dicen el suyo
+/// en su `accesorio.json`: ver `personaje::coleccion`).
+pub fn hueco_integrado(id: &str) -> Option<Hueco> {
+    TipoAccesorio::de_id(id).and_then(TipoAccesorio::hueco)
+}
+
+/// El color con el que se pone la primera vez el accesorio `id`: el de los que trae el programa;
+/// los de archivos, el de su dibujo (vacío).
+fn color_inicial(id: &str) -> &'static str {
+    TipoAccesorio::de_id(id).map_or("", TipoAccesorio::color_inicial)
 }
 
 /// Colores base de los accesorios (el usuario añade más con "+"): lila, blanco, negro, rosa,
@@ -382,53 +446,57 @@ impl Default for Ajustes {
 }
 
 impl Personaje {
-    /// El accesorio `tipo` tal como está ahora (quitado y con su color inicial si nunca se tocó).
-    pub fn accesorio(&self, tipo: TipoAccesorio) -> Accesorio {
-        self.accesorios.iter().find(|a| a.tipo == tipo).cloned().unwrap_or(Accesorio {
-            tipo,
+    /// El accesorio `id` tal como está ahora (quitado y con sus colores iniciales si nunca se tocó).
+    pub fn accesorio(&self, id: &str) -> Accesorio {
+        self.accesorios.iter().find(|a| a.tipo == id).cloned().unwrap_or(Accesorio {
+            tipo: id.to_string(),
             puesto: false,
-            color: tipo.color_inicial().into(),
+            color: color_inicial(id).into(),
+            colores_extra: Vec::new(),
         })
     }
 
-    fn accesorio_mut(&mut self, tipo: TipoAccesorio) -> &mut Accesorio {
-        let i = match self.accesorios.iter().position(|a| a.tipo == tipo) {
+    fn accesorio_mut(&mut self, id: &str) -> &mut Accesorio {
+        let i = match self.accesorios.iter().position(|a| a.tipo == id) {
             Some(i) => i,
             None => {
-                self.accesorios.push(self.accesorio(tipo));
+                self.accesorios.push(self.accesorio(id));
                 self.accesorios.len() - 1
             }
         };
         &mut self.accesorios[i]
     }
 
-    /// Pone o quita el accesorio `tipo`.
-    pub fn alternar(&mut self, tipo: TipoAccesorio) {
-        if self.accesorio(tipo).puesto {
-            self.accesorio_mut(tipo).puesto = false;
+    /// Pone o quita el accesorio `id`. `hueco` dice el sitio que ocupa cada accesorio (ver
+    /// `hueco_integrado`).
+    pub fn alternar(&mut self, id: &str, hueco: &dyn Fn(&str) -> Option<Hueco>) {
+        if self.accesorio(id).puesto {
+            self.accesorio_mut(id).puesto = false;
         } else {
-            self.poner(tipo);
+            self.poner(id, hueco);
         }
     }
 
-    /// Pone el accesorio `tipo` y quita el que ocupara su mismo hueco.
-    fn poner(&mut self, tipo: TipoAccesorio) {
-        if let Some(hueco) = tipo.hueco() {
+    /// Pone el accesorio `id` y quita el que ocupara su mismo hueco.
+    fn poner(&mut self, id: &str, hueco: &dyn Fn(&str) -> Option<Hueco>) {
+        if let Some(sitio) = hueco(id) {
             for otro in &mut self.accesorios {
-                if otro.tipo != tipo && otro.tipo.hueco() == Some(hueco) {
+                if otro.tipo != id && hueco(&otro.tipo) == Some(sitio) {
                     otro.puesto = false;
                 }
             }
         }
-        self.accesorio_mut(tipo).puesto = true;
+        self.accesorio_mut(id).puesto = true;
     }
 
-    /// Cambia el color del accesorio `tipo` (y se lo pone). Si el color no estaba en la fila, se
-    /// añade a ella.
-    pub fn poner_color(&mut self, tipo: TipoAccesorio, color: String) {
-        self.agregar_a_la_fila(&color);
-        self.accesorio_mut(tipo).color = color;
-        self.poner(tipo);
+    /// Cambia el color número `ranura` (0 el primero) del accesorio `id` (y se lo pone). Si el
+    /// color no estaba en la fila, se añade a ella; vacío es el del dibujo (en uno de archivo).
+    pub fn poner_color(&mut self, id: &str, ranura: usize, color: String, hueco: &dyn Fn(&str) -> Option<Hueco>) {
+        if !color.is_empty() {
+            self.agregar_a_la_fila(&color);
+        }
+        self.accesorio_mut(id).poner_color(ranura, color);
+        self.poner(id, hueco);
     }
 
     /// Añade el color a la fila de colores propios si no estaba (olvidando el más antiguo si ya
@@ -449,7 +517,7 @@ impl Personaje {
     }
 
     /// Quita un color propio de la fila. Los accesorios que lo tenían vuelven a su color inicial
-    /// y el circulito de aviso, al de los ojos.
+    /// (los de archivos, al de su dibujo) y el circulito de aviso, al de los ojos.
     pub fn quitar_color(&mut self, color: &str) {
         self.colores_propios.retain(|c| !c.eq_ignore_ascii_case(color));
         if self.color_aviso.as_deref().is_some_and(|c| c.eq_ignore_ascii_case(color)) {
@@ -457,7 +525,12 @@ impl Personaje {
         }
         for accesorio in &mut self.accesorios {
             if accesorio.color.eq_ignore_ascii_case(color) {
-                accesorio.color = accesorio.tipo.color_inicial().into();
+                accesorio.color = color_inicial(&accesorio.tipo).into();
+            }
+            for extra in &mut accesorio.colores_extra {
+                if extra.eq_ignore_ascii_case(color) {
+                    extra.clear();
+                }
             }
         }
     }
@@ -1018,18 +1091,18 @@ mod tests {
     #[test]
     fn los_accesorios_se_ponen_quitan_y_recuerdan_su_color() {
         let mut p = Personaje::default();
-        let audifonos = TipoAccesorio::Audifonos;
+        let audifonos = TipoAccesorio::Audifonos.id();
         assert!(!p.accesorio(audifonos).puesto);
         assert_eq!(p.accesorio(audifonos).color, COLORES_ACCESORIOS[0]);
-        p.alternar(audifonos);
+        p.alternar(audifonos, &hueco_integrado);
         assert!(p.accesorio(audifonos).puesto);
         // Un color nuevo se añade a la fila y pone el accesorio.
-        p.alternar(audifonos);
-        p.poner_color(audifonos, "#123456".into());
+        p.alternar(audifonos, &hueco_integrado);
+        p.poner_color(audifonos, 0, "#123456".into(), &hueco_integrado);
         assert!(p.accesorio(audifonos).puesto);
         assert_eq!(p.paleta().last().unwrap(), "#123456");
         // Quitado, recuerda el color; si se quita el color, vuelve al inicial.
-        p.alternar(audifonos);
+        p.alternar(audifonos, &hueco_integrado);
         assert_eq!(p.accesorio(audifonos).color, "#123456");
         p.quitar_color("#123456");
         assert_eq!(p.accesorio(audifonos).color, COLORES_ACCESORIOS[0]);
@@ -1058,19 +1131,51 @@ mod tests {
 
     #[test]
     fn en_cada_hueco_solo_cabe_un_accesorio() {
+        use TipoAccesorio::*;
         let mut p = Personaje::default();
-        p.alternar(TipoAccesorio::Corona);
-        p.alternar(TipoAccesorio::GafasDeSol);
-        p.alternar(TipoAccesorio::Audifonos);
+        for t in [Corona, GafasDeSol, Audifonos] {
+            p.alternar(t.id(), &hueco_integrado);
+        }
         // El gorro quita la corona; las gafas y los audífonos se quedan.
-        p.alternar(TipoAccesorio::GorroDeLana);
-        let puesto = |t| p.accesorio(t).puesto;
-        assert!(!puesto(TipoAccesorio::Corona) && puesto(TipoAccesorio::GorroDeLana));
-        assert!(puesto(TipoAccesorio::GafasDeSol) && puesto(TipoAccesorio::Audifonos));
+        p.alternar(GorroDeLana.id(), &hueco_integrado);
+        let puesto = |p: &Personaje, t: TipoAccesorio| p.accesorio(t.id()).puesto;
+        assert!(!puesto(&p, Corona) && puesto(&p, GorroDeLana));
+        assert!(puesto(&p, GafasDeSol) && puesto(&p, Audifonos));
         // Elegir el color del antifaz lo pone y quita las gafas.
-        p.poner_color(TipoAccesorio::Antifaz, "#000000".into());
-        let puesto = |t| p.accesorio(t).puesto;
-        assert!(puesto(TipoAccesorio::Antifaz) && !puesto(TipoAccesorio::GafasDeSol));
+        p.poner_color(Antifaz.id(), 0, "#000000".into(), &hueco_integrado);
+        assert!(puesto(&p, Antifaz) && !puesto(&p, GafasDeSol));
+        // La mascarilla, el corbatín y la capa no se estorban.
+        for t in [Mascarilla, Corbatin, CapaDeVampiro] {
+            p.alternar(t.id(), &hueco_integrado);
+        }
+        assert!(puesto(&p, Mascarilla) && puesto(&p, Corbatin) && puesto(&p, CapaDeVampiro));
+    }
+
+    #[test]
+    fn un_accesorio_de_archivo_ocupa_su_hueco_y_guarda_cada_color() {
+        // Los de archivos dicen su hueco ellos mismos: este es un sombrero de la cabeza.
+        let hueco = |id: &str| if id == "usuario/sombrero" { Some(Hueco::Cabeza) } else { hueco_integrado(id) };
+        let mut p = Personaje::default();
+        p.alternar("corona", &hueco);
+        // Sin tocar, su color es el de su dibujo (vacío).
+        assert_eq!(p.accesorio("usuario/sombrero").color, "");
+        // El tercer color: los anteriores se quedan sin cambiar.
+        p.poner_color("usuario/sombrero", 2, "#112233".into(), &hueco);
+        let a = p.accesorio("usuario/sombrero");
+        assert!(a.puesto && !p.accesorio("corona").puesto);
+        assert_eq!((a.color_de(0), a.color_de(1), a.color_de(2), a.color_de(3)), ("", "", "#112233", ""));
+        // Volver al color del dibujo no añade nada a la fila.
+        let en_la_fila = p.paleta().len();
+        p.poner_color("usuario/sombrero", 1, String::new(), &hueco);
+        assert_eq!(p.paleta().len(), en_la_fila);
+        // Se guarda y se lee igual; quitar el color de la fila lo devuelve al del dibujo.
+        let leido: Personaje = serde_json::from_str(&serde_json::to_string(&p).unwrap()).unwrap();
+        assert_eq!(leido, p);
+        p.quitar_color("#112233");
+        assert_eq!(p.accesorio("usuario/sombrero").color_de(2), "");
+        // Los que no tienen más que un color no guardan nada de más.
+        let texto = serde_json::to_string(&Accesorio { tipo: "corona".into(), puesto: true, color: "#FFFFFF".into(), colores_extra: Vec::new() }).unwrap();
+        assert!(!texto.contains("colores_extra"), "{texto}");
     }
 
     #[test]
@@ -1092,7 +1197,7 @@ mod tests {
     #[test]
     fn los_accesorios_se_guardan_con_su_nombre() {
         let mut p = Personaje::default();
-        p.alternar(TipoAccesorio::CapaDeVampiro);
+        p.alternar(TipoAccesorio::CapaDeVampiro.id(), &hueco_integrado);
         let texto = serde_json::to_string(&p).unwrap();
         assert!(texto.contains("\"capa_de_vampiro\""), "{texto}");
         let leido: Personaje = serde_json::from_str(&texto).unwrap();
@@ -1108,7 +1213,9 @@ mod tests {
             {"tipo":"audifonos","puesto":true,"color":"#000000"}]}}}"##;
         let config: Config = serde_json::from_str(texto).unwrap();
         let p = &config.ajustes.personaje;
-        assert_eq!(p.accesorios[0].tipo, TipoAccesorio::Otro);
-        assert!(p.accesorio(TipoAccesorio::Audifonos).puesto);
+        // El que no se conoce se conserva (por si es de una versión más nueva, o de un archivo).
+        assert_eq!(p.accesorios[0].tipo, "sombrero");
+        assert!(p.accesorio(TipoAccesorio::Audifonos.id()).puesto);
+        assert!(p.accesorio("sombrero").puesto);
     }
 }

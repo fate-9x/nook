@@ -767,9 +767,10 @@ export component PanelConfiguracion inherits Rectangle {
     callback elegir-figura(int);
     callback nuevo-personaje();
     callback abrir-carpeta-personajes();
-    callback alternar-accesorio(int);
-    callback elegir-color-accesorio(int, color);
-    callback agregar-color-accesorio(int);
+    callback alternar-accesorio(string);
+    callback elegir-color-accesorio(string, int, color);
+    callback agregar-color-accesorio(string, int);
+    callback abrir-carpeta-accesorios();
     callback menu-color-accesorio(int);
     callback alternar-aviso-automatico();
     callback elegir-color-aviso(color);
@@ -1237,19 +1238,39 @@ export component PanelConfiguracion inherits Rectangle {
                                 }
                             }
                             Titulo { text: @tr("ACCESORIOS"); }
-                            for a[i] in root.accesorios : VerticalLayout {
+                            HorizontalLayout {
+                                alignment: start;
+                                height: 38px;
+                                BotonTexto {
+                                    y: 4px;
+                                    texto: @tr("Abrir carpeta de accesorios");
+                                    clicked => { root.abrir-carpeta-accesorios(); }
+                                }
+                            }
+                            for a in root.accesorios : VerticalLayout {
                                 FilaInterruptor {
                                     texto: a.nombre;
                                     activo: a.puesto;
-                                    clicked => { root.alternar-accesorio(i); }
+                                    clicked => { root.alternar-accesorio(a.id); }
                                 }
-                                if a.puesto : FilaMuestras {
-                                    colores: root.colores-accesorios;
-                                    elegido: a.color;
-                                    base: root.colores-accesorios-base;
-                                    elegir(c) => { root.elegir-color-accesorio(i, c); }
-                                    menu(j) => { root.menu-color-accesorio(j); }
-                                    mas => { root.agregar-color-accesorio(i); }
+                                if a.puesto : VerticalLayout {
+                                    for c[j] in a.colores : VerticalLayout {
+                                        if c.nombre != "" : Text {
+                                            text: c.nombre;
+                                            color: Tema.texto-tenue;
+                                            font-size: 11px;
+                                            height: 18px;
+                                            vertical-alignment: bottom;
+                                        }
+                                        FilaMuestras {
+                                            colores: c.paleta;
+                                            elegido: c.color;
+                                            base: c.base;
+                                            elegir(col) => { root.elegir-color-accesorio(a.id, j, col); }
+                                            menu(k) => { root.menu-color-accesorio(k - c.desplazamiento); }
+                                            mas => { root.agregar-color-accesorio(a.id, j); }
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -184,6 +184,9 @@ msgstr "YOUR CHARACTERS"
 msgid "Nuevo personaje"
 msgstr "New character"
 
+msgid "Abrir carpeta de accesorios"
+msgstr "Open accessories folder"
+
 msgid "Abrir carpeta"
 msgstr "Open folder"
 

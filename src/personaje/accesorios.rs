@@ -13,10 +13,12 @@
 //! ojos o en la boca se coloca en los suyos, y lo que va encima o debajo del cuerpo sube o baja
 //! lo que mida de más (ver `Medidas`).
 
+use super::accesorio_archivo::{self, Archivo};
+use super::cara::Vec3;
 use super::dibujo::capsula;
 use super::forma::{Punto, cubica};
 use super::motor::{Cabeza, UNIDAD, svg};
-use super::cara::Vec3;
+use std::sync::Arc;
 use zeno::{Command, PathBuilder};
 
 /// Los accesorios que hay.
@@ -70,11 +72,75 @@ impl Tipo {
     }
 }
 
-/// Un accesorio puesto, con su color (RGB).
+/// Un accesorio de los que trae el programa puesto, con su color (RGB).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Accesorio {
     pub tipo: Tipo,
     pub color: [u8; 3],
+}
+
+/// Un accesorio puesto: uno de los que trae el programa o uno de los archivos del usuario (con los
+/// colores que eligió para cada `Ranura` suya; los que faltan, los del dibujo).
+#[derive(Clone, Debug)]
+pub enum Puesto {
+    Integrado(Accesorio),
+    Archivo { archivo: Arc<Archivo>, colores: Vec<Option<[u8; 3]>> },
+}
+
+impl PartialEq for Puesto {
+    /// Los de archivos, por el archivo que se leyó (si se vuelve a leer, es otro y se redibuja).
+    fn eq(&self, otro: &Puesto) -> bool {
+        match (self, otro) {
+            (Puesto::Integrado(a), Puesto::Integrado(b)) => a == b,
+            (Puesto::Archivo { archivo: a, colores: x }, Puesto::Archivo { archivo: b, colores: y }) => Arc::ptr_eq(a, b) && x == y,
+            _ => false,
+        }
+    }
+}
+
+impl From<Accesorio> for Puesto {
+    fn from(a: Accesorio) -> Puesto {
+        Puesto::Integrado(a)
+    }
+}
+
+impl Puesto {
+    /// En qué orden se dibuja, de abajo arriba (ver `Tipo::orden`).
+    pub fn orden(&self) -> i32 {
+        match self {
+            Puesto::Integrado(a) => a.tipo.orden() as i32,
+            Puesto::Archivo { archivo, .. } => archivo.orden,
+        }
+    }
+
+    pub fn tapa_la_cabeza(&self) -> bool {
+        match self {
+            Puesto::Integrado(a) => a.tipo.tapa_la_cabeza(),
+            Puesto::Archivo { archivo, .. } => archivo.tapa_la_cabeza,
+        }
+    }
+
+    pub fn tapa_los_ojos(&self) -> bool {
+        match self {
+            Puesto::Integrado(a) => a.tipo.tapa_los_ojos(),
+            Puesto::Archivo { archivo, .. } => archivo.tapa_los_ojos,
+        }
+    }
+
+    pub fn tapa_la_boca(&self) -> bool {
+        match self {
+            Puesto::Integrado(a) => a.tipo.tapa_la_boca(),
+            Puesto::Archivo { archivo, .. } => archivo.tapa_la_boca,
+        }
+    }
+}
+
+/// Las piezas de un accesorio puesto, sea del programa o de un archivo.
+pub fn piezas_de(puesto: &Puesto, cabeza: &Cabeza, pantalla: &dyn Fn(Punto) -> [f32; 2], escala: f32) -> Vec<Pieza> {
+    match puesto {
+        Puesto::Integrado(accesorio) => piezas(accesorio, cabeza, pantalla, escala),
+        Puesto::Archivo { archivo, colores } => accesorio_archivo::piezas(archivo, colores, cabeza, pantalla, escala),
+    }
 }
 
 /// Cómo se rasteriza una pieza: rellena, rellena con agujeros (lo que queda dentro de otro
@@ -89,11 +155,13 @@ pub enum Estilo {
 /// Una pieza de un accesorio lista para rasterizar, ya en píxeles. Se dibuja delante del cuerpo
 /// con la opacidad `delante` (0 = no se ve delante) y, si `detras`, también detrás del cuerpo:
 /// así lo que rodea la cabeza pasa de un lado al otro sin saltos. Con `recortar`, lo de delante
-/// no se sale del cuerpo (lo pintado en la cara).
+/// no se sale del cuerpo (lo pintado en la cara). `alfa` es su opacidad propia (1 en los que trae
+/// el programa), que vale para delante y detrás.
 pub struct Pieza {
     pub trazo: Vec<Command>,
     pub estilo: Estilo,
     pub color: [u8; 3],
+    pub alfa: f32,
     pub delante: f32,
     pub detras: bool,
     pub recortar: bool,
@@ -184,12 +252,12 @@ impl Lienzo<'_> {
 
     /// Una pieza pintada en la cara: delante (mientras se vea) y sin salirse del cuerpo.
     fn en_la_cara(&mut self, trazo: Vec<Command>, estilo: Estilo, color: [u8; 3], visible: f32) {
-        self.piezas.push(Pieza { trazo, estilo, color, delante: visible, detras: false, recortar: true });
+        self.piezas.push(Pieza { trazo, estilo, color, alfa: 1.0, delante: visible, detras: false, recortar: true });
     }
 
     /// Una pieza alrededor de la cabeza, delante con la opacidad `delante` y siempre detrás.
     fn alrededor(&mut self, trazo: Vec<Command>, estilo: Estilo, color: [u8; 3], delante: f32) {
-        self.piezas.push(Pieza { trazo, estilo, color, delante, detras: true, recortar: false });
+        self.piezas.push(Pieza { trazo, estilo, color, alfa: 1.0, delante, detras: true, recortar: false });
     }
 }
 
@@ -199,7 +267,7 @@ const DETRAS: f32 = -0.35;
 const DELANTE: f32 = -0.15;
 
 /// Cuánto se ve delante del cuerpo algo que rodea la cabeza con esta profundidad (0–1).
-fn al_frente(profundidad: f32) -> f32 {
+pub(super) fn al_frente(profundidad: f32) -> f32 {
     let k = ((profundidad - DETRAS) / (DELANTE - DETRAS)).clamp(0.0, 1.0);
     k * k * (3.0 - 2.0 * k)
 }
@@ -257,14 +325,14 @@ fn mover(puntos: &[Punto], dx: f32, dy: f32) -> Vec<Punto> {
 }
 
 /// Contorno cerrado que pasa por los puntos (en píxeles).
-fn cerrado(puntos: &[[f32; 2]]) -> Vec<Command> {
+pub(super) fn cerrado(puntos: &[[f32; 2]]) -> Vec<Command> {
     let mut trazo = abierto(puntos);
     trazo.close();
     trazo
 }
 
 /// Línea que pasa por los puntos (en píxeles).
-fn abierto(puntos: &[[f32; 2]]) -> Vec<Command> {
+pub(super) fn abierto(puntos: &[[f32; 2]]) -> Vec<Command> {
     let mut trazo = Vec::new();
     for (i, &p) in puntos.iter().enumerate() {
         if i == 0 { trazo.move_to(p) } else { trazo.line_to(p) };

@@ -4,7 +4,11 @@
 //! vuelve a leer en cuanto cambia algo en ella).
 
 use crate::*;
+use config::Hueco;
+use personaje::accesorio_archivo::Archivo;
 use personaje::coleccion::{self, Coleccion};
+use slint::ModelRc;
+use std::collections::HashMap;
 
 /// Personaje: su motor, el reloj con el que se anima, lo que sabe del cursor y lo último que se
 /// dibujó (para no repetir cuadros que se verían iguales).
@@ -85,6 +89,11 @@ pub(crate) fn carpeta_personajes() -> PathBuf {
     config::carpeta().join("personajes")
 }
 
+/// Carpeta de los accesorios del usuario (los de un personaje van en la suya).
+pub(crate) fn carpeta_accesorios() -> PathBuf {
+    config::carpeta().join("accesorios")
+}
+
 /// Cada cuánto se calcula un cuadro del personaje.
 pub(crate) const CUADRO_PERSONAJE: Duration = Duration::from_millis(16);
 /// Con el cursor quieto este tiempo, el personaje deja de mirarlo y vuelve a su deriva.
@@ -125,7 +134,7 @@ pub(crate) fn dibujar_personaje(
 /// Cómo se ve el personaje con los ajustes: el cuerpo del color de acento, los rasgos del color
 /// que se lee sobre él (como `sobre-acento` en ui/tema.slint), el circulito de aviso (del color
 /// elegido, si se eligió) y los accesorios.
-pub(crate) fn aspecto_de(ajustes: &Ajustes) -> personaje::Aspecto {
+pub(crate) fn aspecto_de(ajustes: &Ajustes, coleccion: &Coleccion) -> personaje::Aspecto {
     let acento = color(&ajustes.color_acento);
     let rasgos = if es_claro(acento) { [0x0B, 0x12, 0x30] } else { [0xFF, 0xFF, 0xFF] };
     personaje::Aspecto {
@@ -135,19 +144,26 @@ pub(crate) fn aspecto_de(ajustes: &Ajustes) -> personaje::Aspecto {
             let c = color(c);
             [c.red(), c.green(), c.blue()]
         }),
-        accesorios: accesorios_puestos(&ajustes.personaje),
+        accesorios: accesorios_puestos(&ajustes.personaje, coleccion),
     }
 }
 
-/// Los accesorios que lleva puestos el personaje, listos para dibujarlo.
-pub(crate) fn accesorios_puestos(p: &config::Personaje) -> Vec<personaje::Accesorio> {
+/// Los accesorios que lleva puestos el personaje, listos para dibujarlo: los que trae el programa
+/// y los de archivos que se encuentran (con los de otro personaje o que ya no están, no se dibuja
+/// nada).
+pub(crate) fn accesorios_puestos(p: &config::Personaje, coleccion: &Coleccion) -> Vec<personaje::Puesto> {
     p.accesorios
         .iter()
         .filter(|a| a.puesto)
         .filter_map(|a| {
+            let Some(integrado) = TipoAccesorio::de_id(&a.tipo) else {
+                let archivo = coleccion.accesorio(&a.tipo, &p.figura)?.clone();
+                let colores = (0..archivo.ranuras.len()).map(|i| leer_hex(a.color_de(i)).map(|c| [c.red(), c.green(), c.blue()])).collect();
+                return Some(personaje::Puesto::Archivo { archivo, colores });
+            };
             let c = color(&a.color);
             let rgb = [c.red(), c.green(), c.blue()];
-            let tipo = match a.tipo {
+            let tipo = match integrado {
                 TipoAccesorio::Audifonos => personaje::TipoAccesorio::Audifonos,
                 TipoAccesorio::Corona => personaje::TipoAccesorio::Corona,
                 TipoAccesorio::GorroDeLana => personaje::TipoAccesorio::GorroDeLana,
@@ -158,11 +174,46 @@ pub(crate) fn accesorios_puestos(p: &config::Personaje) -> Vec<personaje::Acceso
                 TipoAccesorio::Mascarilla => personaje::TipoAccesorio::Mascarilla,
                 TipoAccesorio::Corbatin => personaje::TipoAccesorio::Corbatin,
                 TipoAccesorio::CapaDeVampiro => personaje::TipoAccesorio::CapaDeVampiro,
-                TipoAccesorio::Otro => return None,
             };
-            Some(personaje::Accesorio { tipo, color: rgb })
+            Some(personaje::Accesorio { tipo, color: rgb }.into())
         })
         .collect()
+}
+
+/// Un color de un accesorio que se puede poner, para la configuración: su nombre (vacío si solo
+/// tiene uno) y, si es de un archivo, el del dibujo.
+pub(crate) struct RanuraDisponible {
+    pub(crate) nombre: String,
+    pub(crate) original: Option<[u8; 3]>,
+}
+
+/// Un accesorio que se puede poner, para la configuración.
+pub(crate) struct Disponible {
+    pub(crate) id: String,
+    pub(crate) nombre: String,
+    pub(crate) ranuras: Vec<RanuraDisponible>,
+}
+
+/// Los accesorios que se pueden poner a la figura `figura`: los que trae el programa y los de
+/// archivos (los de todos y los de ese personaje).
+pub(crate) fn disponibles(coleccion: &Coleccion, figura: &str) -> Vec<Disponible> {
+    let integrados = TipoAccesorio::TODOS.iter().map(|t| Disponible {
+        id: t.id().to_string(),
+        nombre: t.nombre().to_string(),
+        ranuras: vec![RanuraDisponible { nombre: String::new(), original: None }],
+    });
+    let de_archivos = coleccion.accesorios_de(figura).map(|a: &Arc<Archivo>| Disponible {
+        id: a.id.clone(),
+        nombre: addons::traducido(&a.nombre),
+        ranuras: a.ranuras.iter().map(|r| RanuraDisponible { nombre: addons::traducido(&r.nombre), original: Some(r.original) }).collect(),
+    });
+    integrados.chain(de_archivos).collect()
+}
+
+/// El hueco que ocupa cada accesorio de archivo que lo dice (los que trae el programa, ver
+/// `config::hueco_integrado`).
+fn huecos_de_archivos(coleccion: &Coleccion) -> HashMap<String, Hueco> {
+    coleccion.accesorios.iter().filter_map(|a| a.hueco.map(|h| (a.id.clone(), h))).collect()
 }
 
 impl Ctx {
@@ -181,22 +232,82 @@ impl Ctx {
                 return;
             }
             p.revisado = Instant::now();
-            let carpeta = carpeta_personajes();
-            let firma = coleccion::firma(&carpeta);
+            let (personajes, accesorios) = (carpeta_personajes(), carpeta_accesorios());
+            let firma = coleccion::firma(&personajes, &accesorios);
             if !forzar && p.firma == Some(firma) {
                 return;
             }
             p.firma = Some(firma);
-            p.coleccion = Coleccion::leer(&carpeta, Some(&p.coleccion));
+            p.coleccion = Coleccion::leer(&personajes, &accesorios, Some(&p.coleccion));
             for (carpeta, error) in &p.coleccion.errores {
-                eprintln!("Personaje {carpeta}: {error}");
+                eprintln!("Personaje o accesorio {carpeta}: {error}");
             }
         }
         if let Some(ui) = self.ui.upgrade() {
-            let id = self.estado.borrow().config.ajustes.personaje.figura.clone();
-            self.refrescar_personajes(&ui, &id);
+            let personaje = self.estado.borrow().config.ajustes.personaje.clone();
+            self.refrescar_personajes(&ui, &personaje.figura);
+            self.refrescar_accesorios(&ui, &personaje);
         }
         self.poner_icono(false);
+    }
+
+    /// Pasa a la configuración los accesorios que se pueden poner al personaje elegido, con
+    /// cada uno de sus colores y la fila de colores para elegirlos.
+    pub(crate) fn refrescar_accesorios(&self, ui: &Barra, personaje: &config::Personaje) {
+        let p = self.personaje.borrow();
+        let paleta: Vec<Color> = personaje.paleta().iter().map(|c| color(c)).collect();
+        let items = disponibles(&p.coleccion, &personaje.figura).into_iter().map(|d| {
+            let puesto = personaje.accesorio(&d.id);
+            let colores = d.ranuras.iter().enumerate().map(|(i, r)| {
+                // Con el color del dibujo como primera opción, para volver a él.
+                let con_original = r.original.is_some();
+                let original = r.original.map(|[r, g, b]| Color::from_rgb_u8(r, g, b));
+                let elegido = leer_hex(puesto.color_de(i)).or(original).unwrap_or_else(|| color(&puesto.color));
+                let muestras: Vec<Color> = original.into_iter().chain(paleta.iter().copied()).collect();
+                ColorAccesorio {
+                    nombre: r.nombre.clone().into(),
+                    color: elegido,
+                    paleta: modelo(muestras),
+                    base: (COLORES_ACCESORIOS.len() + con_original as usize) as i32,
+                    desplazamiento: con_original as i32,
+                }
+            });
+            AccesorioItem { id: d.id.into(), nombre: d.nombre.into(), puesto: puesto.puesto, colores: ModelRc::from(modelo(colores.collect())) }
+        });
+        ui.set_accesorios(modelo(items.collect()));
+    }
+
+    /// Pone o quita el accesorio `id`.
+    pub(crate) fn alternar_accesorio(&self, id: &str) {
+        let huecos = huecos_de_archivos(&self.personaje.borrow().coleccion);
+        let hueco = |id: &str| config::hueco_integrado(id).or_else(|| huecos.get(id).copied());
+        self.modificar_ajustes(|a| a.personaje.alternar(id, &hueco));
+    }
+
+    /// Cambia el color número `ranura` del accesorio `id` (y se lo pone). Si es el del dibujo,
+    /// vuelve a él sin añadir nada a la fila de colores.
+    pub(crate) fn poner_color_accesorio(&self, id: &str, ranura: usize, nuevo: Color) {
+        let huecos = huecos_de_archivos(&self.personaje.borrow().coleccion);
+        let hueco = |id: &str| config::hueco_integrado(id).or_else(|| huecos.get(id).copied());
+        let original = self.ranura_original(id, ranura).map(|[r, g, b]| Color::from_rgb_u8(r, g, b));
+        let texto = if original == Some(nuevo) { String::new() } else { hex(nuevo) };
+        self.modificar_ajustes(|a| a.personaje.poner_color(id, ranura, texto, &hueco));
+    }
+
+    /// El color del dibujo de la ranura `ranura` del accesorio `id`, si es de un archivo.
+    pub(crate) fn ranura_original(&self, id: &str, ranura: usize) -> Option<[u8; 3]> {
+        let figura = self.estado.borrow().config.ajustes.personaje.figura.clone();
+        let p = self.personaje.borrow();
+        p.coleccion.accesorio(id, &figura)?.ranuras.get(ranura).map(|r| r.original)
+    }
+
+    /// Abre la carpeta de los accesorios en el Explorador (creándola si no existe).
+    pub(crate) fn abrir_carpeta_accesorios(&self) {
+        let carpeta = carpeta_accesorios();
+        let _ = std::fs::create_dir_all(&carpeta);
+        if let Err(e) = sistema::lanzar(&carpeta.to_string_lossy()) {
+            eprintln!("{e}");
+        }
     }
 
     /// Pasa a la configuración los personajes que hay, cuál es el elegido (`id`) y los que no se
@@ -343,7 +454,7 @@ impl Ctx {
 
         let (figura, aspecto) = {
             let e = self.estado.borrow();
-            (p.coleccion.buscar(&e.config.ajustes.personaje.figura), aspecto_de(&e.config.ajustes))
+            (p.coleccion.buscar(&e.config.ajustes.personaje.figura), aspecto_de(&e.config.ajustes, &p.coleccion))
         };
         if let Some(s) = p.segundo.as_mut() {
             s.motor.poner_figura(figura.clone());
@@ -462,4 +573,6 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     });
     let c = ctx.clone();
     ui.on_abrir_carpeta_personajes(move || c.abrir_carpeta_personajes());
+    let c = ctx.clone();
+    ui.on_abrir_carpeta_accesorios(move || c.abrir_carpeta_accesorios());
 }

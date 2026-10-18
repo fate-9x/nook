@@ -184,6 +184,9 @@ msgstr "自作キャラクター"
 msgid "Nuevo personaje"
 msgstr "新しいキャラクター"
 
+msgid "Abrir carpeta de accesorios"
+msgstr "アクセサリーのフォルダーを開く"
+
 msgid "Abrir carpeta"
 msgstr "フォルダーを開く"
 

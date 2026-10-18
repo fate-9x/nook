@@ -55,8 +55,43 @@ pub struct Elemento {
     pub alfa: f32,
 }
 
-/// Lee un SVG: sus elementos, en el orden en que se dibujan.
+/// Lee un SVG: sus elementos, en el orden en que se dibujan, con las coordenadas del lienzo (el
+/// origen es la esquina de arriba a la izquierda, y el tamaño el del dibujo ya escalado).
 pub fn leer(texto: &str) -> Result<Vec<Elemento>, String> {
+    leer_con_tamano(texto).map(|(elementos, _)| elementos)
+}
+
+/// Lo mismo, pero con las coordenadas del propio dibujo: las de su `viewBox`, tal como las escribió
+/// su autor (el origen es el (0, 0) del dibujo, esté donde esté el viewBox). Es como se leen los
+/// accesorios, que se dibujan sobre la plantilla de Nook.
+pub fn leer_en_unidades(texto: &str) -> Result<Vec<Elemento>, String> {
+    let (mut elementos, tamano) = leer_con_tamano(texto)?;
+    let (minimo, ancho) = caja_de_vista(texto).unwrap_or(((0.0, 0.0), tamano.0));
+    // Cuánto más grande es el lienzo que las unidades del dibujo.
+    let escala = if ancho > 0.0 { tamano.0 / ancho } else { 1.0 };
+    let escala = if escala.is_finite() && escala > 0.0 { escala } else { 1.0 };
+    for e in &mut elementos {
+        for s in &mut e.subtrazos {
+            for p in &mut s.puntos {
+                *p = (p.0 / escala + minimo.0, p.1 / escala + minimo.1);
+            }
+        }
+        if let Pintura::Linea { grosor, .. } = &mut e.pintura {
+            *grosor /= escala;
+        }
+    }
+    Ok(elementos)
+}
+
+/// El `viewBox` del SVG (esquina de arriba a la izquierda y ancho), si lo tiene.
+fn caja_de_vista(texto: &str) -> Option<(Punto, f32)> {
+    let documento = usvg::roxmltree::Document::parse(texto).ok()?;
+    let valores: Vec<f32> =
+        documento.root_element().attribute("viewBox")?.split(|c: char| c.is_whitespace() || c == ',').filter(|t| !t.is_empty()).filter_map(|t| t.parse().ok()).collect();
+    (valores.len() == 4 && valores[2] > 0.0).then(|| ((valores[0], valores[1]), valores[2]))
+}
+
+fn leer_con_tamano(texto: &str) -> Result<(Vec<Elemento>, (f32, f32)), String> {
     if texto.len() > MAX_BYTES {
         return Err("el dibujo es demasiado grande".into());
     }
@@ -71,7 +106,7 @@ pub fn leer(texto: &str) -> Result<Vec<Elemento>, String> {
     if puntos > MAX_PUNTOS {
         return Err("el dibujo tiene demasiados puntos: simplifícalo".into());
     }
-    Ok(elementos)
+    Ok((elementos, (arbol.size().width(), arbol.size().height())))
 }
 
 /// La etiqueta de Inkscape de cada elemento que la tiene, por su id.
@@ -270,6 +305,26 @@ mod tests {
         // La transformación del grupo ya está aplicada.
         assert!(boca.subtrazos[0].puntos.iter().all(|p| (p.1 - 10.0).abs() < 2.0));
         assert!(!boca.subtrazos[0].cerrado);
+    }
+
+    #[test]
+    fn en_unidades_del_dibujo_el_origen_es_el_suyo_y_no_el_del_lienzo() {
+        // El lienzo mide el doble (240) que el viewBox (120): el (0, 0) del dibujo es el centro.
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -75 120 125" width="240" height="250">
+            <rect id="a" x="-10" y="-20" width="20" height="40" fill="#f00"/>
+            <path id="b" d="M 0 0 L 30 0" fill="none" stroke="#000" stroke-width="4"/>
+        </svg>"##;
+        let e = leer_en_unidades(svg).unwrap();
+        let caja = |e: &Elemento| {
+            let p: Vec<_> = e.subtrazos.iter().flat_map(|s| &s.puntos).collect();
+            (p.iter().map(|p| p.0).fold(f32::MAX, f32::min), p.iter().map(|p| p.0).fold(f32::MIN, f32::max), p.iter().map(|p| p.1).fold(f32::MAX, f32::min))
+        };
+        let (x0, x1, y0) = caja(&e[0]);
+        assert!((x0 + 10.0).abs() < 1e-3 && (x1 - 10.0).abs() < 1e-3 && (y0 + 20.0).abs() < 1e-3, "{:?}", (x0, x1, y0));
+        assert!(matches!(e[1].pintura, Pintura::Linea { grosor, .. } if (grosor - 4.0).abs() < 1e-3), "{:?}", e[1].pintura);
+        // Sin viewBox, las del lienzo.
+        let sin = r##"<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect x="5" y="5" width="10" height="10"/></svg>"##;
+        assert!((leer_en_unidades(sin).unwrap()[0].subtrazos[0].puntos[0].0 - 5.0).abs() < 1e-3);
     }
 
     #[test]

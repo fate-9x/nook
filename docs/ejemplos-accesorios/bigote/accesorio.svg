@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -40 120 80" width="240" height="160">
+  <!-- Pegado a la boca: en la plantilla de Nook la boca está en (0, 15). -->
+  <path id="pelo" d="M 0 9 C -4 3 -12 3 -17 9 C -12 8 -6 9 0 11 C 6 9 12 8 17 9 C 12 3 4 3 0 9 Z" fill="#4a2f1f"/>
+  <path id="brillo" d="M -13 7.5 Q -8 6 -3 8 M 13 7.5 Q 8 6 3 8" fill="none" stroke="#8a5a3a" stroke-width="1" stroke-linecap="round"/>
+</svg>

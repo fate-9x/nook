@@ -4,12 +4,12 @@
 use crate::*;
 
 /// Para qué es el color que se elige en el selector.
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub(crate) enum DestinoColor {
     /// Un color nuevo para la fila de fondos o de acentos.
     Paleta { acento: bool },
-    /// El color de un accesorio del personaje.
-    Accesorio(TipoAccesorio),
+    /// El color número `ranura` de un accesorio del personaje (su id).
+    Accesorio { id: String, ranura: usize },
     /// El color del circulito que sale en el personaje cuando llega una notificación.
     Aviso,
     /// El fondo o el acento de un preset guardado.
@@ -126,11 +126,7 @@ impl Ctx {
         let presets = ajustes.presets.iter().map(|p| PresetItem { fondo: color(&p.fondo), acento: color(&p.acento) });
         ui.set_presets(modelo(presets.collect()));
         ui.set_preset_guardado(ajustes.preset_guardado());
-        let accesorios = TipoAccesorio::TODOS.iter().map(|&tipo| {
-            let a = ajustes.personaje.accesorio(tipo);
-            AccesorioItem { nombre: tipo.nombre().into(), puesto: a.puesto, color: color(&a.color) }
-        });
-        ui.set_accesorios(modelo(accesorios.collect()));
+        self.refrescar_accesorios(ui, &ajustes.personaje);
         ui.set_colores_accesorios(modelo(ajustes.personaje.paleta().iter().map(|c| color(c)).collect()));
         ui.set_colores_accesorios_base(COLORES_ACCESORIOS.len() as i32);
         ui.set_aviso_automatico(ajustes.personaje.color_aviso.is_none());
@@ -146,16 +142,14 @@ impl Ctx {
         let Some(em) = self.emergente.upgrade() else { return };
         let (actual, titulo) = {
             let a = &self.estado.borrow().config.ajustes;
-            match destino {
+            match &destino {
                 DestinoColor::Paleta { acento: true } => (a.color_acento.clone(), tr("NUEVO COLOR DE ACENTO").to_string()),
                 DestinoColor::Paleta { acento: false } => (a.color_fondo.clone(), tr("NUEVO COLOR DE FONDO").to_string()),
                 DestinoColor::Preset { indice, acento } => {
-                    let Some(p) = a.presets.get(indice) else { return };
-                    if acento { (p.acento.clone(), tr("ACENTO DEL PRESET").into()) } else { (p.fondo.clone(), tr("FONDO DEL PRESET").into()) }
+                    let Some(p) = a.presets.get(*indice) else { return };
+                    if *acento { (p.acento.clone(), tr("ACENTO DEL PRESET").into()) } else { (p.fondo.clone(), tr("FONDO DEL PRESET").into()) }
                 }
-                DestinoColor::Accesorio(tipo) => {
-                    (a.personaje.accesorio(tipo).color, tr_con("COLOR DE {}", &[&tipo.nombre().to_uppercase()]))
-                }
+                DestinoColor::Accesorio { id, ranura } => self.datos_color_accesorio(a, id, *ranura),
                 DestinoColor::Aviso => {
                     let actual = a.personaje.color_aviso.clone().unwrap_or_else(|| config::COLOR_AVISO_INICIAL.into());
                     (actual, tr("COLOR DEL AVISO").into())
@@ -164,7 +158,7 @@ impl Ctx {
         };
         let actual = color(&actual);
         let hsv = actual.to_hsva();
-        self.destino_color.set(destino);
+        *self.destino_color.borrow_mut() = destino;
         em.set_tipo(1);
         em.set_titulo_color(titulo.into());
         em.set_tono(hsv.hue);
@@ -174,6 +168,21 @@ impl Ctx {
         em.set_franja(dibujo::franja_de_tonos(LADO_CUADRO, 14.0));
         em.set_cuadro(dibujo::cuadro_de_color(hsv.hue, LADO_CUADRO, ALTO_CUADRO, 10.0));
         self.abrir_emergente(&em);
+    }
+
+    /// Con qué color empieza el selector al elegir el color número `ranura` del accesorio `id` (el
+    /// que tiene o, si no lo cambió, el del dibujo) y su título (con el nombre del accesorio y, si
+    /// lo tiene, el del color).
+    pub(crate) fn datos_color_accesorio(&self, a: &config::Ajustes, id: &str, ranura: usize) -> (String, String) {
+        let accesorio = a.personaje.accesorio(id);
+        let original = self.ranura_original(id, ranura).map(|[r, g, b]| hex(Color::from_rgb_u8(r, g, b)));
+        let actual = Some(accesorio.color_de(ranura).to_string()).filter(|c| !c.is_empty()).or(original).unwrap_or_else(|| accesorio.color.clone());
+        let disponible = disponibles(&self.personaje.borrow().coleccion, &a.personaje.figura).into_iter().find(|d| d.id == id);
+        let nombre = disponible.map_or_else(String::new, |d| match d.ranuras.get(ranura) {
+            Some(r) if !r.nombre.is_empty() => format!("{} · {}", d.nombre, r.nombre),
+            _ => d.nombre,
+        });
+        (actual, tr_con("COLOR DE {}", &[&nombre.to_uppercase()]))
     }
 
     /// El usuario escribió un código de color: si es válido, el selector se mueve a él.
@@ -203,14 +212,14 @@ impl Ctx {
 
     /// El color elegido en el selector: se añade a su fila y se aplica, o se pone en el preset.
     pub(crate) fn color_elegido(&self, c: Color) {
-        let destino = self.destino_color.get();
+        let destino = self.destino_color.borrow().clone();
         self.cerrar_emergente(true);
         match destino {
             DestinoColor::Paleta { acento } => {
                 self.modificar_ajustes(|a| a.poner_color(acento, hex(c)));
             }
             DestinoColor::Preset { indice, acento } => self.modificar_ajustes(|a| a.editar_preset(indice, acento, hex(c))),
-            DestinoColor::Accesorio(tipo) => self.modificar_ajustes(|a| a.personaje.poner_color(tipo, hex(c))),
+            DestinoColor::Accesorio { id, ranura } => self.poner_color_accesorio(&id, ranura, c),
             DestinoColor::Aviso => self.modificar_ajustes(|a| a.personaje.poner_color_aviso(hex(c))),
         }
     }
@@ -291,7 +300,7 @@ impl Ctx {
     pub(crate) fn poner_icono(&self, forzar: bool) {
         let Some(hwnd) = plataforma::hwnd() else { return };
         let figura = self.figura_elegida();
-        let aspecto = aspecto_de(&self.estado.borrow().config.ajustes);
+        let aspecto = aspecto_de(&self.estado.borrow().config.ajustes, &self.personaje.borrow().coleccion);
         let clave = (figura, aspecto, bandeja::lado(hwnd));
         if !forzar && self.icono_puesto.borrow().as_ref() == Some(&clave) {
             return;
@@ -407,8 +416,8 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     });
     let c = ctx.clone();
     ui.on_guardar_preset(move || c.modificar_ajustes(|a| a.guardar_preset()));
-    // Personalización del personaje: los accesorios, cada uno su posición en
-    // `TipoAccesorio::TODOS` (la figura, en barra/personaje.rs).
+    // Personalización del personaje: los accesorios, cada uno por su id (la figura, en
+    // barra/personaje.rs).
     let c = ctx.clone();
     ui.on_elegir_idioma(move |i| {
         let Some(&idioma) = config::Idioma::TODOS.get(i as usize) else { return };
@@ -417,24 +426,15 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
         idioma::poner(idioma);
         c.modificar_ajustes(|a| a.idioma = idioma);
     });
-    let accesorio = |i: i32| TipoAccesorio::TODOS.get(i as usize).copied();
     let c = ctx.clone();
-    ui.on_alternar_accesorio(move |i| {
-        if let Some(tipo) = accesorio(i) {
-            c.modificar_ajustes(|a| a.personaje.alternar(tipo));
-        }
-    });
+    ui.on_alternar_accesorio(move |id| c.alternar_accesorio(&id));
     let c = ctx.clone();
-    ui.on_elegir_color_accesorio(move |i, color| {
-        if let Some(tipo) = accesorio(i) {
-            c.modificar_ajustes(|a| a.personaje.poner_color(tipo, hex(color)));
-        }
-    });
+    ui.on_elegir_color_accesorio(move |id, ranura, color| c.poner_color_accesorio(&id, ranura.max(0) as usize, color));
     let c = ctx.clone();
-    ui.on_agregar_color_accesorio(move |i| {
-        let Some(tipo) = accesorio(i) else { return };
+    ui.on_agregar_color_accesorio(move |id, ranura| {
         let c = c.clone();
-        Timer::single_shot(Duration::ZERO, move || c.abrir_selector_color(DestinoColor::Accesorio(tipo)));
+        let destino = DestinoColor::Accesorio { id: id.to_string(), ranura: ranura.max(0) as usize };
+        Timer::single_shot(Duration::ZERO, move || c.abrir_selector_color(destino));
     });
     // El circulito de aviso: sin elegir color usa el de los ojos; al quitar "automático" empieza
     // en rojo, el de las notificaciones de siempre.

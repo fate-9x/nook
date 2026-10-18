@@ -235,7 +235,7 @@ struct Ctx {
     /// menú abierto, y para qué es el color del selector.
     emergente: slint::Weak<Emergente>,
     accion_menu: Rc<RefCell<Option<AccionMenu>>>,
-    destino_color: Rc<Cell<DestinoColor>>,
+    destino_color: Rc<RefCell<DestinoColor>>,
     /// Ventana que tenía el foco al abrir la bóveda: se le devuelve al copiar un texto, para
     /// pegarlo en ella.
     ventana_previa: Rc<Cell<Option<isize>>>,
@@ -556,7 +556,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         animador: Rc::new(Timer::default()),
         emergente: emergente.as_weak(),
         accion_menu: Rc::new(RefCell::new(None)),
-        destino_color: Rc::new(Cell::new(DestinoColor::Paleta { acento: false })),
+        destino_color: Rc::new(RefCell::new(DestinoColor::Paleta { acento: false })),
         ventana_previa: Rc::new(Cell::new(None)),
         icono_puesto: Rc::new(RefCell::new(None)),
         personaje: Rc::new(RefCell::new(Personaje::new())),

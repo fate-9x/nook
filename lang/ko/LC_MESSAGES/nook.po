@@ -184,6 +184,9 @@ msgstr "직접 만든 캐릭터"
 msgid "Nuevo personaje"
 msgstr "새 캐릭터"
 
+msgid "Abrir carpeta de accesorios"
+msgstr "액세서리 폴더 열기"
+
 msgid "Abrir carpeta"
 msgstr "폴더 열기"
 
