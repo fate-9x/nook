@@ -231,7 +231,7 @@ Algunas ideas, todas con capas del `personaje.json` (los detalles están en la
 | Que tome el color de acento que elige el usuario | Pinta el cuerpo de un color y pon ese color en `"colores": { "cuerpo": "#…" }`. Haz lo mismo con `"rasgos"` para los ojos y la boca. |
 | Unos ojos distintos cuando está contento | Dibuja el ojo derecho contento con el ID `ojo-alegre`. |
 | Ojos diferentes (uno guiñado, un parche…) | Dibuja el izquierdo con el ID `ojo-izquierdo`. |
-| Un flequillo o una barriga de otro color | Una capa de tipo `franja`: dibuja **solo el borde**, como una línea de izquierda a derecha, y di hacia dónde se rellena (`"hacia": "arriba"` o `"abajo"`). |
+| Un flequillo o una barriga de otro color | Una capa de tipo `franja`: dibuja **solo el borde**, como una línea de izquierda a derecha, con el **relleno** del color de la franja, y di hacia dónde se rellena (`"hacia": "arriba"` o `"abajo"`). Si le pones también **línea**, se dibuja a lo largo del borde. |
 | Pelo que tape los ojos y se mueva | Una `franja` con `"encima": true` y `"muelle": true`. |
 | Una antena que se balancee | Una capa de tipo `cabeza` con `"muelle": true`. |
 | Algo que se vea solo al mirarlo (como el arándano del Limón) | Una capa de tipo `cabeza` con `"detras": true` y `"delante": "revelar"`. |
@@ -295,8 +295,9 @@ la parte de atrás de la cabeza. Si tu personaje tiene pelo ahí (Rick, por ejem
 
 1. Dibuja una línea pegada al borde izquierdo de la cabeza, por dentro, desde arriba hasta donde
    acaba el pelo (a la altura de la oreja, por ejemplo), y al final llévala hacia fuera de la cabeza:
-   así la franja no sigue hacia abajo. Ponle el ID `nuca-izquierda` y el color del pelo. Haz lo
-   mismo en el lado derecho: `nuca-derecha`.
+   así la franja no sigue hacia abajo. Ponle el ID `nuca-izquierda`, de **relleno** el color del
+   pelo y, si quieres que se vea dónde empieza el pelo, una **línea** del color de los contornos.
+   Haz lo mismo en el lado derecho: `nuca-derecha`.
 2. En `capas`, antes de los ojos:
    ```json
    { "id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda" },
@@ -304,14 +305,14 @@ la parte de atrás de la cabeza. Si tu personaje tiene pelo ahí (Rick, por ejem
    ```
 
 De frente, como el borde está pegado al de la cabeza, casi no se ven. Al mirar a la derecha, la
-línea izquierda se va con la cara y la franja cubre de pelo lo que queda detrás; al mirar a la
-izquierda, al revés.
+línea izquierda se va con la cara y la franja cubre de pelo lo que queda detrás, con su línea
+marcando dónde empieza; al mirar a la izquierda, al revés.
 
 Por ejemplo, para una cabeza de 64 de ancho (de -32 a 32) con el centro en (0, 0):
 
 ```svg
-<path id="nuca-izquierda" d="M -12 -44 C -24 -42 -31 -28 -30 -8 L -30 6 L -36 14" fill="none" stroke="#a6dcf0"/>
-<path id="nuca-derecha" d="M 12 -44 C 24 -42 31 -28 30 -8 L 30 6 L 36 14" fill="none" stroke="#a6dcf0"/>
+<path id="nuca-izquierda" d="M -12 -44 C -24 -42 -31 -28 -30 -8 L -30 6 L -36 14" fill="#a6dcf0" stroke="#22201e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="nuca-derecha" d="M 12 -44 C 24 -42 31 -28 30 -8 L 30 6 L 36 14" fill="#a6dcf0" stroke="#22201e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 ```
 
 ### La cara, sin pegarla a los bordes

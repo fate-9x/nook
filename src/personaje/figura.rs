@@ -102,8 +102,9 @@ pub enum TipoCapa {
     /// Pintado en la cara: gira con ella sobre una esfera y no se sale del cuerpo.
     Pintado,
     /// Una franja de color pintada en la cara (un flequillo, una barriga, el pelo de los lados
-    /// de la cabeza): su línea es el borde y se rellena hasta fuera del cuerpo por arriba, por
-    /// abajo o por un lado. Con `encima`, va sobre los ojos y la boca y puede salirse del cuerpo
+    /// de la cabeza): su trazado es el borde y, con relleno, se rellena de ese color hasta fuera
+    /// del cuerpo por arriba, por abajo o por un lado; con línea, la línea se dibuja a lo largo
+    /// del borde. Con `encima`, va sobre los ojos y la boca y puede salirse del cuerpo
     /// hasta `recorte` veces su tamaño (el pelo del Limón). Una franja de un lado, con su borde
     /// pegado al de la cabeza, casi no se ve de frente; al girar la cabeza hacia el otro lado, el
     /// borde se va con la cara y la franja cubre lo que queda detrás: la parte de atrás de la

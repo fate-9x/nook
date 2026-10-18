@@ -156,6 +156,27 @@ fn franja(cabeza: &Cabeza, borde: &[Punto], hacia: Hacia) -> Vec<Punto> {
     contorno
 }
 
+/// El borde de una franja pintado en la cara (unidades de radio), en los tramos que se ven (lo que
+/// queda al otro lado de la cabeza no se dibuja).
+fn borde_visible(cabeza: &Cabeza, borde: &[Punto]) -> Vec<Subtrazo> {
+    let mut tramos = Vec::new();
+    let mut actual = Vec::new();
+    for &p in borde {
+        let (q, profundidad) = cabeza.en_cara(p);
+        if profundidad > 0.01 {
+            actual.push(q);
+        } else if actual.len() >= 2 {
+            tramos.push(Subtrazo { puntos: std::mem::take(&mut actual), cerrado: false });
+        } else {
+            actual.clear();
+        }
+    }
+    if actual.len() >= 2 {
+        tramos.push(Subtrazo { puntos: actual, cerrado: false });
+    }
+    tramos
+}
+
 /// Lo que queda de unos subtrazos por encima de la altura `corte` (y ≤ corte): de lo relleno, el
 /// polígono recortado; de las líneas, los tramos que quedan.
 fn por_encima(subtrazos: &[Subtrazo], relleno: bool, corte: f32) -> Vec<Subtrazo> {
@@ -347,11 +368,21 @@ impl Pintor<'_> {
             }
             TipoCapa::Franja { hacia, encima, recorte } => {
                 let recorte = encima.then(|| recorte.map(|r| self.silueta(r, capa.muelle))).flatten();
+                // Lo relleno del trazado es la franja; su línea, el borde dibujado encima.
                 for forma in &capa.formas {
                     for borde in &forma.subtrazos {
-                        let contorno: Vec<[f32; 2]> = franja(cabeza, &borde.puntos, hacia).into_iter().map(|p| (self.pantalla)(muelle(p))).collect();
-                        let pintura = Pintura::Relleno { par_impar: false };
-                        let mut cubre = a_mascara(cobertura(&poligono(&contorno), pintura, self.escala, self.lado), forma.alfa);
+                        let mut cubre = match forma.pintura {
+                            Pintura::Relleno { .. } => {
+                                let contorno: Vec<[f32; 2]> =
+                                    franja(cabeza, &borde.puntos, hacia).into_iter().map(|p| (self.pantalla)(muelle(p))).collect();
+                                let pintura = Pintura::Relleno { par_impar: false };
+                                a_mascara(cobertura(&poligono(&contorno), pintura, self.escala, self.lado), forma.alfa)
+                            }
+                            Pintura::Linea { .. } => {
+                                let tramos = borde_visible(cabeza, &borde.puntos);
+                                self.subtrazos(&tramos, forma.pintura, forma.alfa, &|p| muelle(p))
+                            }
+                        };
                         let color = self.color(forma.color);
                         match (&recorte, encima) {
                             (Some(recorte), _) => {
@@ -771,18 +802,21 @@ mod tests {
         // Una cabeza redonda con una franja a la izquierda, con el borde pegado al de la cabeza.
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
             <circle id="cuerpo" r="40" fill="#e0d0c0"/>
-            <path id="nuca" d="M -36 -18 L -39 0 L -36 18" fill="none" stroke="#1020f0"/>
+            <path id="nuca" d="M -36 -18 L -39 0 L -36 18" fill="#1020f0" stroke="#000000" stroke-width="2"/>
         </svg>"##;
         let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "nuca", "tipo": "franja", "hacia": "izquierda"}]}"#;
         let figura = std::sync::Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err("no".into())).unwrap());
-        let azules = |guinada: f32| {
+        let de_color = |guinada: f32, color: [u8; 3]| {
             let mut motor = Motor::new();
             motor.poner_figura(figura.clone());
             motor.poner_mirada(Mirar { guinada, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
-            let imagen = dibujar(&motor.muestrear(1.0), 128, &aspecto([0; 3], [0; 3]));
-            pixeles(&imagen).iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == [16, 32, 240]).count()
+            let imagen = dibujar(&motor.muestrear(1.0), 128, &aspecto([1, 2, 3], [1, 2, 3]));
+            pixeles(&imagen).iter().filter(|p| p.a == 255 && [p.r, p.g, p.b] == color).count()
         };
+        let azules = |guinada: f32| de_color(guinada, [16, 32, 240]);
         let (de_frente, a_la_derecha, a_la_izquierda) = (azules(0.0), azules(35.0), azules(-35.0));
+        // Su línea es el borde, dibujado encima: al girar, se ve dentro de la cabeza.
+        assert!(de_color(35.0, [0, 0, 0]) > 20, "no se ve el borde");
         assert!(a_la_derecha > de_frente * 4 + 200, "de frente {de_frente}, a la derecha {a_la_derecha}");
         assert!(a_la_izquierda <= de_frente, "a la izquierda {a_la_izquierda}, de frente {de_frente}");
     }
@@ -832,3 +866,4 @@ mod tests {
         assert!((mitad(true) - mitad(false)).abs() < 150, "{} / {}", mitad(true), mitad(false));
     }
 }
+
