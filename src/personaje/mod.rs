@@ -14,6 +14,7 @@ mod dibujo;
 mod estados;
 pub mod figura;
 mod forma;
+pub mod mcp;
 mod motor;
 mod svg;
 

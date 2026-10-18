@@ -12,7 +12,8 @@ use usvg::tiny_skia_path::PathSegment;
 /// Lo más que puede ocupar un dibujo y cuántos puntos puede tener en total (para que dibujarlo
 /// 60 veces por segundo no pese).
 pub const MAX_BYTES: usize = 2 * 1024 * 1024;
-const MAX_PUNTOS: usize = 30_000;
+/// Lo que más o menos avisa `figura` de que el dibujo se acerca a los puntos que admite.
+pub const MAX_PUNTOS: usize = 30_000;
 
 /// Un tramo continuo de un trazado: sus puntos y si se cierra.
 #[derive(Clone, Debug, PartialEq)]

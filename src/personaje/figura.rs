@@ -122,6 +122,8 @@ pub enum TipoCapa {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Capa {
+    /// Su id en el dibujo (el de la lista `capas` del json, o el nombre de la parte).
+    pub id: String,
     pub tipo: TipoCapa,
     pub formas: Vec<Forma>,
     /// Si se mueve como el pelo, con un muelle (ver `Figura::muelle`).
@@ -217,6 +219,10 @@ pub struct Figura {
     /// el muelle), si alguna capa lo tiene.
     pub muelle: Option<f32>,
     pub dibujo: Dibujo,
+    /// Cosas que no fallan pero pueden ser un descuido (trazados que no se dibujan, lo que sale
+    /// de la cabeza mal enganchado, los ojos pegados al borde…). Los da `personaje::mcp` y
+    /// cualquier otra herramienta que quiera ayudar a quien hace el personaje.
+    pub avisos: Vec<String>,
     /// Contorno del cuerpo en reposo (para saber cuánto mide en cada dirección).
     contorno: Vec<Vec<Punto>>,
 }
@@ -501,6 +507,14 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
     // Los elementos de cada capa y las anclas.
     let mut de_capa: Vec<Vec<&Elemento>> = vec![Vec::new(); descripciones.len()];
     let mut anclas: HashMap<&str, (Punto, Punto)> = HashMap::new();
+    // Avisos de cosas que no fallan pero pueden ser un descuido.
+    let mut avisos: Vec<String> = Vec::new();
+    let sin_capa = elementos.iter().filter(|e| duenio(e, &descripciones).is_none()).count();
+    if sin_capa == 1 {
+        avisos.push("hay un trazado del dibujo que no es de ninguna capa ni ancla: no se va a dibujar".into());
+    } else if sin_capa > 1 {
+        avisos.push(format!("hay {sin_capa} trazados del dibujo que no son de ninguna capa ni ancla: no se van a dibujar"));
+    }
     for elemento in &elementos {
         let Some(nombre) = duenio(elemento, &descripciones) else { continue };
         if nombre.starts_with("ancla-") {
@@ -579,6 +593,21 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
         .unwrap_or((0.0, alto_abajo * 15.0 / 39.0));
     let medidas = Medidas { ojo, boca, arriba: alto_arriba, abajo: alto_abajo, ancho };
 
+    // El dibujo cerca del límite de puntos, y los ojos muy pegados al borde de la cabeza (al
+    // mirar de lado se aplastan contra él).
+    let puntos: usize = formas.iter().flat_map(|fs| fs.iter()).map(|f| f.subtrazos.iter().map(|s| s.puntos.len()).sum::<usize>()).sum();
+    if puntos > svg::MAX_PUNTOS * 4 / 5 {
+        avisos.push(format!("el dibujo se acerca al límite de puntos: {} de {}; simplifícalo o aplana los trazados", puntos, svg::MAX_PUNTOS));
+    }
+    if let Some(i_ojo) = capa_de(Tipo::Ojo) {
+        if let Some((c0, c1)) = cajas[i_ojo] {
+            let (x, y) = (c1.0, (c0.1 + c1.1) / 2.0);
+            if x > 0.92 * radio_en(&contorno, y.atan2(x)) {
+                avisos.push("los ojos llegan muy cerca del borde de la cabeza: al mirar de lado se verán apretados".into());
+            }
+        }
+    }
+
     // Cada capa con lo suyo, y sus formas respecto a su sitio si se mueven con algo: el ojo
     // (también el izquierdo y el alegre), la boca o el ancla de lo que sale de la cabeza.
     let mut capas = Vec::new();
@@ -598,6 +627,14 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                 // Sin ancla, donde arranca: abajo y en medio de lo que dibuja.
                 let (c0, c1) = caja_de(i).unwrap_or_default();
                 let (ax, ay) = ancla(&format!("ancla-{}", d.id)).unwrap_or(((c0.0 + c1.0) / 2.0, c1.1));
+                // Avisos de lo que suele fallar: enganchado a un lado sin profundidad, o con
+                // cosas de los dos lados en una sola capa.
+                if d.profundidad.is_none() && ax.abs() > 0.5 * ancho {
+                    avisos.push(format!("la capa «{}» engancha a un lado de la cabeza y no tiene profundidad: al mirar a otros lados se quedará pegada a la cara (pruébale una de 0 a -0.2)", d.id));
+                }
+                if c0.0 < -0.5 * ancho && c1.0 > 0.5 * ancho && !(d.detras && d.delante == Some(Delante::Nunca)) {
+                    avisos.push(format!("la capa «{}» tiene cosas a los dos lados de la cabeza: si son orejas o similares, sepárala en una capa por lado, cada una con su ancla, para que al girar se esconda la del otro lado; si es pelo que la rodea, pruébale «detras» y una profundidad pequeña", d.id));
+                }
                 // Su profundidad: la del punto de la cabeza (un elipsoide como el cuerpo) que
                 // queda delante de él.
                 let vertical = if ay < 0.0 { alto_arriba } else { alto_abajo };
@@ -626,10 +663,10 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
             })
             .collect();
         let caja = caja(formas.iter().flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos))).unwrap_or_default();
-        capas.push(Capa { tipo, formas, muelle: d.muelle, caja });
+        capas.push(Capa { id: d.id.clone(), tipo, formas, muelle: d.muelle, caja });
     }
     let muelle = descripciones.iter().any(|d| d.muelle).then(|| ancla("ancla-muelle").map_or(-0.27 * alto_arriba, |p| p.1));
-    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, contorno })
 }
 
 /// Hasta dónde llega el contorno desde el centro en la dirección `angulo`: el corte más lejano
@@ -737,7 +774,7 @@ fn de_imagenes(
     };
     let fps = d.fps.unwrap_or(8.0).clamp(0.5, 60.0);
     let imagenes = Imagenes { animaciones, fps, pixelado: d.pixelado, centro, unidad };
-    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), contorno })
 }
 
 /// Nombre de un archivo de la carpeta del personaje: sin carpetas ni nada raro.
@@ -883,6 +920,29 @@ mod tests {
         let Dibujo::Imagenes(imagenes) = &fantasma.dibujo else { panic!("no es de imágenes") };
         assert!(imagenes.pixelado && imagenes.tiene(Animacion::Aviso) && !imagenes.tiene(Animacion::Musica));
         assert_eq!(imagenes.fotogramas(Animacion::Reposo).len(), 4);
+    }
+
+    #[test]
+    fn avisa_de_lo_sospechoso() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+            <circle id="cuerpo" r="40" fill="#abcdef"/>
+            <path id="orejas" d="M -35 -20 L -55 -40 L -30 -35 Z M 35 -20 L 55 -40 L 30 -35 Z" fill="#123456"/>
+            <circle id="ojo" cx="20" cy="0" r="18" fill="#000"/>
+            <rect id="boca" x="-2" y="20" width="4" height="4" fill="#000"/>
+            <rect id="olvidada" x="10" y="10" width="5" height="5" fill="#000"/>
+        </svg>"##;
+        let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "orejas", "tipo": "cabeza"}, {"id": "ojo"}, {"id": "boca"}]}"#;
+        let figura = Figura::desde("x".into(), Some(json), Some(svg), &sin_archivos).unwrap();
+        let avisos = figura.avisos.join(" | ");
+        assert!(avisos.contains("no es de ninguna capa"), "{avisos}");
+        assert!(avisos.contains("«orejas»") && avisos.contains("dos lados"), "{avisos}");
+        assert!(avisos.contains("ojos llegan muy cerca del borde"), "{avisos}");
+        assert_eq!(figura.capas().len(), 4);
+        assert_eq!(figura.capas()[1].id, "orejas");
+        // Y los ejemplos de la guía no avisan de nada.
+        let ejemplos = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ejemplos");
+        assert!(Figura::leer(&ejemplos.join("gato"), "usuario/gato".into()).unwrap().avisos.is_empty());
+        assert!(Figura::leer(&ejemplos.join("fantasma"), "usuario/fantasma".into()).unwrap().avisos.is_empty());
     }
 
     #[test]
