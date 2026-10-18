@@ -270,16 +270,21 @@ van hacia delante y los negativos hacia atrás.
 
 | Qué es | Cómo ponerlo |
 |---|---|
-| **Pelo o algo detrás de la cabeza** (una melena, unos pinchos, una coleta, una capucha) | `"detras": true`, `"delante": "nunca"` y una **profundidad negativa**, entre `-0.2` y `-0.5`. Si no, al girar se va hacia donde mira, como si estuviera pegado a la frente. |
+| **Pelo que rodea la cabeza** (pinchos alrededor, una melena que asoma por los lados) | `"detras": true`, `"delante": "nunca"` y una profundidad **pequeña**, de `0` a `-0.15`. Sin profundidad, al girar se va hacia donde mira, como si estuviera pegado a la frente; con mucha, se va entero hacia el otro lado y parece que está en la nuca. |
+| **Algo en la nuca** (una coleta, un moño, una capucha) | `"detras": true`, `"delante": "nunca"` y una profundidad **negativa**, de `-0.3` a `-0.5`: al girar se va hacia el otro lado, como la parte de atrás de una cabeza. |
 | **Orejas, cuernos o alas a los lados** | **Una capa por lado**, cada una con su ancla en su base (donde se pega a la cabeza), `"detras": true`, `"delante": "girar"` y una profundidad de `0` a `-0.2`. Si las dos van en una capa con un ancla en medio, se mueven juntas con la cara y no se esconde la del otro lado. |
 | **Algo encima de la cabeza** (una antena, un rulo, un sombrerito) | El ancla en su base, sobre la cabeza. No hace falta profundidad. |
 | **Algo delante de la cara** (una nariz grande, un bigote, un pico) | Mejor de tipo `pintado` (o `boca`, si va con ella): así se desliza por la cara con los ojos. |
 
-Por ejemplo, el pelo de un personaje con pinchos por detrás:
+Por ejemplo, el pelo de un personaje con pinchos alrededor de la cabeza:
 
 ```json
-{ "id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.4 }
+{ "id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.15 }
 ```
+
+Lo que sale de la cabeza es una pieza plana y rígida: al girar se desplaza entera, sin cambiar de
+forma. Por eso el pelo que rodea la cabeza casi no tiene que moverse (como la silueta de la cabeza,
+que tampoco se mueve), y lo que se ve girar es la cara.
 
 ### La cara, sin pegarla a los bordes
 
