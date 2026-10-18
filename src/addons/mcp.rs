@@ -75,11 +75,12 @@ pub fn responder(mensaje: &Value, barra: &mut dyn FnMut(Value) -> Result<Value, 
             let argumentos = parametros.get("arguments").cloned().unwrap_or(json!({}));
             // Las de personajes se atienden aquí mismo: sin barra hace falta.
             if nombre.starts_with(personaje::PREFIJO) {
-                let (texto, es_error) = match personaje::llamar(nombre, &argumentos) {
-                    Ok(texto) => (texto, false),
-                    Err(e) => (e, true),
+                let (contenido, es_error) = match personaje::llamar(nombre, &argumentos) {
+                    Ok(personaje::Resultado::Texto(texto)) => (json!([{ "type": "text", "text": texto }]), false),
+                    Ok(personaje::Resultado::Imagen { datos, tipo }) => (json!([{ "type": "image", "data": base64(&datos), "mimeType": tipo }]), false),
+                    Err(e) => (json!([{ "type": "text", "text": e }]), true),
                 };
-                json!({ "content": [{ "type": "text", "text": texto }], "isError": es_error })
+                json!({ "content": contenido, "isError": es_error })
             } else {
                 let peticion = json!({
                     "orden": "llamar",
@@ -105,9 +106,24 @@ fn fallo(id: Value, codigo: i64, mensaje: &str) -> Value {
     json!({ "jsonrpc": "2.0", "id": id, "error": { "code": codigo, "message": mensaje } })
 }
 
+/// Unos datos en base64 (para las imágenes que devuelven las herramientas).
+fn base64(datos: &[u8]) -> String {
+    const ALFABETO: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut texto = String::with_capacity((datos.len() + 2) / 3 * 4);
+    for bloque in datos.chunks(3) {
+        let n = u32::from_be_bytes([0, bloque[0], *bloque.get(1).unwrap_or(&0), *bloque.get(2).unwrap_or(&0)]);
+        texto.push(ALFABETO[(n >> 18 & 63) as usize] as char);
+        texto.push(ALFABETO[(n >> 12 & 63) as usize] as char);
+        texto.push(if bloque.len() > 1 { ALFABETO[(n >> 6 & 63) as usize] as char } else { '=' });
+        texto.push(if bloque.len() > 2 { ALFABETO[(n & 63) as usize] as char } else { '=' });
+    }
+    texto
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     fn sin_barra(_: Value) -> Result<Value, String> {
         Err("sin barra".into())
@@ -137,8 +153,26 @@ mod tests {
         };
         let r = responder(&json!({"jsonrpc":"2.0","id":3,"method":"tools/list"}), &mut barra).unwrap();
         let nombres: Vec<&str> = r["result"]["tools"].as_array().unwrap().iter().map(|h| h["name"].as_str().unwrap()).collect();
-        assert_eq!(nombres.iter().filter(|n| n.starts_with(personaje::PREFIJO)).count(), 2, "{nombres:?}");
+        assert_eq!(nombres.iter().filter(|n| n.starts_with(personaje::PREFIJO)).count(), 3, "{nombres:?}");
         assert!(nombres.contains(&"dado__tirar"), "{nombres:?}");
+    }
+
+    #[test]
+    fn codifica_las_imagenes_en_base64() {
+        assert_eq!(base64(b"Hi!"), "SGkh");
+        assert_eq!(base64(b"Ma"), "TWE=");
+        let mut barra = |_: Value| -> Result<Value, String> { panic!("no hay que ir a la barra") };
+        let gato = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ejemplos/gato");
+        let r = responder(
+            &json!({"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"personaje__ver","arguments":{"carpeta": gato.to_string_lossy(), "vista":"frente"}}}),
+            &mut barra,
+        )
+        .unwrap();
+        assert_eq!(r["result"]["content"][0]["type"], "image");
+        assert_eq!(r["result"]["content"][0]["mimeType"], "image/png");
+        // La cabecera de un PNG, tal cual llega codificada.
+        assert!(r["result"]["content"][0]["data"].as_str().unwrap().starts_with("iVBORw0KGgo"), "{r}");
+        assert_eq!(r["result"]["isError"], false);
     }
 
     #[test]

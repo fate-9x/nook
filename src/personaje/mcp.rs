@@ -1,16 +1,37 @@
 //! Herramientas de personajes para el servidor MCP (`nook.exe --mcp`, ver `addons/mcp.rs`): con
 //! ellas, la IA del usuario puede leer la guía para hacer personajes, comprobar el de una carpeta
-//! (errores, avisos y un resumen de cómo lo entiende Nookly) y, más adelante, verlo dibujado y
-//! ponerlo en la barra. Se atienden aquí mismo, sin pasar por la barra: el motor de personajes es
-//! una librería.
+//! (errores, avisos y un resumen de cómo lo entiende Nookly) y verlo dibujado. Se atienden aquí
+//! mismo, sin pasar por la barra: el motor de personajes es una librería. Para poner el personaje
+//! en la barra va por la tubería (con `poner`, ver más adelante).
 
+use super::cara;
 use super::figura::{Figura, TipoCapa};
+use super::{Aspecto, Cuadro, Estado, Mirar, Motor, dibujar};
 use crate::addons::traducido;
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// Lo que va delante del nombre de todas las herramientas (como los addons usan `id__`).
 pub const PREFIJO: &str = "personaje__";
+
+/// La respuesta de una herramienta: texto o una imagen (PNG).
+#[derive(Debug)]
+pub enum Resultado {
+    Texto(String),
+    Imagen { datos: Vec<u8>, tipo: &'static str },
+}
+
+impl Resultado {
+    fn texto(texto: String) -> Resultado {
+        Resultado::Texto(texto)
+    }
+}
+
+/// Lado de cada vista del personaje, en píxeles.
+const LADO_VISTA: u32 = 256;
+/// Las vistas del mosaico, así se van apilando (4 por fila).
+const VISTAS: [&str; 8] = ["frente", "derecha", "izquierda", "arriba", "abajo", "aviso", "clic", "musica"];
 
 /// Las herramientas que se ofrecen, como las pide MCP (`tools/list`).
 pub fn herramientas() -> Vec<Value> {
@@ -31,14 +52,33 @@ pub fn herramientas() -> Vec<Value> {
                 "required": ["carpeta"],
             },
         }),
+        json!({
+            "name": format!("{PREFIJO}ver"),
+            "description": "Dibuja el personaje de una carpeta y devuelve una imagen PNG, para ver cómo queda. Con «mosaico» (por defecto), una con 8 vistas en dos filas de 4: frente, mirando a la derecha, a la izquierda y hacia arriba; luego abajo, con una notificación, al hacerle clic y con música. Con «vista» devuelve una sola de esas vistas. Con «guinada» y «cabeceo» (grados; cabeceo positivo es hacia arriba) lo dibuja mirando donde digas.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "carpeta": { "type": "string", "description": "La carpeta del personaje: una ruta entera, o el nombre de la carpeta dentro de la carpeta de personajes de Nookly" },
+                    "vista": { "type": "string", "enum": VISTAS.to_vec(), "description": "Una sola vista, en vez del mosaico" },
+                    "guinada": { "type": "number", "description": "Hacia dónde mira: grados a la derecha del de frente (una vista sola)" },
+                    "cabeceo": { "type": "number", "description": "Hacia dónde mira: grados hacia arriba (una vista sola)" },
+                    "acento": { "type": "string", "description": "Color de acento con el que dibujarlo («#rrggbb»); sin él, como lo dibujó su autor" },
+                },
+                "required": ["carpeta"],
+            },
+        }),
     ]
 }
 
-/// Usa la herramienta `nombre` con sus `argumentos` y da el texto de su respuesta (o por qué no).
-pub fn llamar(nombre: &str, argumentos: &Value) -> Result<String, String> {
+/// Usa la herramienta `nombre` con sus `argumentos` y da su respuesta (o por qué no).
+pub fn llamar(nombre: &str, argumentos: &Value) -> Result<Resultado, String> {
     match nombre.strip_prefix(PREFIJO) {
-        Some("guia") => Ok(guia()),
-        Some("comprobar") => comprobar(argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?),
+        Some("guia") => Ok(Resultado::texto(guia())),
+        Some("comprobar") => Ok(Resultado::texto(comprobar(argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?)?)),
+        Some("ver") => {
+            let datos = ver(argumentos)?;
+            Ok(Resultado::Imagen { datos, tipo: "image/png" })
+        }
         _ => Err(format!("herramienta desconocida: {nombre}")),
     }
 }
@@ -73,6 +113,142 @@ fn carpeta_de(carpeta: &str) -> Result<(PathBuf, String), String> {
         }
     }
     Err(format!("no encuentro la carpeta del personaje: «{carpeta}» no existe ni hay una carpeta con ese nombre en la de personajes de Nookly"))
+}
+
+// ---- Verlo dibujado ----
+
+/// Una vista del personaje: unos ángulos de mirada o uno de sus estados.
+enum Vista {
+    Frente,
+    Derecha,
+    Izquierda,
+    Arriba,
+    Abajo,
+    Aviso,
+    Clic,
+    Musica,
+    Una { guinada: f32, cabeceo: f32 },
+}
+
+impl Vista {
+    fn de(nombre: &str) -> Option<Vista> {
+        Some(match nombre {
+            "frente" => Vista::Frente,
+            "derecha" => Vista::Derecha,
+            "izquierda" => Vista::Izquierda,
+            "arriba" => Vista::Arriba,
+            "abajo" => Vista::Abajo,
+            "aviso" => Vista::Aviso,
+            "clic" => Vista::Clic,
+            "musica" => Vista::Musica,
+            _ => return None,
+        })
+    }
+
+    fn angulos(&self) -> (f32, f32) {
+        match self {
+            Vista::Frente => (0.0, 0.0),
+            Vista::Derecha => (35.0, 0.0),
+            Vista::Izquierda => (-35.0, 0.0),
+            Vista::Arriba => (0.0, 26.0),
+            Vista::Abajo => (0.0, -26.0),
+            Vista::Aviso | Vista::Clic | Vista::Musica => (0.0, 0.0),
+            Vista::Una { guinada, cabeceo } => (*guinada, *cabeceo),
+        }
+    }
+}
+
+/// Dibuja el personaje como pidan los `argumentos` (una vista o el mosaico) y lo codifica en PNG.
+fn ver(argumentos: &Value) -> Result<Vec<u8>, String> {
+    let (ruta, id) = carpeta_de(argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?)?;
+    let figura = Arc::new(Figura::leer(&ruta, id).map_err(|e| format!("El personaje no se puede leer:\n- {e}"))?);
+    let aspecto = aspecto_de(&figura, argumentos["acento"].as_str())?;
+    let vistas: Vec<Vista> = if let Some(nombre) = argumentos["vista"].as_str() {
+        vec![Vista::de(nombre).ok_or_else(|| format!("no hay ninguna vista llamada «{nombre}»"))?]
+    } else if argumentos["guinada"].is_number() || argumentos["cabeceo"].is_number() {
+        vec![Vista::Una { guinada: argumentos["guinada"].as_f64().unwrap_or(0.0) as f32, cabeceo: argumentos["cabeceo"].as_f64().unwrap_or(0.0) as f32 }]
+    } else {
+        VISTAS.iter().map(|n| Vista::de(n).unwrap()).collect()
+    };
+    let (columnas, filas) = if vistas.len() == 1 { (1, 1) } else { (4, 2) };
+    let lado = LADO_VISTA as usize;
+    let ancho = columnas as u32 * LADO_VISTA;
+    let alto = filas as u32 * LADO_VISTA;
+    let mut lienzo = vec![0u8; 4 * ancho as usize * alto as usize];
+    for (i, vista) in vistas.iter().enumerate() {
+        let imagen = dibujar(&cuadro_de(&figura, vista), LADO_VISTA, &aspecto);
+        let pixeles = imagen.to_rgba8_premultiplied().ok_or("no se pudo dibujar")?;
+        let (col, fila) = (i % columnas, i / columnas);
+        for (v, destino) in pixeles.as_slice().iter().enumerate() {
+            let (x, y) = (v % lado, v / lado);
+            let j = 4 * ((fila * lado + y) * columnas * lado + col * lado + x);
+            // Lo que se ve sin el alfa premultiplicado.
+            let (r, g, b, a) = (destino.r as u32, destino.g as u32, destino.b as u32, destino.a as u32);
+            let sin = |c: u32| if a > 0 { ((c * 255 + a / 2) / a) as u8 } else { 0 };
+            lienzo[j..j + 4].copy_from_slice(&[sin(r), sin(g), sin(b), a as u8]);
+        }
+    }
+    png_de(&lienzo, ancho, alto)
+}
+
+/// Cómo se dibuja el personaje: del color de su dibujo, o con el `acento` que pidan.
+fn aspecto_de(figura: &Figura, acento: Option<&str>) -> Result<Aspecto, String> {
+    let (cuerpo, rasgos) = match acento {
+        Some(hex) => {
+            let cuerpo = super::figura::color(hex)?;
+            let claro = crate::barra::configuracion::es_claro(slint::Color::from_rgb_u8(cuerpo[0], cuerpo[1], cuerpo[2]));
+            (cuerpo, if claro { [0x0B, 0x12, 0x30] } else { [0xFF, 0xFF, 0xFF] })
+        }
+        None => (figura.colores.cuerpo.unwrap_or([46, 139, 87]), figura.colores.rasgos.unwrap_or([0x0B, 0x12, 0x30])),
+    };
+    Ok(Aspecto { cuerpo, rasgos, aviso: figura.colores.aviso, accesorios: Vec::new() })
+}
+
+/// El cuadro del personaje en la vista `vista`: mirando como pida y con su estado.
+fn cuadro_de(figura: &Arc<Figura>, vista: &Vista) -> Cuadro {
+    let mut motor = Motor::new();
+    motor.poner_figura(figura.clone());
+    let (guinada, cabeceo) = vista.angulos();
+    motor.poner_mirada(Mirar { guinada, cabeceo, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
+    let (estado, t) = match vista {
+        Vista::Aviso => (Some(Estado::Aviso), tiempo(0.4)),
+        // El clic: en el aire, en mitad del salto.
+        Vista::Clic => {
+            motor.rebotar(0.0);
+            (None, tiempo(0.2))
+        }
+        Vista::Musica => {
+            motor.poner_estado(Estado::Musica, 0.0);
+            motor.golpe(0.05, 1.0);
+            (None, tiempo(0.2))
+        }
+        _ => (None, tiempo(0.05)),
+    };
+    if let Some(estado) = estado {
+        motor.poner_estado(estado, 0.0);
+    }
+    motor.muestrear(t)
+}
+
+/// El primer tiempo a partir de `desde` en el que el personaje no va a medio parpadeo (así las
+/// vistas enseñan el personaje con los ojos abiertos).
+fn tiempo(desde: f64) -> f64 {
+    (0..2000).map(|i| i as f64 * 0.01).find(|&t| t >= desde && cara::vida(t, 0.0).parpado > 0.95).unwrap_or(desde)
+}
+
+/// Un PNG RGBA de los píxeles de un lienzo ya sin premultiplicar.
+fn png_de(lienzo: &[u8], ancho: u32, alto: u32) -> Result<Vec<u8>, String> {
+    fn codificar(salida: &mut Vec<u8>, lienzo: &[u8], ancho: u32, alto: u32) -> Result<(), String> {
+        let mut codificador = png::Encoder::new(salida, ancho, alto);
+        codificador.set_color(png::ColorType::Rgba);
+        codificador.set_depth(png::BitDepth::Eight);
+        let mut escritor = codificador.write_header().map_err(|e| e.to_string())?;
+        escritor.write_image_data(lienzo).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    let mut salida = Vec::new();
+    codificar(&mut salida, lienzo, ancho, alto)?;
+    Ok(salida)
 }
 
 /// Cómo se ve un personaje para Nookly: su nombre, sus avisos, sus capas, dónde quedan los ojos
@@ -132,15 +308,59 @@ mod tests {
     #[test]
     fn lista_sus_herramientas() {
         let herramientas = herramientas();
-        assert_eq!(herramientas.len(), 2);
+        assert_eq!(herramientas.len(), 3);
         assert_eq!(herramientas[0]["name"], format!("{PREFIJO}guia"));
         assert_eq!(herramientas[1]["name"], format!("{PREFIJO}comprobar"));
         assert_eq!(herramientas[1]["inputSchema"]["required"][0], "carpeta");
+        assert_eq!(herramientas[2]["name"], format!("{PREFIJO}ver"));
+        let vistas: Vec<&str> = herramientas[2]["inputSchema"]["properties"]["vista"]["enum"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(vistas, VISTAS.to_vec());
+    }
+
+    #[test]
+    fn ve_el_personaje_en_png() {
+        let gato = ejemplos().join("gato");
+        let mosaico = ver(&json!({ "carpeta": gato.to_string_lossy() })).unwrap();
+        assert_eq!(&mosaico[..4], &[137, 80, 78, 71]);
+        let decodificado = png::Decoder::new(std::io::Cursor::new(&mosaico)).read_info().unwrap();
+        assert_eq!(
+            (decodificado.info().width, decodificado.info().height),
+            (4 * LADO_VISTA, 2 * LADO_VISTA),
+            "el mosaico son las 8 vistas en dos filas de 4"
+        );
+        // Una vista sola, con otro acento y con ángulos a mano; y una figura de imágenes.
+        let devuelve = |extra: Value| {
+            let mut argumentos = json!({ "carpeta": gato.to_string_lossy() });
+            let objeto = argumentos.as_object_mut().unwrap();
+            for (clave, valor) in extra.as_object().unwrap() {
+                objeto.insert(clave.clone(), valor.clone());
+            }
+            ver(&argumentos).unwrap()
+        };
+        for imagen in [
+            devuelve(json!({ "vista": "derecha" })),
+            devuelve(json!({ "vista": "frente", "acento": "#0b1230" })),
+            devuelve(json!({ "guinada": 30.0, "cabeceo": -10.0 })),
+        ] {
+            let info = png::Decoder::new(std::io::Cursor::new(&imagen)).read_info().unwrap();
+            assert_eq!((info.info().width, info.info().height), (LADO_VISTA, LADO_VISTA));
+        }
+    }
+
+    #[test]
+    fn explicar_lo_que_falla_al_verlo() {
+        assert!(ver(&json!({})).unwrap_err().contains("falta la carpeta"));
+        assert!(ver(&json!({ "carpeta": "no-esta" })).unwrap_err().contains("no encuentro"));
+        let gato = ejemplos().join("gato");
+        assert!(ver(&json!({ "carpeta": gato.to_string_lossy(), "vista": "de lado" })).unwrap_err().contains("vista"));
     }
 
     #[test]
     fn la_guia_es_la_del_repositorio() {
-        let texto = llamar(&format!("{PREFIJO}guia"), &json!({})).unwrap();
+        let texto = match llamar(&format!("{PREFIJO}guia"), &json!({})) {
+            Ok(Resultado::Texto(texto)) => texto,
+            otra => panic!("no es texto: {otra:?}"),
+        };
         assert!(texto.contains("# Guía: crea tu propio personaje para Nookly"), "{texto}");
     }
 
@@ -169,7 +389,11 @@ mod tests {
 
     #[test]
     fn sin_carpeta_da_error_claro() {
-        assert!(llamar(&format!("{PREFIJO}comprobar"), &json!({})).unwrap_err().contains("falta"));
-        assert!(llamar("otra", &json!({})).unwrap_err().contains("desconocida"));
+        let texto = |llamada: Result<Resultado, String>| match llamada {
+            Err(e) => e,
+            otra => panic!("esperaba un error: {otra:?}"),
+        };
+        assert!(texto(llamar(&format!("{PREFIJO}comprobar"), &json!({}))).contains("falta"));
+        assert!(texto(llamar("otra", &json!({}))).contains("desconocida"));
     }
 }
