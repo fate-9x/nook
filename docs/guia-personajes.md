@@ -149,6 +149,7 @@ Guarda. Las orejas aparecen, y el nombre en la lista pasa a ser «Gato».
 - En la configuración, **Probar aviso**: salta y le sale el circulito rojo.
 - Pon música: baila.
 - Ponle accesorios (gafas, gorro…): se colocan sobre su cara y su cabeza.
+  ¿Quieres hacer tú los accesorios? Mira [Accesorios propios](personajes.md#accesorios-propios).
 
 ¡Ya tienes tu gato! El resultado completo está en [`ejemplos/gato`](ejemplos/gato).
 
