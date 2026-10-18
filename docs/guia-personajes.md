@@ -15,7 +15,9 @@ Hay dos maneras de hacerlo:
 | Empieza por | [El tutorial del gato](#tutorial-1-un-gato-vectorial) | [El tutorial del fantasma](#tutorial-2-un-fantasma-de-pixel-art) |
 
 Los dos tutoriales tienen el resultado listo en [`ejemplos/`](ejemplos): si prefieres, copia esa
-carpeta y ve cambiándola.
+carpeta y ve cambiándola. En la misma carpeta están también [`minimo`](ejemplos/minimo) (lo menos
+que puede ser un personaje: solo cuerpo, ojo y boca, sin `personaje.json`) y
+[`trucos`](ejemplos/trucos), que usa todas las opciones del motor.
 
 ---
 
@@ -246,7 +248,31 @@ Algunas ideas, todas con capas del `personaje.json` (los detalles están en la
 
 Mira también cómo están hechos los dos personajes de Nookly: [Nook](../personajes/nook) (un rulo
 que se funde con el cuerpo) y [el Limón](../personajes/limon) (franjas, pelo con muelle y un
-arándano que asoma).
+arándano que asoma). Y [`trucos`](ejemplos/trucos), un personaje que junta todas las opciones de la
+referencia, para copiar y desarmar.
+
+---
+
+## Hacerlo con una IA
+
+Nookly trae un servidor MCP para la IA del usuario (Claude Desktop, Claude Code…), el mismo que
+usan sus addons. Con las herramientas `personaje__` la IA puede hacer personajes enteros, y
+corregirse sola:
+
+1. **`personaje__guia`** le da esta guía entera, sin que se la copies.
+2. Escribe la carpeta del personaje (un `personaje.svg`, o los PNG y su `personaje.json`) donde
+   quiera.
+3. **`personaje__comprobar`** le dice si se puede leer, qué avisos tiene y cómo lo entiende Nookly
+   (capas, ojos, boca, medidas). Itera hasta que no queden errores ni avisos.
+4. **`personaje__ver`** la dibuja y le enseña la imagen: por defecto, un mosaico con el personaje
+   de frente, mirando a los dos lados y hacia arriba y abajo, con una notificación, al hacerle clic
+   y con música; también una vista sola, con los ángulos que le pidas.
+5. Cuando ya quede bien, **`personaje__poner`** lo elige en tu barra y lo ves enseguida.
+
+Para que la IA vea las herramientas, tiene que tener a Nookly entre sus servidores MCP: en la
+configuración, sección **Addons**, está la conexión con Claude Desktop y el comando para Claude
+Code (la misma que la de los addons). Comprobar y ver personajes no hace falta que la barra esté
+abierta; ponerlos sí la despierta.
 
 ---
 
@@ -643,6 +669,9 @@ Como con los personajes, al guardar sus archivos se ve el cambio al momento, y s
 configuración lo dice en el apartado **«Accesorios que no se pueden leer»**.
 
 ### El dibujo: accesorio.svg
+
+Hay una [plantilla con Nook](ejemplos-accesorios/plantilla-nook.svg) lista para abrir y dibujar
+encima: la silueta gris y las guías se borran al terminar.
 
 Se dibuja sobre **Nook**, que hace de plantilla: el (0, 0) del dibujo es el centro de su cuerpo, que
 mide 98 de ancho (de -49 a 49) y llega a -39 por arriba y a 37,5 por abajo; los ojos están en

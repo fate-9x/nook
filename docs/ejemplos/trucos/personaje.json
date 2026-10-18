@@ -1,0 +1,22 @@
+{
+  "nombre": { "es": "Trucos", "en": "Tricks" },
+  "colores": { "cuerpo": "#4ab3c9", "rasgos": "#123a44", "aviso": "#e0455a" },
+  "capas": [
+    { "id": "pelo-atras", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.35 },
+    { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.15 },
+    { "id": "oreja-derecha", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.15 },
+    { "id": "cuerpo" },
+    { "id": "remolino", "tipo": "cabeza", "orientacion": "cuerpo", "fundir": true },
+    { "id": "barriga", "tipo": "franja", "hacia": "abajo" },
+    { "id": "mejillas" },
+    { "id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda" },
+    { "id": "nuca-derecha", "tipo": "franja", "hacia": "derecha" },
+    { "id": "ojo" },
+    { "id": "ojo-izquierdo" },
+    { "id": "ojo-alegre" },
+    { "id": "boca" },
+    { "id": "flequillo", "tipo": "franja", "hacia": "arriba", "encima": true, "recorte": 1.06, "muelle": true },
+    { "id": "hoja", "tipo": "cabeza", "detras": true, "delante": "revelar", "profundidad": 0.2, "muelle": true },
+    { "id": "antena", "tipo": "cabeza", "muelle": true, "tapable": false }
+  ]
+}

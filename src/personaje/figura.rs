@@ -923,6 +923,38 @@ mod tests {
     }
 
     #[test]
+    fn el_ejemplo_de_todos_los_trucos_los_usa_todos_y_avisa_de_nada() {
+        let ejemplos = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ejemplos");
+        let trucos = Figura::leer(&ejemplos.join("trucos"), "usuario/trucos".into()).unwrap();
+        assert!(trucos.avisos.is_empty(), "{:?}", trucos.avisos);
+        assert!(trucos.muelle.is_some());
+        assert_eq!(trucos.capas().len(), 16);
+        let cabezas: Vec<&Apendice> = trucos.capas().iter().filter_map(|c| match &c.tipo {
+            TipoCapa::Cabeza(a) => Some(a),
+            _ => None,
+        }).collect();
+        assert_eq!(cabezas.len(), 6);
+        assert!(cabezas.iter().any(|a| a.fundir && a.orientacion == Orientacion::Cuerpo));
+        assert!(cabezas.iter().any(|a| a.detras && a.delante == Delante::Revelar));
+        assert!(cabezas.iter().any(|a| a.detras && a.delante == Delante::Girar));
+        assert!(cabezas.iter().any(|a| a.detras && a.delante == Delante::Nunca));
+        assert!(cabezas.iter().any(|a| a.detras));
+        assert!(cabezas.iter().any(|a| !a.tapable));
+        let franjas: Vec<&TipoCapa> = trucos.capas().iter().map(|c| &c.tipo).filter(|t| matches!(t, TipoCapa::Franja { .. })).collect();
+        assert_eq!(franjas.len(), 4);
+        assert!(franjas.iter().any(|t| matches!(t, TipoCapa::Franja { hacia: Hacia::Arriba, encima: true, recorte: Some(_) })));
+        assert!(franjas.iter().any(|t| matches!(t, TipoCapa::Franja { hacia: Hacia::Abajo, .. })));
+        assert!(franjas.iter().any(|t| matches!(t, TipoCapa::Franja { hacia: Hacia::Izquierda, .. })));
+        assert!(franjas.iter().any(|t| matches!(t, TipoCapa::Franja { hacia: Hacia::Derecha, .. })));
+        assert!(trucos.tiene(|t| matches!(t, TipoCapa::OjoIzquierdo)) && trucos.tiene(|t| matches!(t, TipoCapa::OjoAlegre)));
+        // El mínimo: sin json, solo cuerpo, ojo y boca, y se llama como su carpeta.
+        let minimo = Figura::leer(&ejemplos.join("minimo"), "usuario/minimo".into()).unwrap();
+        assert!(minimo.avisos.is_empty());
+        assert_eq!(minimo.nombre["es"], "minimo");
+        assert_eq!(minimo.capas().iter().map(|c| c.id.as_str()).collect::<Vec<_>>(), vec!["cuerpo", "ojo", "boca"]);
+    }
+
+    #[test]
     fn avisa_de_lo_sospechoso() {
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
             <circle id="cuerpo" r="40" fill="#abcdef"/>
