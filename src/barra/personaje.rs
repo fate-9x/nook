@@ -1,7 +1,10 @@
 //! El personaje de la barra (y el segundo, que aparece con varios clics seguidos): mira al cursor,
-//! baila con la música, cuenta las notificaciones y rebota al hacer clic en él.
+//! baila con la música, cuenta las notificaciones y rebota al hacer clic en él. Su figura es una
+//! de las de la colección (las del programa y las de la carpeta de personajes del usuario, que se
+//! vuelve a leer en cuanto cambia algo en ella).
 
 use crate::*;
+use personaje::coleccion::{self, Coleccion};
 
 /// Personaje: su motor, el reloj con el que se anima, lo que sabe del cursor y lo último que se
 /// dibujó (para no repetir cuadros que se verían iguales).
@@ -23,6 +26,11 @@ pub(crate) struct Personaje {
     /// Segundo personaje, si está, y cuándo fueron los últimos clics seguidos en el primero.
     pub(crate) segundo: Option<Segundo>,
     pub(crate) clics: Vec<Instant>,
+    /// Los personajes que hay, lo que había en su carpeta al leerlos (ver `coleccion::firma`;
+    /// sin leer aún, None) y cuándo se miró si había cambiado.
+    pub(crate) coleccion: Coleccion,
+    pub(crate) firma: Option<u64>,
+    pub(crate) revisado: Instant,
 }
 
 impl Personaje {
@@ -38,6 +46,9 @@ impl Personaje {
             ritmo: musica::Ritmo::new(),
             segundo: None,
             clics: Vec::new(),
+            coleccion: Coleccion::default(),
+            firma: None,
+            revisado: Instant::now() - REVISAR_PERSONAJES,
         }
     }
 }
@@ -65,6 +76,14 @@ pub(crate) const CLICS_SEGUNDO: usize = 5;
 pub(crate) const ENTRE_CLICS: Duration = Duration::from_millis(600);
 pub(crate) const VIDA_SEGUNDO: Duration = Duration::from_secs(120);
 pub(crate) const DESFASE_SEGUNDO: f64 = 3.7;
+
+/// Cada cuánto se mira si cambió algo en la carpeta de los personajes (mientras se anima).
+pub(crate) const REVISAR_PERSONAJES: Duration = Duration::from_secs(1);
+
+/// Carpeta de los personajes del usuario.
+pub(crate) fn carpeta_personajes() -> PathBuf {
+    config::carpeta().join("personajes")
+}
 
 /// Cada cuánto se calcula un cuadro del personaje.
 pub(crate) const CUADRO_PERSONAJE: Duration = Duration::from_millis(16);
@@ -103,13 +122,13 @@ pub(crate) fn dibujar_personaje(
     Some(imagen)
 }
 
-/// La figura del personaje y cómo se ve con los ajustes: el cuerpo del color de acento, los
-/// rasgos del color que se lee sobre él (como `sobre-acento` en ui/tema.slint), el circulito de
-/// aviso (del color elegido, si se eligió) y los accesorios.
-pub(crate) fn aspecto_de(ajustes: &Ajustes) -> (personaje::Figura, personaje::Aspecto) {
+/// Cómo se ve el personaje con los ajustes: el cuerpo del color de acento, los rasgos del color
+/// que se lee sobre él (como `sobre-acento` en ui/tema.slint), el circulito de aviso (del color
+/// elegido, si se eligió) y los accesorios.
+pub(crate) fn aspecto_de(ajustes: &Ajustes) -> personaje::Aspecto {
     let acento = color(&ajustes.color_acento);
     let rasgos = if es_claro(acento) { [0x0B, 0x12, 0x30] } else { [0xFF, 0xFF, 0xFF] };
-    let aspecto = personaje::Aspecto {
+    personaje::Aspecto {
         cuerpo: [acento.red(), acento.green(), acento.blue()],
         rasgos,
         aviso: ajustes.personaje.color_aviso.as_deref().map(|c| {
@@ -117,15 +136,6 @@ pub(crate) fn aspecto_de(ajustes: &Ajustes) -> (personaje::Figura, personaje::As
             [c.red(), c.green(), c.blue()]
         }),
         accesorios: accesorios_puestos(&ajustes.personaje),
-    };
-    (figura_de(ajustes.personaje.figura), aspecto)
-}
-
-/// La figura del personaje para su motor.
-pub(crate) fn figura_de(figura: config::Figura) -> personaje::Figura {
-    match figura {
-        config::Figura::Nook => personaje::Figura::Nook,
-        config::Figura::Limon => personaje::Figura::Limon,
     }
 }
 
@@ -156,11 +166,95 @@ pub(crate) fn accesorios_puestos(p: &config::Personaje) -> Vec<personaje::Acceso
 }
 
 impl Ctx {
+    /// La figura elegida en los ajustes (si ya no está, Nook).
+    pub(crate) fn figura_elegida(&self) -> Arc<personaje::Figura> {
+        let id = self.estado.borrow().config.ajustes.personaje.figura.clone();
+        self.personaje.borrow().coleccion.buscar(&id)
+    }
+
+    /// Vuelve a leer los personajes si cambió algo en su carpeta (o, con `forzar`, siempre),
+    /// mirándolo como mucho una vez por `REVISAR_PERSONAJES`.
+    pub(crate) fn revisar_personajes(&self, forzar: bool) {
+        {
+            let mut p = self.personaje.borrow_mut();
+            if !forzar && p.revisado.elapsed() < REVISAR_PERSONAJES {
+                return;
+            }
+            p.revisado = Instant::now();
+            let carpeta = carpeta_personajes();
+            let firma = coleccion::firma(&carpeta);
+            if !forzar && p.firma == Some(firma) {
+                return;
+            }
+            p.firma = Some(firma);
+            p.coleccion = Coleccion::leer(&carpeta, Some(&p.coleccion));
+            for (carpeta, error) in &p.coleccion.errores {
+                eprintln!("Personaje {carpeta}: {error}");
+            }
+        }
+        if let Some(ui) = self.ui.upgrade() {
+            let id = self.estado.borrow().config.ajustes.personaje.figura.clone();
+            self.refrescar_personajes(&ui, &id);
+        }
+        self.poner_icono(false);
+    }
+
+    /// Pasa a la configuración los personajes que hay, cuál es el elegido (`id`) y los que no se
+    /// pudieron leer.
+    pub(crate) fn refrescar_personajes(&self, ui: &Barra, id: &str) {
+        let p = self.personaje.borrow();
+        let figuras = &p.coleccion.figuras;
+        let nombres = figuras.iter().map(|f| SharedString::from(addons::traducido(&f.nombre))).collect();
+        ui.set_figuras(modelo(nombres));
+        ui.set_figura(figuras.iter().position(|f| f.id == id).unwrap_or(0) as i32);
+        let errores: Vec<String> = p.coleccion.errores.iter().map(|(carpeta, error)| format!("{carpeta}: {error}")).collect();
+        ui.set_errores_personajes(errores.join("\n").into());
+    }
+
+    /// Crea un personaje nuevo (una copia de Nook para cambiarla), lo elige y abre su carpeta.
+    pub(crate) fn nuevo_personaje(&self) {
+        let carpeta = carpeta_personajes();
+        match coleccion::crear(&carpeta, tr("Mi personaje")) {
+            Ok(id) => {
+                self.revisar_personajes(true);
+                self.elegir_figura(id.clone());
+                if let Some(suya) = coleccion::carpeta_de(&carpeta, &id) {
+                    let _ = sistema::lanzar(&suya.to_string_lossy());
+                }
+            }
+            Err(e) => eprintln!("No se pudo crear el personaje: {e}"),
+        }
+    }
+
+    /// Abre la carpeta de los personajes en el Explorador (creándola si no existe).
+    pub(crate) fn abrir_carpeta_personajes(&self) {
+        let carpeta = carpeta_personajes();
+        let _ = std::fs::create_dir_all(&carpeta);
+        if let Err(e) = sistema::lanzar(&carpeta.to_string_lossy()) {
+            eprintln!("{e}");
+        }
+    }
+
+    /// Elige la figura `id`: el personaje da un saltito.
+    pub(crate) fn elegir_figura(&self, id: String) {
+        if self.estado.borrow().config.ajustes.personaje.figura == id {
+            return;
+        }
+        self.modificar_ajustes(|a| a.personaje.figura = id);
+        let mut p = self.personaje.borrow_mut();
+        let ahora = p.inicio.elapsed().as_secs_f64();
+        p.motor.rebotar(ahora);
+        if let Some(s) = p.segundo.as_mut() {
+            s.motor.rebotar(ahora + DESFASE_SEGUNDO);
+        }
+    }
+
     /// Calcula el cuadro actual del personaje y lo dibuja si se ve distinto del anterior. Mira
     /// al cursor mientras se mueve; con el cursor quieto vuelve a su deriva (o, con la barra
     /// oculta, mira hacia la pantalla desde su escondite).
     pub(crate) fn animar_personaje(&self) {
         let Some(ui) = self.ui.upgrade() else { return };
+        self.revisar_personajes(false);
         let (oculta, posicion) = {
             let e = self.estado.borrow();
             (e.modo == Modo::Oculta, e.config.ajustes.borde())
@@ -247,11 +341,14 @@ impl Ctx {
             }
         }
 
-        let (figura, aspecto) = aspecto_de(&self.estado.borrow().config.ajustes);
-        p.motor.poner_figura(figura);
+        let (figura, aspecto) = {
+            let e = self.estado.borrow();
+            (p.coleccion.buscar(&e.config.ajustes.personaje.figura), aspecto_de(&e.config.ajustes))
+        };
         if let Some(s) = p.segundo.as_mut() {
-            s.motor.poner_figura(figura);
+            s.motor.poner_figura(figura.clone());
         }
+        p.motor.poner_figura(figura);
         let lado = (ui.get_lado_personaje() * escala).round().max(1.0) as u32;
         let p = &mut *p;
         if let Some(imagen) = dibujar_personaje(&p.motor, ahora, lado, &aspecto, &mut p.dibujado) {
@@ -351,4 +448,18 @@ impl Ctx {
 pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     let c = ctx.clone();
     ui.on_clic_personaje(move |cual| c.clic_personaje(cual));
+    let c = ctx.clone();
+    ui.on_elegir_figura(move |i| {
+        let id = c.personaje.borrow().coleccion.figuras.get(i as usize).map(|f| f.id.clone());
+        if let Some(id) = id {
+            c.elegir_figura(id);
+        }
+    });
+    let c = ctx.clone();
+    ui.on_nuevo_personaje(move || {
+        let c = c.clone();
+        Timer::single_shot(Duration::ZERO, move || c.nuevo_personaje());
+    });
+    let c = ctx.clone();
+    ui.on_abrir_carpeta_personajes(move || c.abrir_carpeta_personajes());
 }

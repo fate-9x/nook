@@ -135,8 +135,7 @@ impl Ctx {
         ui.set_colores_accesorios_base(COLORES_ACCESORIOS.len() as i32);
         ui.set_aviso_automatico(ajustes.personaje.color_aviso.is_none());
         ui.set_color_aviso(color(ajustes.personaje.color_aviso.as_deref().unwrap_or(config::COLOR_AVISO_INICIAL)));
-        let figura = config::Figura::TODAS.iter().position(|&f| f == ajustes.personaje.figura).unwrap_or(0);
-        ui.set_figura(figura as i32);
+        self.refrescar_personajes(ui, &ajustes.personaje.figura);
         let idioma = config::Idioma::TODOS.iter().position(|&i| i == ajustes.idioma).unwrap_or(0);
         ui.set_idioma(idioma as i32);
     }
@@ -291,13 +290,14 @@ impl Ctx {
     /// de eso o el tamaño del icono, o con `forzar` (el Explorador se reinició y lo perdió).
     pub(crate) fn poner_icono(&self, forzar: bool) {
         let Some(hwnd) = plataforma::hwnd() else { return };
-        let (figura, aspecto) = aspecto_de(&self.estado.borrow().config.ajustes);
+        let figura = self.figura_elegida();
+        let aspecto = aspecto_de(&self.estado.borrow().config.ajustes);
         let clave = (figura, aspecto, bandeja::lado(hwnd));
         if !forzar && self.icono_puesto.borrow().as_ref() == Some(&clave) {
             return;
         }
         let (figura, aspecto, lado) = &clave;
-        bandeja::poner(hwnd, &icono::pixeles(*figura, aspecto, *lado), *lado);
+        bandeja::poner(hwnd, &icono::pixeles(figura, aspecto, *lado), *lado);
         *self.icono_puesto.borrow_mut() = Some(clave);
     }
 
@@ -407,8 +407,8 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     });
     let c = ctx.clone();
     ui.on_guardar_preset(move || c.modificar_ajustes(|a| a.guardar_preset()));
-    // Personalización del personaje: la figura y los accesorios, cada uno su posición en
-    // `Figura::TODAS` y `TipoAccesorio::TODOS`. Al cambiar de figura, el personaje da un saltito.
+    // Personalización del personaje: los accesorios, cada uno su posición en
+    // `TipoAccesorio::TODOS` (la figura, en barra/personaje.rs).
     let c = ctx.clone();
     ui.on_elegir_idioma(move |i| {
         let Some(&idioma) = config::Idioma::TODOS.get(i as usize) else { return };
@@ -416,20 +416,6 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
         // refrescar.
         idioma::poner(idioma);
         c.modificar_ajustes(|a| a.idioma = idioma);
-    });
-    let c = ctx.clone();
-    ui.on_elegir_figura(move |i| {
-        let Some(&figura) = config::Figura::TODAS.get(i as usize) else { return };
-        if c.estado.borrow().config.ajustes.personaje.figura == figura {
-            return;
-        }
-        c.modificar_ajustes(|a| a.personaje.figura = figura);
-        let mut p = c.personaje.borrow_mut();
-        let ahora = p.inicio.elapsed().as_secs_f64();
-        p.motor.rebotar(ahora);
-        if let Some(s) = p.segundo.as_mut() {
-            s.motor.rebotar(ahora + DESFASE_SEGUNDO);
-        }
     });
     let accesorio = |i: i32| TipoAccesorio::TODOS.get(i as usize).copied();
     let c = ctx.clone();

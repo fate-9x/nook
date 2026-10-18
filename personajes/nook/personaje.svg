@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -75 120 125" width="240" height="250">
+  <!-- Nook. El cuerpo mide 98 de ancho y su centro está en (0, 0): llega a 39 por arriba y a
+       37,5 por abajo. Lo verde toma el color de acento y lo azul oscuro, el de los rasgos (ver
+       "colores" en personaje.json). -->
+  <path id="cuerpo" d="M -40 -30 C -20 -42 20 -42 40 -30 C 52 -20 52 20 40 30 C 20 40 -20 40 -40 30 C -52 20 -52 -20 -40 -30 Z" fill="#3cb371"/>
+  <path id="rulo" d="M 0 -36 C -4 -56 14 -64 20 -54 C 25 -45 12 -40 10 -48" fill="none" stroke="#3cb371" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle id="ancla-rulo" cx="0" cy="-36" r="1.5" fill="none"/>
+  <ellipse id="ojo" cx="13" cy="0" rx="3.994" ry="7.007" fill="#0b1230"/>
+  <g id="boca">
+    <path d="M -5 15 Q 0 18 5 15" fill="none" stroke="#0b1230" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 1.5 16.3 L 3.5 21.5 L 5.5 15.6 Z" fill="#ffffff"/>
+  </g>
+  <circle id="ancla-boca" cx="0" cy="15" r="1.5" fill="none"/>
+  <circle id="ancla-cuerpo" cx="0" cy="0" r="1.5" fill="none"/>
+</svg>

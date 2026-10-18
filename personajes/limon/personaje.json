@@ -1,0 +1,14 @@
+{
+  "nombre": { "es": "Limón", "en": "Lemon", "ja": "レモン", "ko": "레몬" },
+  "colores": { "aviso": "#6b4b2e" },
+  "capas": [
+    { "id": "cuerpo" },
+    { "id": "base", "tipo": "franja", "hacia": "abajo" },
+    { "id": "sombra", "tipo": "franja", "hacia": "arriba", "muelle": true },
+    { "id": "coloretes" },
+    { "id": "ojo" },
+    { "id": "boca" },
+    { "id": "pelo", "tipo": "franja", "hacia": "arriba", "encima": true, "recorte": 1.06, "muelle": true },
+    { "id": "arandano", "tipo": "cabeza", "detras": true, "delante": "revelar", "muelle": true, "profundidad": 0.2 }
+  ]
+}

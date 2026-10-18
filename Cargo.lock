@@ -2432,12 +2432,14 @@ name = "nook"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "png",
  "rhai",
  "serde",
  "serde_json",
  "slint",
  "slint-build",
  "slint-interpreter",
+ "usvg",
  "windows",
  "windows-core",
  "windows-numerics",

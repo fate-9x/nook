@@ -16,6 +16,11 @@ Proyecto: **Nookly**, una barra de tareas en Rust + Slint para Windows (`src/` y
   Se instalan desde el catálogo del repositorio `fate-9x/nook-addons` (`catalogo.rs`), donde
   están los addons y la guía para hacerlos. `nook.exe --mcp` (`mcp.rs`) es el servidor MCP para
   la IA del usuario, y habla con la barra por una tubería con nombre (`tuberia.rs`).
+- El **personaje** (`src/personaje/`) se dibuja por software con `zeno`. Su figura sale de una
+  carpeta con `personaje.json` y un `personaje.svg` por capas o unos PNG (`figura.rs`, que lee el
+  SVG con `svg.rs`): Nook y el Limón están en `personajes/` y el usuario hace los suyos en
+  `%APPDATA%\nook\personajes\<carpeta>\` (`coleccion.rs`, que los vuelve a leer al cambiar). La
+  guía para hacerlos es `docs/personajes.md`.
 
 ## Nookly y Nookly Pro
 

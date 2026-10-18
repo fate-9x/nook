@@ -161,10 +161,13 @@ impl Idioma {
 
 /// Personalización del personaje: su figura, los accesorios que lleva y los colores que el
 /// usuario añadió con "+" a la fila de colores de los accesorios.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(default)]
 pub struct Personaje {
-    pub figura: Figura,
+    /// Id de la figura: "nook", "limon" o la de un personaje del usuario (ver
+    /// `personaje::coleccion`). Si ya no existe, se ve Nook.
+    #[serde(deserialize_with = "leer_figura")]
+    pub figura: String,
     /// Solo los accesorios que se han tocado alguna vez (los demás, quitados y con su color
     /// inicial).
     pub accesorios: Vec<Accesorio>,
@@ -199,22 +202,19 @@ impl FormatoFecha {
         [FormatoFecha::Ninguna, FormatoFecha::Numerica, FormatoFecha::ConDia, FormatoFecha::Corta, FormatoFecha::Texto];
 }
 
-/// Qué figura tiene el personaje.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum Figura {
-    /// Un bollito de limón.
-    Limon,
-    /// La de siempre, Nook, con un rulo. También la de una figura de una versión más nueva del
-    /// programa que esta no conoce (por eso va la última). Antes se llamaba «menta».
-    #[default]
-    #[serde(alias = "menta", other)]
-    Nook,
+impl Default for Personaje {
+    fn default() -> Self {
+        Personaje { figura: FIGURA_INICIAL.into(), accesorios: Vec::new(), colores_propios: Vec::new(), color_aviso: None }
+    }
 }
 
-impl Figura {
-    /// Las que hay, en el orden en que salen en la personalización.
-    pub const TODAS: [Figura; 2] = [Figura::Nook, Figura::Limon];
+/// La figura de siempre.
+pub const FIGURA_INICIAL: &str = "nook";
+
+/// Lee el id de la figura. Nook antes se llamaba «menta».
+fn leer_figura<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let figura = String::deserialize(d)?;
+    Ok(if figura == "menta" { FIGURA_INICIAL.into() } else { figura })
 }
 
 /// Un accesorio del personaje: si lo lleva puesto y de qué color (se recuerda aunque se quite).
@@ -1074,17 +1074,19 @@ mod tests {
     }
 
     #[test]
-    fn la_figura_se_guarda_y_una_desconocida_se_lee_como_la_de_siempre() {
+    fn la_figura_se_guarda_y_la_antigua_menta_es_nook() {
         let mut p = Personaje::default();
-        assert_eq!(p.figura, Figura::Nook);
-        p.figura = Figura::Limon;
+        assert_eq!(p.figura, "nook");
+        p.figura = "limon".into();
         let texto = serde_json::to_string(&p).unwrap();
         assert!(texto.contains("\"limon\""), "{texto}");
-        assert_eq!(serde_json::from_str::<Personaje>(&texto).unwrap().figura, Figura::Limon);
-        let futura: Personaje = serde_json::from_str(r#"{"figura":"fresa"}"#).unwrap();
-        assert_eq!(futura.figura, Figura::Nook);
+        assert_eq!(serde_json::from_str::<Personaje>(&texto).unwrap().figura, "limon");
+        let propia: Personaje = serde_json::from_str(r#"{"figura":"usuario/gato"}"#).unwrap();
+        assert_eq!(propia.figura, "usuario/gato");
         let antigua: Personaje = serde_json::from_str(r#"{"figura":"menta"}"#).unwrap();
-        assert_eq!(antigua.figura, Figura::Nook);
+        assert_eq!(antigua.figura, "nook");
+        // Sin figura, la de siempre.
+        assert_eq!(serde_json::from_str::<Personaje>("{}").unwrap().figura, "nook");
     }
 
     #[test]

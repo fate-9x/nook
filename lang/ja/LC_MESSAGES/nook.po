@@ -178,8 +178,20 @@ msgstr "システム"
 msgid "FIGURA"
 msgstr "種類"
 
-msgid "Limón"
-msgstr "レモン"
+msgid "TUS PERSONAJES"
+msgstr "自作キャラクター"
+
+msgid "Nuevo personaje"
+msgstr "新しいキャラクター"
+
+msgid "Abrir carpeta"
+msgstr "フォルダーを開く"
+
+msgid "PERSONAJES QUE NO SE PUEDEN LEER"
+msgstr "読み込めないキャラクター"
+
+msgid "Mi personaje"
+msgstr "マイキャラクター"
 
 msgid "ACCESORIOS"
 msgstr "アクセサリー"

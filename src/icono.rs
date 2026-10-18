@@ -12,6 +12,7 @@
 //! los tamaños de hasta 64 px van como mapa de bits y los grandes como PNG, como hace Windows.
 
 use crate::personaje::{self, Aspecto, Figura, Mirar, Motor};
+use std::sync::Arc;
 
 /// Margen alrededor del personaje, en proporción al lado del icono.
 const MARGEN: f32 = 0.03;
@@ -25,13 +26,13 @@ struct Imagen {
 }
 
 /// Píxeles RGBA (alfa sin premultiplicar) de un icono de `lado` × `lado` con el personaje.
-pub fn pixeles(figura: Figura, aspecto: &Aspecto, lado: u32) -> Vec<u8> {
+pub fn pixeles(figura: &Arc<Figura>, aspecto: &Aspecto, lado: u32) -> Vec<u8> {
     let grande = dibujar(figura, aspecto, (lado * AUMENTO).max(128));
     sin_premultiplicar(&reducir(&grande, caja(&grande), lado))
 }
 
 /// El personaje dibujado en grande, de frente.
-fn dibujar(figura: Figura, aspecto: &Aspecto, lado: u32) -> Imagen {
+fn dibujar(figura: &Arc<Figura>, aspecto: &Aspecto, lado: u32) -> Imagen {
     let dibujo = personaje::dibujar(&cuadro(figura), lado, aspecto).to_rgba8_premultiplied();
     let pixeles = dibujo.map_or_else(|| vec![0; (lado * lado * 4) as usize], |d| d.as_bytes().to_vec());
     Imagen { lado, pixeles }
@@ -39,9 +40,9 @@ fn dibujar(figura: Figura, aspecto: &Aspecto, lado: u32) -> Imagen {
 
 /// El personaje de frente, con los ojos abiertos y quieto: de los primeros segundos de su vida
 /// en reposo, el cuadro con los ojos más abiertos.
-fn cuadro(figura: Figura) -> personaje::Cuadro {
+fn cuadro(figura: &Arc<Figura>) -> personaje::Cuadro {
     let mut motor = Motor::new();
-    motor.poner_figura(figura);
+    motor.poner_figura(figura.clone());
     motor.poner_mirada(Mirar { guinada: 0.0, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
     let abiertos = |c: &personaje::Cuadro| c.ojos.iter().map(|o| o.matriz[3].abs() * o.alto).sum::<f32>();
     (1..400)
@@ -250,7 +251,7 @@ mod archivo {
     #[ignore]
     fn genera_las_imagenes_del_instalador() {
         let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, aviso: None, accesorios: Vec::new() };
-        let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
+        let grande = dibujar(&Figura::nook(), &aspecto, LADO_GRANDE);
         let caja = caja(&grande);
         let carpeta = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/instalador");
         std::fs::create_dir_all(&carpeta).unwrap();
@@ -284,7 +285,7 @@ mod archivo {
         const LADO_ICONO: u32 = 300;
         const CLARO: [u8; 3] = [0xF4, 0xF5, 0xFA];
         let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, aviso: None, accesorios: Vec::new() };
-        let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
+        let grande = dibujar(&Figura::nook(), &aspecto, LADO_GRANDE);
         let caja = caja(&grande);
         let carpeta = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/imagenes-store");
         std::fs::create_dir_all(&carpeta).unwrap();
@@ -326,7 +327,7 @@ mod archivo {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
         let aspecto = Aspecto { cuerpo: CUERPO, rasgos: RASGOS, aviso: None, accesorios: Vec::new() };
-        let grande = dibujar(Figura::Nook, &aspecto, LADO_GRANDE);
+        let grande = dibujar(&Figura::nook(), &aspecto, LADO_GRANDE);
         let caja = caja(&grande);
         let imagenes: Vec<(u32, Vec<u8>)> = TAMANOS
             .iter()
@@ -347,14 +348,14 @@ mod tests {
     #[test]
     fn el_icono_de_la_bandeja_es_transparente_en_las_esquinas_y_opaco_en_el_centro() {
         let lado = 32;
-        for figura in [Figura::Nook, Figura::Limon] {
+        for figura in Figura::integradas() {
             let aspecto = Aspecto { cuerpo: [0xDE, 0x3B, 0x3B], rasgos: [0xFF, 0xFF, 0xFF], aviso: None, accesorios: Vec::new() };
-            let pixeles = pixeles(figura, &aspecto, lado);
+            let pixeles = pixeles(&figura, &aspecto, lado);
             assert_eq!(pixeles.len(), (lado * lado * 4) as usize);
             let alfa = |x: u32, y: u32| pixeles[((y * lado + x) * 4 + 3) as usize];
-            assert_eq!(alfa(0, 0), 0, "{figura:?}");
-            assert_eq!(alfa(lado - 1, lado - 1), 0, "{figura:?}");
-            assert_eq!(alfa(lado / 2, lado * 2 / 3), 255, "{figura:?}");
+            assert_eq!(alfa(0, 0), 0, "{}", figura.id);
+            assert_eq!(alfa(lado - 1, lado - 1), 0, "{}", figura.id);
+            assert_eq!(alfa(lado / 2, lado * 2 / 3), 255, "{}", figura.id);
         }
     }
 }

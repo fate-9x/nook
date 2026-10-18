@@ -241,7 +241,7 @@ struct Ctx {
     ventana_previa: Rc<Cell<Option<isize>>>,
     /// Icono puesto en el área de notificación: la figura y el aspecto del personaje con que se
     /// dibujó y su lado en píxeles.
-    icono_puesto: Rc<RefCell<Option<(personaje::Figura, personaje::Aspecto, u32)>>>,
+    icono_puesto: Rc<RefCell<Option<(Arc<personaje::Figura>, personaje::Aspecto, u32)>>>,
     /// Personaje y el temporizador que lo anima.
     personaje: Rc<RefCell<Personaje>>,
     animador_personaje: Rc<Timer>,

@@ -711,7 +711,9 @@ export component PanelConfiguracion inherits Rectangle {
     in property <int> posicion;
     in property <int> idioma;
     in property <image> personaje-muestra;
+    in property <[string]> figuras;
     in property <int> figura;
+    in property <string> errores-personajes;
     in property <[AccesorioItem]> accesorios;
     in property <[color]> colores-accesorios;
     in property <int> colores-accesorios-base;
@@ -763,6 +765,8 @@ export component PanelConfiguracion inherits Rectangle {
     callback elegir-posicion(int);
     callback elegir-idioma(int);
     callback elegir-figura(int);
+    callback nuevo-personaje();
+    callback abrir-carpeta-personajes();
     callback alternar-accesorio(int);
     callback elegir-color-accesorio(int, color);
     callback agregar-color-accesorio(int);
@@ -1119,9 +1123,11 @@ export component PanelConfiguracion inherits Rectangle {
                     }
                 }
 
-                // Personaje: a la izquierda, cómo se ve (se mueve como el de la barra) y su figura,
-                // siempre a la vista; a la derecha, los accesorios, cada uno con su interruptor y,
-                // puesto, sus colores (con la rueda se desplazan sin mover la vista previa).
+                // Personaje: a la izquierda, cómo se ve (se mueve como el de la barra) y su figura
+                // (la lista se desplaza si hay muchas), siempre a la vista; a la derecha, los
+                // botones para hacer uno nuevo y abrir su carpeta, los que no se pudieron leer y
+                // los accesorios, cada uno con su interruptor y, puesto, sus colores (con la rueda
+                // se desplazan sin mover la vista previa).
                 if root.seccion == 4 : HorizontalLayout {
                     height: root.height - 26px;
                     spacing: 14px;
@@ -1144,16 +1150,29 @@ export component PanelConfiguracion inherits Rectangle {
                             }
                         }
                         VerticalLayout {
+                            vertical-stretch: 1;
                             Titulo { text: @tr("FIGURA"); }
                             Rectangle {
-                                height: 34px;
+                                vertical-stretch: 1;
+                                max-height: root.figuras.length * 30px + 6px;
                                 border-radius: 14px;
                                 background: Tema.capa;
-                                HorizontalLayout {
-                                    padding: 3px;
-                                    spacing: 2px;
-                                    OpcionSegmento { texto: "Nook"; elegida: root.figura == 0; clicked => { root.elegir-figura(0); } }
-                                    OpcionSegmento { texto: @tr("Limón"); elegida: root.figura == 1; clicked => { root.elegir-figura(1); } }
+                                figuras := Flickable {
+                                    content-width: self.width;
+                                    content-height: max(self.height, lista-figuras.preferred-height);
+
+                                    lista-figuras := VerticalLayout {
+                                        width: figuras.width;
+                                        alignment: start;
+                                        padding: 3px;
+                                        spacing: 2px;
+                                        for nombre[i] in root.figuras : OpcionSegmento {
+                                            height: 28px;
+                                            texto: nombre;
+                                            elegida: root.figura == i;
+                                            clicked => { root.elegir-figura(i); }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1167,6 +1186,32 @@ export component PanelConfiguracion inherits Rectangle {
                         lista-accesorios := VerticalLayout {
                             width: accesorios.width;
                             alignment: start;
+                            Titulo { text: @tr("TUS PERSONAJES"); }
+                            HorizontalLayout {
+                                alignment: start;
+                                height: 38px;
+                                spacing: 8px;
+                                BotonTexto {
+                                    y: 4px;
+                                    texto: @tr("Nuevo personaje");
+                                    clicked => { root.nuevo-personaje(); }
+                                }
+                                BotonTexto {
+                                    y: 4px;
+                                    texto: @tr("Abrir carpeta");
+                                    clicked => { root.abrir-carpeta-personajes(); }
+                                }
+                            }
+                            if root.errores-personajes != "" : VerticalLayout {
+                                padding-bottom: 8px;
+                                Titulo { text: @tr("PERSONAJES QUE NO SE PUEDEN LEER"); }
+                                Text {
+                                    text: root.errores-personajes;
+                                    color: Tema.texto-suave;
+                                    font-size: 11px;
+                                    wrap: word-wrap;
+                                }
+                            }
                             Titulo { text: @tr("AVISO"); }
                             FilaInterruptor {
                                 texto: @tr("Color automático");

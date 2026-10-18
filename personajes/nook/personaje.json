@@ -1,0 +1,10 @@
+{
+  "nombre": { "es": "Nook", "en": "Nook", "ja": "Nook", "ko": "Nook" },
+  "colores": { "cuerpo": "#3cb371", "rasgos": "#0b1230" },
+  "capas": [
+    { "id": "cuerpo" },
+    { "id": "rulo", "tipo": "cabeza", "orientacion": "cuerpo", "fundir": true },
+    { "id": "ojo" },
+    { "id": "boca" }
+  ]
+}

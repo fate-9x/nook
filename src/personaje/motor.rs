@@ -5,9 +5,9 @@
 
 use super::cara::{self, Mirada, Vec3};
 use super::estados::{self, Estado, Golpe, Pose};
-use super::forma::{self, MUESTRAS, Punto, Silueta};
-use std::f32::consts::FRAC_PI_2;
-use std::sync::LazyLock;
+use super::figura::{Animacion, Dibujo, Figura, Medidas};
+use super::forma::Punto;
+use std::sync::Arc;
 
 /// Curva de las transiciones: frena al final sin pasarse (como en bloub).
 fn suavizar(t: f32) -> f32 {
@@ -18,113 +18,20 @@ fn mezclar(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
-// ---- Las figuras del personaje ----
-// Las medidas salen de sus dibujos en SVG, donde el cuerpo mide 98 de ancho, pasadas a unidades
-// del radio del cuerpo (49).
-
+/// Unidades del dibujo de los accesorios: las del de Nook, en el que el cuerpo mide 98 de ancho
+/// (49 de radio).
 pub const UNIDAD: f32 = 49.0;
 
-/// Un punto del dibujo SVG (centrado en el cuerpo) en unidades del radio del cuerpo.
+/// Un punto del dibujo SVG de los accesorios (centrado en el cuerpo) en unidades del radio del
+/// cuerpo.
 pub const fn svg(x: f32, y: f32) -> Punto {
     (x / UNIDAD, y / UNIDAD)
 }
 
-/// Qué figura tiene el personaje.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum Figura {
-    /// La de siempre: un cuerpo redondeado, algo más ancho que alto, del color de acento, con un
-    /// rulo en lo alto de la cabeza, dos ojos ovalados y una sonrisa con un colmillo.
-    #[default]
-    Nook,
-    /// Un bollito de limón (como un peluche): redondo, crema, con una capa amarilla de borde
-    /// ondulado arriba y otra abajo, un arándano en lo alto, ojos «> <», una boquita en «x» y
-    /// coloretes.
-    Limon,
-}
-
-/// Dónde están los rasgos de una figura con el personaje de frente y en reposo, en unidades de
-/// radio respecto al centro del cuerpo: el ojo derecho (el izquierdo es su reflejo), la boca y
-/// cuánto mide el cuerpo hacia arriba y hacia abajo.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Medidas {
-    pub ojo: Punto,
-    pub boca: Punto,
-    pub arriba: f32,
-    pub abajo: f32,
-}
-
-impl Figura {
-    /// La silueta del cuerpo en reposo.
-    pub fn silueta(self) -> &'static Silueta {
-        static NOOK: LazyLock<Silueta> = LazyLock::new(|| Silueta::new(forma::perfil(CUERPO_INICIO, &CUERPO)));
-        static LIMON: LazyLock<Silueta> = LazyLock::new(|| Silueta::new(forma::perfil(LIMON_INICIO, &LIMON_CUERPO)));
-        match self {
-            Figura::Nook => &NOOK,
-            Figura::Limon => &LIMON,
-        }
-    }
-
-    pub fn medidas(self) -> Medidas {
-        let radios = &self.silueta().radios;
-        let (arriba, abajo) = (forma::radio_en(radios, -FRAC_PI_2), forma::radio_en(radios, FRAC_PI_2));
-        let (ojo, boca) = match self {
-            Figura::Nook => (svg(13.0, 0.0), svg(0.0, 15.0)),
-            Figura::Limon => (LIMON_OJO, LIMON_BOCA),
-        };
-        Medidas { ojo, boca, arriba, abajo }
-    }
-}
-
-// ---- Nook ----
-
-/// Contorno del cuerpo: dónde empieza y, por tramo, control 1, control 2 y punto final.
-const CUERPO_INICIO: Punto = svg(-40.0, -30.0);
-const CUERPO: [(Punto, Punto, Punto); 4] = [
-    (svg(-20.0, -42.0), svg(20.0, -42.0), svg(40.0, -30.0)),
-    (svg(52.0, -20.0), svg(52.0, 20.0), svg(40.0, 30.0)),
-    (svg(20.0, 40.0), svg(-20.0, 40.0), svg(-40.0, 30.0)),
-    (svg(-52.0, 20.0), svg(-52.0, -20.0), svg(-40.0, -30.0)),
-];
-/// Rulo: un trazo de dos curvas cúbicas que sale de lo alto de la cabeza (inicio y, por tramo,
-/// control 1, control 2 y punto final).
-const RULO: [Punto; 7] = [
-    svg(0.0, -36.0),
-    svg(-4.0, -56.0),
-    svg(14.0, -64.0),
-    svg(20.0, -54.0),
-    svg(25.0, -45.0),
-    svg(12.0, -40.0),
-    svg(10.0, -48.0),
-];
-pub const GROSOR_RULO: f32 = 6.0 / UNIDAD;
-/// Boca, respecto a su centro: una sonrisa (curva cuadrática: inicio, control y final) y,
-/// colgando de ella, un colmillo (triángulo).
-pub const SONRISA: [Punto; 3] = [svg(-5.0, 0.0), svg(0.0, 3.0), svg(5.0, 0.0)];
-pub const GROSOR_SONRISA: f32 = 2.0 / UNIDAD;
-pub const COLMILLO: [Punto; 3] = [svg(1.5, 1.3), svg(3.5, 6.5), svg(5.5, 0.6)];
-/// Dónde arranca el rulo sobre la esfera de la cabeza, en grados por encima del centro de la
-/// cara: 36 por encima del centro, con el cuerpo midiendo 39 hacia arriba.
-const ARRANQUE_RULO: f32 = 67.4; // asin(36 / 39)
-
-// ---- Limón ----
-
-/// Contorno del cuerpo: un bollo de 98 × 91, algo más ancho abajo.
-const LIMON_INICIO: Punto = svg(-38.0, -38.0);
-const LIMON_CUERPO: [(Punto, Punto, Punto); 4] = [
-    (svg(-18.0, -48.0), svg(18.0, -48.0), svg(38.0, -38.0)),
-    (svg(52.0, -26.0), svg(52.0, 26.0), svg(40.0, 38.0)),
-    (svg(22.0, 48.0), svg(-22.0, 48.0), svg(-40.0, 38.0)),
-    (svg(-52.0, 26.0), svg(-52.0, -26.0), svg(-38.0, -38.0)),
-];
-/// Los ojos «> <» y la boquita en «x», en línea, algo por debajo del centro.
-const LIMON_OJO: Punto = svg(11.0, 5.5);
-const LIMON_BOCA: Punto = svg(0.0, 6.0);
-
 /// Ángulos (en grados) sobre la esfera de la cara de un rasgo que en reposo está en `p`: hacia
 /// la derecha y hacia abajo del centro de la cara.
-fn angulos(figura: Figura, (x, y): Punto) -> (f32, f32) {
-    let radios = &figura.silueta().radios;
-    let (ancho, alto) = (forma::radio_en(radios, 0.0), forma::radio_en(radios, FRAC_PI_2));
+fn angulos(figura: &Figura, (x, y): Punto) -> (f32, f32) {
+    let Medidas { ancho, abajo: alto, .. } = figura.medidas;
     let vertical = (y / alto).clamp(-1.0, 1.0).asin();
     let lateral = (x / ancho / vertical.cos().max(1e-3)).clamp(-1.0, 1.0).asin();
     (lateral.to_degrees(), vertical.to_degrees())
@@ -220,9 +127,9 @@ pub struct Pastilla {
 /// La cabeza en un instante: sus ejes (hacia dónde mira) y cómo la colocan el estado y la vida
 /// (giro, estirado y desplazamiento). Sirve para poner encima lo que no va pintado en la cara,
 /// como los accesorios: un punto en 3D respecto a la cabeza va a su sitio en la pantalla.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Cabeza {
-    pub figura: Figura,
+    pub figura: Arc<Figura>,
     pub ejes: cara::Ejes,
     giro: f32,
     sx: f32,
@@ -248,6 +155,34 @@ impl Cabeza {
         (x + self.dx, y + self.dy)
     }
 
+    /// Un desplazamiento en el plano del cuerpo (unidades de radio) girado y estirado con él.
+    pub fn al_cuerpo(&self, (x, y): Punto) -> Punto {
+        let (s, c) = self.giro.sin_cos();
+        ((x * c - y * s) * self.sx, (x * s + y * c) * self.sy)
+    }
+
+    /// Un punto del cuerpo en reposo (unidades de radio respecto a su centro), en la pantalla:
+    /// girado, estirado y movido con él.
+    pub fn cuerpo(&self, p: Punto) -> Punto {
+        let (x, y) = self.al_cuerpo(p);
+        (x + self.dx, y + self.dy)
+    }
+
+    /// Lo contrario de `cuerpo`: dónde estaba en reposo un punto de la pantalla.
+    pub fn desde_cuerpo(&self, (x, y): Punto) -> Punto {
+        let (x, y) = ((x - self.dx) / self.sx.max(1e-3), (y - self.dy) / self.sy.max(1e-3));
+        let (s, c) = self.giro.sin_cos();
+        (x * c + y * s, -x * s + y * c)
+    }
+
+    /// Un punto de algo pegado a la cabeza en `ancla` que se gira y se estira con el cuerpo, sin
+    /// inclinarse con la cabeza: `p` es su posición respecto al ancla en reposo.
+    pub fn en_cuerpo(&self, ancla: Vec3, p: Punto) -> Punto {
+        let (ox, oy) = self.punto(ancla);
+        let (x, y) = self.al_cuerpo(p);
+        (ox + x, oy + y)
+    }
+
     /// Cuánto se acerca al espectador una dirección respecto a la cabeza (> 0 es hacia él).
     pub fn profundidad(&self, [x, y, z]: Vec3) -> f32 {
         let cara::Ejes { frente, derecha, abajo } = self.ejes;
@@ -262,8 +197,7 @@ impl Cabeza {
     /// deforma al girar. Devuelve el punto en la pantalla y su profundidad (> 0 mira hacia el
     /// espectador; lo que pasa al otro lado de la cabeza baja de 0).
     pub fn en_cara(&self, (x, y): Punto) -> (Punto, f32) {
-        let radios = &self.figura.silueta().radios;
-        let (ancho, alto) = (forma::radio_en(radios, 0.0), forma::radio_en(radios, FRAC_PI_2));
+        let Medidas { ancho, abajo: alto, .. } = self.figura.medidas;
         let abajo = (y / alto).clamp(-1.0, 1.0);
         let corte = (1.0 - abajo * abajo).sqrt();
         let lado = (x / ancho).clamp(-corte, corte);
@@ -292,12 +226,12 @@ impl Cabeza {
 
     /// Dónde están los rasgos de su figura en reposo.
     pub fn medidas(&self) -> Medidas {
-        self.figura.medidas()
+        self.figura.medidas
     }
 
     fn casi_igual(&self, otra: &Cabeza, tolerancia: f32) -> bool {
         let (a, b) = (self.ejes, otra.ejes);
-        self.figura == otra.figura
+        Arc::ptr_eq(&self.figura, &otra.figura)
             && [self.giro, self.sx, self.sy, self.dx, self.dy]
             .into_iter()
             .chain(a.frente.into_iter().chain(a.derecha).chain(a.abajo))
@@ -306,12 +240,11 @@ impl Cabeza {
     }
 }
 
-/// Lo que hay que dibujar en un instante, en unidades del radio del cuerpo y con el centro en 0.
+/// Lo que hay que dibujar en un instante, en unidades del radio del cuerpo y con el centro en 0:
+/// la cabeza (con la figura, y cómo están colocados el cuerpo y lo que va pegado a él), los ojos,
+/// la boca y la pastilla.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cuadro {
-    pub cuerpo: [Punto; MUESTRAS],
-    /// El rulo, ya colocado (como `RULO`: inicio y, por tramo, control 1, control 2 y final).
-    pub rulo: [Punto; 7],
     pub ojos: Vec<Ojo>,
     pub boca: Option<Boca>,
     pub pastilla: Option<Pastilla>,
@@ -319,6 +252,8 @@ pub struct Cuadro {
     /// Cuánto se aparta el pelo de su sitio (x, y), en unidades de radio: lo que se mueve lo
     /// más alto de él (solo en las figuras con pelo; si no, 0).
     pub pelo: Punto,
+    /// En las figuras de imágenes, qué animación se ve y en qué fotograma va.
+    pub fotograma: Option<(Animacion, usize)>,
 }
 
 impl Cuadro {
@@ -339,8 +274,7 @@ impl Cuadro {
         pastillas
             && bocas
             && self.ojos.len() == otro.ojos.len()
-            && puntos(&self.cuerpo, &otro.cuerpo)
-            && puntos(&self.rulo, &otro.rulo)
+            && self.fotograma == otro.fotograma
             && puntos(&[self.pelo], &[otro.pelo])
             && self.cabeza.casi_igual(&otro.cabeza, tolerancia)
             && self.ojos.iter().zip(&otro.ojos).all(|(a, b)| {
@@ -366,7 +300,7 @@ pub struct Motor {
     golpe: Golpe,
     /// Cuándo se hizo clic en el personaje por última vez (para el rebote).
     rebote: f64,
-    figura: Figura,
+    figura: Arc<Figura>,
 }
 
 impl Motor {
@@ -387,13 +321,15 @@ impl Motor {
             congelada: None,
             golpe: Golpe::NINGUNO,
             rebote: f64::NEG_INFINITY,
-            figura: Figura::Nook,
+            figura: Figura::nook(),
         }
     }
 
     /// Cambia la figura del personaje (se ve en el siguiente cuadro).
-    pub fn poner_figura(&mut self, figura: Figura) {
-        self.figura = figura;
+    pub fn poner_figura(&mut self, figura: Arc<Figura>) {
+        if !Arc::ptr_eq(&self.figura, &figura) {
+            self.figura = figura;
+        }
     }
 
     /// Nueva meta de la mirada a partir del instante `ahora`, alcanzada en `duracion` segundos.
@@ -475,7 +411,8 @@ impl Motor {
     /// mira y su cabeza.
     fn colocar(&self, ahora: f64) -> (Pose, cara::Vida, Mirada, Cabeza) {
         let pose = self.pose_en(ahora);
-        let mirar = self.mirada_en(ahora);
+        // Las figuras de imágenes no tienen cara que girar: miran siempre de frente.
+        let mirar = if self.figura.mira() { self.mirada_en(ahora) } else { Mirar { deriva: 0.0, ..Mirar::LIBRE } };
         let vida = cara::vida(ahora, mirar.deriva);
         // La dirección guiada sustituye a la de reposo; la deriva se suma después, para que
         // siga viva con la cabeza girada. Al salir la pastilla, la mira un momento.
@@ -491,14 +428,14 @@ impl Motor {
         let dx = mirada.guinada.to_radians().sin() * INCLINACION + vida.deriva_x + pose.dx;
         let dy = -mirada.cabeceo.to_radians().sin() * INCLINACION * 0.6 + vida.deriva_y + pose.dy;
         let (sx, sy) = (pose.sx, pose.sy * vida.respiro);
-        let cabeza = Cabeza { figura: self.figura, ejes: cara::ejes(mirada), giro: pose.giro, sx, sy, dx, dy };
+        let cabeza = Cabeza { figura: self.figura.clone(), ejes: cara::ejes(mirada), giro: pose.giro, sx, sy, dx, dy };
         (pose, vida, mirada, cabeza)
     }
 
     /// Cuánto se aparta el pelo de su sitio en el instante `ahora` (ver `CALMA_PELO`): la
     /// respuesta de un muelle amortiguado a lo que se ha movido lo alto de la cabeza.
     fn pelo(&self, ahora: f64) -> Punto {
-        let alto = -self.figura.medidas().arriba * 0.7;
+        let alto = -self.figura.medidas.arriba * 0.7;
         let donde: Vec<Punto> = (0..=MUESTRAS_PELO)
             .map(|k| {
                 let (_, _, _, cabeza) = self.colocar(ahora - k as f64 * PASO_PELO);
@@ -521,72 +458,81 @@ impl Motor {
     /// El cuadro del instante `ahora` (en segundos).
     pub fn muestrear(&self, ahora: f64) -> Cuadro {
         let (pose, vida, mirada, cabeza) = self.colocar(ahora);
-        let Cabeza { sx, sy, dx, dy, .. } = cabeza;
-        let base = *self.figura.silueta();
-        let medidas = self.figura.medidas();
-        let silueta = Silueta { cx: dx, cy: dy, sx, sy, giro: pose.giro, ..base };
-        // Lo que va sobre el cuerpo (rulo, ojos, boca, pastilla) se gira y estira con él.
-        let (s, c) = pose.giro.sin_cos();
-        let al_cuerpo = |x: f32, y: f32| ((x * c - y * s) * sx, (x * s + y * c) * sy);
+        let medidas = self.figura.medidas;
         // Un rasgo de la cara en pantalla: su centro es donde está en reposo llevado a la cara,
         // igual que lo que se pinta en ella (así el antifaz y las gafas van siempre con los
-        // ojos), y sus ejes, los del plano tangente de la esfera en ese punto. `aplastar` lo
-        // aplasta en vertical (el parpadeo).
+        // ojos), y sus ejes, los del plano tangente de la esfera en ese punto, girados y
+        // estirados con el cuerpo. `aplastar` lo aplasta en vertical (el parpadeo).
         let sobre_cuerpo = |p: &cara::Proyeccion, reposo: Punto, aplastar: f32| {
-            let (a, b) = al_cuerpo(p.a, p.b * aplastar);
-            let (cc, d) = al_cuerpo(p.c, p.d * aplastar);
+            let (a, b) = cabeza.al_cuerpo((p.a, p.b * aplastar));
+            let (cc, d) = cabeza.al_cuerpo((p.c, p.d * aplastar));
             let ((e, f), _) = cabeza.en_cara(reposo);
             [a, b, cc, d, e, f]
         };
         let alfa = |p: &cara::Proyeccion| (p.profundidad / 0.12).clamp(0.0, 1.0);
 
-        let ojos = [-1.0f32, 1.0]
-            .into_iter()
-            .map(|lado| {
-                let reposo = (lado * medidas.ojo.0, medidas.ojo.1);
-                let (lateral, vertical) = angulos(self.figura, reposo);
-                (lado, reposo, cara::proyectar(mirada, lateral, vertical))
-            })
-            .filter(|(_, _, ojo)| ojo.profundidad > 0.02)
-            .map(|(lado, reposo, ojo)| Ojo {
-                lado,
-                ancho: pose.ojo_ancho,
-                alto: pose.ojo_alto,
-                arco: pose.ojo_arco,
-                matriz: sobre_cuerpo(&ojo, reposo, cara::aplastado(vida.parpado)),
-                alfa: alfa(&ojo),
-            })
-            .collect();
-        let (lateral, vertical) = angulos(self.figura, medidas.boca);
-        let boca = cara::proyectar(mirada, lateral, vertical);
-        let boca = (boca.profundidad > 0.02).then(|| Boca { matriz: sobre_cuerpo(&boca, medidas.boca, 1.0), alfa: alfa(&boca) });
-
-        // El rulo se mueve con el punto de la esfera del que arranca (al girar la cabeza se va
-        // hacia ese lado) y con el cuerpo, que lo estira y lo gira.
-        let arranque = |mirada| cara::proyectar(mirada, 0.0, -ARRANQUE_RULO);
-        let (ahora_rulo, quieto) = (arranque(mirada), arranque(MIRADA_REPOSO));
-        let alto = forma::radio_en(&base.radios, -FRAC_PI_2);
-        let (mx, my) = ((ahora_rulo.x - quieto.x) * alto, (ahora_rulo.y - quieto.y) * alto);
-        let rulo = RULO.map(|(x, y)| {
-            let (x, y) = al_cuerpo(x + mx, y + my);
-            (x + dx, y + dy)
-        });
+        let (ojos, boca) = if self.figura.mira() {
+            let ojos = [-1.0f32, 1.0]
+                .into_iter()
+                .map(|lado| {
+                    let reposo = (lado * medidas.ojo.0, medidas.ojo.1);
+                    let (lateral, vertical) = angulos(&self.figura, reposo);
+                    (lado, reposo, cara::proyectar(mirada, lateral, vertical))
+                })
+                .filter(|(_, _, ojo)| ojo.profundidad > 0.02)
+                .map(|(lado, reposo, ojo)| Ojo {
+                    lado,
+                    ancho: pose.ojo_ancho,
+                    alto: pose.ojo_alto,
+                    arco: pose.ojo_arco,
+                    matriz: sobre_cuerpo(&ojo, reposo, cara::aplastado(vida.parpado)),
+                    alfa: alfa(&ojo),
+                })
+                .collect();
+            let (lateral, vertical) = angulos(&self.figura, medidas.boca);
+            let boca = cara::proyectar(mirada, lateral, vertical);
+            let boca = (boca.profundidad > 0.02).then(|| Boca { matriz: sobre_cuerpo(&boca, medidas.boca, 1.0), alfa: alfa(&boca) });
+            (ojos, boca)
+        } else {
+            (Vec::new(), None)
+        };
 
         let pastilla = (pose.pastilla > 0.01).then(|| {
-            let r = forma::radio_en(&base.radios, ANGULO_PASTILLA) * 0.92;
-            let (x, y) = al_cuerpo(r * ANGULO_PASTILLA.cos(), r * ANGULO_PASTILLA.sin());
+            let r = self.figura.radio_en(ANGULO_PASTILLA) * 0.92;
+            let (x, y) = cabeza.cuerpo((r * ANGULO_PASTILLA.cos(), r * ANGULO_PASTILLA.sin()));
             let radio = RADIO_PASTILLA * pose.pastilla;
-            Pastilla { x: x + dx, y: y + dy, radio, muesca: radio + MUESCA * pose.pastilla.min(1.0) }
+            Pastilla { x, y, radio, muesca: radio + MUESCA * pose.pastilla.min(1.0) }
         });
 
-        let pelo = if self.figura == Figura::Limon { self.pelo(ahora) } else { (0.0, 0.0) };
-        Cuadro { cuerpo: silueta.puntos(), rulo, ojos, boca, pastilla, cabeza, pelo }
+        let pelo = if self.figura.muelle.is_some() { self.pelo(ahora) } else { (0.0, 0.0) };
+        let fotograma = self.fotograma(ahora);
+        Cuadro { ojos, boca, pastilla, cabeza, pelo, fotograma }
+    }
+
+    /// En una figura de imágenes, la animación que toca y su fotograma: la del clic mientras
+    /// rebota (si tiene), si no la de lo que esté haciendo. El aviso empieza desde su primer
+    /// fotograma; las demás van con el reloj.
+    fn fotograma(&self, ahora: f64) -> Option<(Animacion, usize)> {
+        let Dibujo::Imagenes(imagenes) = &self.figura.dibujo else { return None };
+        let desde_clic = ahora - self.rebote;
+        let (animacion, t) = if imagenes.tiene(Animacion::Clic) && (0.0..estados::DURACION_REBOTE as f64).contains(&desde_clic) {
+            (Animacion::Clic, desde_clic)
+        } else {
+            match self.estado {
+                Estado::Reposo => (Animacion::Reposo, ahora),
+                Estado::Aviso => (Animacion::Aviso, ahora - self.estado_desde),
+                Estado::Musica => (Animacion::Musica, ahora),
+            }
+        };
+        let total = imagenes.fotogramas(animacion).len().max(1);
+        Some((animacion, (t.max(0.0) * imagenes.fps as f64) as usize % total))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::personaje::figura::TipoCapa;
 
     fn seguir(guinada: f32, cabeceo: f32) -> Mirar {
         Mirar { guinada, cabeceo, mezcla: 1.0, deriva: 0.0 }
@@ -634,10 +580,9 @@ mod tests {
 
     #[test]
     fn mirando_a_los_extremos_los_ojos_quedan_dentro_del_cuerpo() {
-        for figura in [Figura::Nook, Figura::Limon] {
+        for figura in Figura::integradas() {
             let mut motor = Motor::new();
-            motor.poner_figura(figura);
-            let base = figura.silueta();
+            motor.poner_figura(figura.clone());
             for (g, c) in [(35.0, 0.0), (-35.0, 0.0), (0.0, 28.0), (0.0, -28.0), (30.0, 24.0), (-30.0, -24.0)] {
                 motor.poner_mirada(seguir(g, c), 0.0, 0.001);
                 for ojo in motor.muestrear(10.0).ojos {
@@ -646,8 +591,8 @@ mod tests {
                     for (x, y) in [(1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0)] {
                         let (x, y) = (x * ojo.ancho / 2.0, y * ojo.alto / 2.0);
                         let (px, py) = (a * x + cc * y + e, b * x + d * y + f);
-                        let limite = forma::radio_en(&base.radios, cara::direccion(px, py)) * 1.04;
-                        assert!(px.hypot(py) < limite, "ojo de {figura:?} fuera mirando a ({g}, {c})");
+                        let limite = figura.radio_en(cara::direccion(px, py)) * 1.04;
+                        assert!(px.hypot(py) < limite, "ojo de {} fuera mirando a ({g}, {c})", figura.id);
                     }
                 }
             }
@@ -656,21 +601,28 @@ mod tests {
 
     #[test]
     fn en_reposo_los_rasgos_de_cada_figura_quedan_donde_sus_medidas() {
-        for figura in [Figura::Nook, Figura::Limon] {
+        for figura in Figura::integradas() {
             let mut motor = Motor::new();
-            motor.poner_figura(figura);
+            motor.poner_figura(figura.clone());
             motor.poner_mirada(seguir(0.0, 0.0), 0.0, 0.001);
             let cuadro = motor.muestrear(0.5);
-            let m = figura.medidas();
+            let m = figura.medidas;
             for ojo in &cuadro.ojos {
-                assert!((ojo.matriz[4] - ojo.lado * m.ojo.0).abs() < 0.02 && (ojo.matriz[5] - m.ojo.1).abs() < 0.02, "{figura:?}");
+                assert!((ojo.matriz[4] - ojo.lado * m.ojo.0).abs() < 0.02 && (ojo.matriz[5] - m.ojo.1).abs() < 0.02, "{}", figura.id);
             }
             let boca = cuadro.boca.expect("boca");
-            assert!((boca.matriz[4] - m.boca.0).abs() < 0.02 && (boca.matriz[5] - m.boca.1).abs() < 0.02, "{figura:?}");
-            assert_eq!(cuadro.cabeza.figura, figura);
+            assert!((boca.matriz[4] - m.boca.0).abs() < 0.02 && (boca.matriz[5] - m.boca.1).abs() < 0.02, "{}", figura.id);
+            assert!(Arc::ptr_eq(&cuadro.cabeza.figura, &figura));
         }
-        // El Limón es algo más alto que Nook.
-        assert!(Figura::Limon.medidas().arriba > Figura::Nook.medidas().arriba + 0.1);
+    }
+
+    /// Dónde arranca el rulo de Nook en un cuadro.
+    fn arranque_del_rulo(cuadro: &Cuadro) -> Punto {
+        let rulo = cuadro.cabeza.figura.capas().iter().find_map(|c| match c.tipo {
+            TipoCapa::Cabeza(a) => Some(a),
+            _ => None,
+        });
+        cuadro.cabeza.en_cuerpo(rulo.expect("rulo").ancla, (0.0, 0.0))
     }
 
     #[test]
@@ -682,10 +634,9 @@ mod tests {
         assert!((izq[4] + 13.0 / UNIDAD).abs() < 0.02 && (der[4] - 13.0 / UNIDAD).abs() < 0.02);
         let boca = cuadro.boca.expect("boca");
         assert!(boca.matriz[4].abs() < 0.02 && (boca.matriz[5] - 15.0 / UNIDAD).abs() < 0.02);
-        // El rulo arranca dentro del cuerpo, en lo alto, y sube por encima de él.
-        let alto = forma::radio_en(&Figura::Nook.silueta().radios, -FRAC_PI_2);
-        assert!((alto - 39.0 / UNIDAD).abs() < 0.01);
-        assert!(cuadro.rulo[0].1 > -alto && cuadro.rulo[2].1 < -alto - 0.3);
+        // El rulo arranca dentro del cuerpo, en lo alto.
+        let (x, y) = arranque_del_rulo(&cuadro);
+        assert!(x.abs() < 0.03 && (y + 36.0 / UNIDAD).abs() < 0.03, "({x}, {y})");
     }
 
     #[test]
@@ -694,7 +645,7 @@ mod tests {
         let quieto = motor.muestrear(0.0);
         motor.poner_mirada(seguir(30.0, 0.0), 0.0, 0.001);
         let girado = motor.muestrear(1.0);
-        assert!(girado.rulo[0].0 > quieto.rulo[0].0 + 0.1);
+        assert!(arranque_del_rulo(&girado).0 > arranque_del_rulo(&quieto).0 + 0.1);
         assert!(girado.boca.expect("boca").matriz[4] > 0.2);
     }
 
@@ -702,16 +653,16 @@ mod tests {
     fn los_ojos_van_donde_lo_pintado_en_la_cara_los_espera() {
         // El antifaz y las gafas se colocan con `en_cara`: los ojos tienen que caer en el mismo
         // sitio mire donde mire, o asomarían por los bordes.
-        for figura in [Figura::Nook, Figura::Limon] {
+        for figura in Figura::integradas() {
             let mut motor = Motor::new();
-            motor.poner_figura(figura);
-            let ojo = figura.medidas().ojo;
+            motor.poner_figura(figura.clone());
+            let ojo = figura.medidas.ojo;
             for (g, c) in [(0.0, 0.0), (0.0, -26.0), (0.0, 26.0), (30.0, -20.0), (-35.0, 15.0)] {
                 motor.poner_mirada(seguir(g, c), 0.0, 0.001);
                 let cuadro = motor.muestrear(10.0);
                 for o in &cuadro.ojos {
                     let ((ex, ey), _) = cuadro.cabeza.en_cara((o.lado * ojo.0, ojo.1));
-                    assert!((o.matriz[4] - ex).abs() < 1e-5 && (o.matriz[5] - ey).abs() < 1e-5, "ojo de {figura:?} fuera de sitio mirando a ({g}, {c})");
+                    assert!((o.matriz[4] - ex).abs() < 1e-5 && (o.matriz[5] - ey).abs() < 1e-5, "ojo de {} fuera de sitio mirando a ({g}, {c})", figura.id);
                 }
             }
         }
@@ -720,7 +671,7 @@ mod tests {
     #[test]
     fn el_pelo_se_queda_atras_al_moverse_y_luego_se_asienta() {
         let mut motor = Motor::new();
-        motor.poner_figura(Figura::Limon);
+        motor.poner_figura(Figura::limon());
         motor.poner_mirada(seguir(0.0, 0.0), 0.0, 0.001);
         assert!(motor.muestrear(5.0).pelo.0.abs() < 1e-3, "quieto, el pelo está en su sitio");
         // Gira la cabeza a la derecha: el pelo se queda atrás (a la izquierda)…

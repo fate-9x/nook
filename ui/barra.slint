@@ -118,7 +118,9 @@ export component Barra inherits Window {
     // Personalización del personaje: su vista previa (la dibuja Rust), los accesorios y la fila
     // de colores para ellos (los primeros no se pueden quitar).
     in property <image> personaje-muestra;
-    in property <int> figura;               // 0 Nook, 1 Limón (config::Figura::TODAS)
+    in property <[string]> figuras;         // los personajes que hay (personaje::coleccion)
+    in property <int> figura;               // el elegido, su posición en `figuras`
+    in property <string> errores-personajes; // los que no se pudieron leer, uno por línea
     in property <int> idioma;               // 0 el del sistema, 1 español, 2 inglés, 3 japonés, 4 coreano (config::Idioma::TODOS)
     in property <[AccesorioItem]> accesorios;
     in property <[color]> colores-accesorios;
@@ -245,6 +247,8 @@ export component Barra inherits Window {
     callback volver-en-boveda();            // salir del grupo a la vista de arriba
     callback cancelar-entrada-boveda();
     callback elegir-figura(int);
+    callback nuevo-personaje();             // crea uno a partir de Nook y abre su carpeta
+    callback abrir-carpeta-personajes();
     callback elegir-idioma(int);
     callback alternar-accesorio(int);               // poner o quitar el accesorio n
     callback elegir-color-accesorio(int, color);
@@ -1546,7 +1550,9 @@ export component Barra inherits Window {
         posicion: root.posicion;
         idioma: root.idioma;
         personaje-muestra: root.personaje-muestra;
+        figuras: root.figuras;
         figura: root.figura;
+        errores-personajes: root.errores-personajes;
         accesorios: root.accesorios;
         colores-accesorios: root.colores-accesorios;
         colores-accesorios-base: root.colores-accesorios-base;
@@ -1597,6 +1603,8 @@ export component Barra inherits Window {
         elegir-posicion(a) => { root.elegir-posicion(a); }
         elegir-idioma(a) => { root.elegir-idioma(a); }
         elegir-figura(a) => { root.elegir-figura(a); }
+        nuevo-personaje => { root.nuevo-personaje(); }
+        abrir-carpeta-personajes => { root.abrir-carpeta-personajes(); }
         alternar-accesorio(a) => { root.alternar-accesorio(a); }
         elegir-color-accesorio(a, b) => { root.elegir-color-accesorio(a, b); }
         agregar-color-accesorio(a) => { root.agregar-color-accesorio(a); }

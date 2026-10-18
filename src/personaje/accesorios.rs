@@ -53,8 +53,8 @@ impl Tipo {
         }
     }
 
-    /// Si tapa el rulo (que entonces no se dibuja).
-    pub fn tapa_el_rulo(self) -> bool {
+    /// Si tapa lo alto de la cabeza: lo que sale de ella (el rulo, el arándano…) no se dibuja.
+    pub fn tapa_la_cabeza(self) -> bool {
         self == Tipo::GorroDeLana
     }
 
@@ -596,7 +596,8 @@ fn capa_de_vampiro(l: &mut Lienzo) {
 mod tests {
     use super::super::dibujo::{BAJADA, RADIO};
     use super::super::estados::Estado;
-    use super::super::motor::{Figura, Mirar, Motor};
+    use super::super::figura::Figura;
+    use super::super::motor::{Mirar, Motor};
     use super::*;
 
     const TODOS: [Tipo; 10] = [
@@ -675,10 +676,10 @@ mod tests {
     fn al_saltar_ningun_accesorio_se_sale_de_la_imagen() {
         let mitad = 0.5 / RADIO;
         let mut motores = Vec::new();
-        for figura in [Figura::Nook, Figura::Limon] {
+        for figura in Figura::integradas() {
             let con = |f: &dyn Fn(&mut Motor)| {
                 let mut m = Motor::new();
-                m.poner_figura(figura);
+                m.poner_figura(figura.clone());
                 f(&mut m);
                 m
             };

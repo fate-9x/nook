@@ -178,8 +178,20 @@ msgstr "시스템"
 msgid "FIGURA"
 msgstr "종류"
 
-msgid "Limón"
-msgstr "레몬"
+msgid "TUS PERSONAJES"
+msgstr "직접 만든 캐릭터"
+
+msgid "Nuevo personaje"
+msgstr "새 캐릭터"
+
+msgid "Abrir carpeta"
+msgstr "폴더 열기"
+
+msgid "PERSONAJES QUE NO SE PUEDEN LEER"
+msgstr "읽을 수 없는 캐릭터"
+
+msgid "Mi personaje"
+msgstr "내 캐릭터"
 
 msgid "ACCESORIOS"
 msgstr "액세서리"
