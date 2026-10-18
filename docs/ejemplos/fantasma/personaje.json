@@ -1,0 +1,9 @@
+{
+  "nombre": { "es": "Fantasma pixel", "en": "Pixel ghost" },
+  "imagenes": {
+    "reposo": ["reposo-1.png", "reposo-1.png", "reposo-1.png", "reposo-2.png"],
+    "aviso": ["aviso-1.png"],
+    "fps": 4,
+    "pixelado": true
+  }
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-70 -90 140 150">
+  <!-- El cuerpo: su tamaño es el que manda (da igual a qué escala se dibuje). -->
+  <ellipse id="cuerpo" cx="0" cy="0" rx="50" ry="42" fill="#f4a259"/>
+  <!-- Las orejas salen de la cabeza: se mueven con ella (ver personaje.json). -->
+  <g id="orejas" fill="#e07a2f">
+    <path d="M -38 -22 L -30 -62 L -10 -34 Z"/>
+    <path d="M 38 -22 L 30 -62 L 10 -34 Z"/>
+  </g>
+  <!-- Dónde se pegan las orejas a la cabeza. No se dibuja. -->
+  <circle id="ancla-orejas" cx="0" cy="-32" r="1" fill="none"/>
+  <!-- Pintado en la cara: gira con ella y no se sale del cuerpo. -->
+  <g id="rayas" fill="#d9822b">
+    <path d="M -6 -42 L 0 -26 L 6 -42 Z"/>
+    <path d="M -20 -40 L -14 -28 L -10 -41 Z"/>
+    <path d="M 20 -40 L 14 -28 L 10 -41 Z"/>
+  </g>
+  <!-- Solo el ojo derecho: el izquierdo es su reflejo. -->
+  <ellipse id="ojo" cx="16" cy="-2" rx="4.5" ry="7" fill="#2b1d14"/>
+  <path id="boca" d="M -7 14 Q -3.5 19 0 14 Q 3.5 19 7 14" fill="none" stroke="#2b1d14" stroke-width="2" stroke-linecap="round"/>
+</svg>

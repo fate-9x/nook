@@ -1,0 +1,11 @@
+{
+  "nombre": { "es": "Gato", "en": "Cat" },
+  "colores": { "aviso": "#e0455a" },
+  "capas": [
+    { "id": "orejas", "tipo": "cabeza", "detras": true, "delante": "girar" },
+    { "id": "cuerpo" },
+    { "id": "rayas" },
+    { "id": "ojo" },
+    { "id": "boca" }
+  ]
+}
