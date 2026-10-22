@@ -64,8 +64,14 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 
 ## Trucos
 
-- **Copiar un personaje:** dibuja la cabeza con las proporciones de la referencia (alargada, ancha,
-  con la barbilla estrecha…); una cabeza redonda lo convierte en otro.
+- **Copiar un personaje: mide antes de dibujar.** En la imagen más de frente, con el ancho de la
+  cabeza como 1, mide su alto y dónde es más ancha, el ancho y el alto de cada ojo, la separación
+  entre ellos y su altura, y la altura de la nariz, la boca y las orejas; luego pásalo a
+  coordenadas. Una cabeza redonda o unos ojos de otro tamaño lo convierten en otro personaje.
+- **Pelo corto (hasta las orejas):** sin franjas de nuca. Basta con el nacimiento del pelo como
+  franja hacia arriba, con sus extremos a los lados a la altura a la que acaba el pelo: al girar, el
+  motor lo alarga en horizontal y cubre la parte de atrás justo hasta ahí. Las franjas de nuca se
+  alargan en vertical y, con el pelo corto, al girar bajan hasta la barbilla.
 - **Fijo en el cuerpo:** las formas que van dentro del grupo `cuerpo`, después de la primera, se
   pintan sobre él pero **no giran con la cara** (un cuello de camisa, un caparazón, una barriga
   quieta). Lo pintado, en cambio, gira con la cara.
