@@ -76,9 +76,8 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   arriba con el color del cuerpo, recortado a la forma del ojo, con una línea del color y el grosor
   del contorno del ojo (si lo tiene), y parpadea bajándolos. No los dibujes tú. Con
   `"parpado": { "cierre": 0.4, "estilo": "cortado" }` el contorno del ojo solo se ve por debajo
-  de la línea del párpado (el ojo queda cortado por arriba); con `"pestanas"`, el contorno sube por
-  los lados por encima del párpado, abierto solo en lo alto, y acaba en un rabillo hacia fuera a
-  cada lado; por defecto, `"cerrado"`, se ve entero.
+  de la línea del párpado (el ojo queda cortado por arriba); con `"abierto"`, el contorno sube por
+  los lados por encima del párpado y queda abierto solo en lo alto; por defecto, `"cerrado"`, se ve entero.
 - **Expresiones:** el usuario elige una en la configuración. Cada una cambia unas capas por otras
   piezas del dibujo y, si quiere, los párpados; lo demás sigue igual:
 

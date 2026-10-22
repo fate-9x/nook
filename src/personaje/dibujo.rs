@@ -511,8 +511,8 @@ impl Pintor<'_> {
         let piel = self.figura.capas().iter().find(|c| c.tipo == TipoCapa::Cuerpo).and_then(|c| c.formas.first()).map_or([255; 3], |f| f.color);
         capas.pinturas.push((self.color(piel), cubre));
         // Su línea, del color y el grosor del contorno del ojo, y el contorno otra vez encima
-        // (cerrado, entero; cortado, solo por debajo de la línea del párpado; con pestañas, hasta
-        // cerca de lo alto del ojo, con un rabillo hacia fuera en cada extremo).
+        // (cerrado, entero; cortado, solo por debajo de la línea del párpado; abierto, hasta cerca
+        // de lo alto del ojo).
         let lineas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Linea { .. })).collect();
         if let Some(contorno) = lineas.first() {
             let linea = Subtrazo { puntos: vec![(x0 - margen, borde), (x1 + margen, borde)], cerrado: false };
@@ -523,19 +523,9 @@ impl Pintor<'_> {
         let corte = match estilo {
             EstiloParpado::Cerrado => None,
             EstiloParpado::Cortado => Some(borde),
-            EstiloParpado::Pestanas => Some(y0 + (y1 - y0) * PESTANAS.min(cierre)),
+            EstiloParpado::Abierto => Some(y0 + (y1 - y0) * ABIERTO.min(cierre)),
         };
         let debajo = corte.map(|corte| self.subtrazos(&[rectangulo(corte, y1 + margen)], relleno, 1.0, colocar));
-        if let (EstiloParpado::Pestanas, Some(corte), Some(contorno)) = (estilo, corte, lineas.first()) {
-            // Donde el óvalo del ojo corta la altura del corte, un rabillo recto hacia fuera.
-            let (cx, cy, rx, ry) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0, (x1 - x0) / 2.0, (y1 - y0) / 2.0);
-            let dx = rx * (1.0 - ((corte - cy) / ry.max(1e-3)).powi(2)).max(0.0).sqrt();
-            let rabillos: Vec<Subtrazo> = [-1.0f32, 1.0]
-                .iter()
-                .map(|&lado| Subtrazo { puntos: vec![(cx + lado * dx, corte), (cx + lado * (dx + rx * 0.3), corte)], cerrado: false })
-                .collect();
-            capas.pinturas.push((self.color(contorno.color), self.subtrazos(&rabillos, contorno.pintura, alfa, colocar)));
-        }
         for f in lineas {
             let mut cubre = self.subtrazos(&f.subtrazos, f.pintura, alfa * f.alfa, colocar);
             if let Some(debajo) = &debajo {
@@ -661,8 +651,8 @@ fn muestra(f: &Fotograma, x: f32, y: f32) -> [f32; 4] {
     std::array::from_fn(|i| (a[i] * (1.0 - tx) + b[i] * tx) * (1.0 - ty) + (c[i] * (1.0 - tx) + d[i] * tx) * ty)
 }
 
-/// Con párpados con pestañas, a qué altura del ojo (desde arriba, 0–1) se corta su contorno.
-const PESTANAS: f32 = 0.18;
+/// Con párpados abiertos, a qué altura del ojo (desde arriba, 0–1) se corta su contorno.
+const ABIERTO: f32 = 0.18;
 
 /// Lo que tapan los accesorios puestos.
 #[derive(Clone, Copy)]

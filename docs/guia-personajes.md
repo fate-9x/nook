@@ -522,8 +522,8 @@ Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de
   contorno del ojo, y el personaje parpadea bajándolos. Con un objeto se elige también su estilo:
   `"parpado": { "cierre": 0.4, "estilo": "cortado" }`. `"cerrado"` (por defecto) deja ver el
   contorno del ojo entero; `"cortado"`, solo por debajo de la línea del párpado, y el ojo queda
-  cortado por arriba; `"pestanas"`, por los lados hasta cerca de lo alto del ojo, abierto solo
-  arriba, con un rabillo hacia fuera en cada extremo.
+  cortado por arriba; `"abierto"`, por los lados hasta cerca de lo alto del ojo, abierto solo
+  arriba.
 - **`expresiones`** (opcional): las expresiones que el usuario puede elegir en la configuración,
   en su orden. Cada una dice qué capas cambia por qué piezas del dibujo (dibujadas en su sitio,
   fuera de cualquier capa) y, si quiere, cuánto cierran los párpados:

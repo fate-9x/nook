@@ -408,9 +408,8 @@ pub enum EstiloParpado {
     /// El contorno del ojo solo se ve por debajo de la línea del párpado: por encima, el
     /// párpado lo tapa y el ojo queda cortado por arriba.
     Cortado,
-    /// El contorno del ojo sube por los lados por encima del párpado, abierto solo en lo alto, y
-    /// cada extremo acaba en un rabillo hacia fuera.
-    Pestanas,
+    /// El contorno del ojo sube por los lados por encima del párpado, abierto solo en lo alto.
+    Abierto,
 }
 
 /// Una expresión: qué capas cambian por qué piezas del dibujo, y sus párpados.
