@@ -492,7 +492,7 @@ Si no hay capa de ojos ni boca (por ejemplo, un personaje sin boca), las anclas 
 `ancla-boca` siguen sirviendo para colocar los accesorios. Sin nada, se usan las proporciones de
 Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de la mitad de abajo.
 
-## El personaje.json: nombre y colores
+## El personaje.json: nombre, colores y límite de giro
 
 ```json
 {
@@ -513,6 +513,10 @@ Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de
     los ojos, la boca y los contornos.
   - `aviso`: el color del circulito de las notificaciones, para cuando el usuario no elige uno él
     mismo. Si falta, se usa el color de los rasgos.
+- **`giro`** y **`cabeceo`** (opcionales): hasta cuántos grados gira la cabeza a cada lado (sin
+  `giro`, unos 35) y hacia arriba o abajo. Sirven cuando a partir de cierto ángulo algo se ve mal
+  (el pelo se despega, un ojo se aplasta contra el borde): la cabeza se para ahí, y las pupilas que
+  se mueven siguen mirando hasta el borde del ojo.
 
 ## Las capas
 

@@ -134,6 +134,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   la piel en sombra, más abajo aún y sin `encima`. Que las tres empiecen y acaben en el mismo punto.
 - **Sin líneas sueltas en el pelo:** a las franjas de los lados no les pongas `stroke`; el cambio de
   color ya separa el pelo de la cara.
+- **Límite de giro:** si al girar mucho algo se ve raro (el pelo se despega, un ojo se aplasta
+  contra el borde), pon en el json `"giro": 22` (grados a cada lado; sin él, unos 35) y, si hace
+  falta, `"cabeceo": 18` (arriba y abajo). Mira con `personaje__ver` y `guinada` a partir de qué
+  ángulo falla. La cabeza se para ahí; las pupilas siguen hasta el borde del ojo.
 - **Nada pintado pegado al borde de arriba:** al mirar arriba se aplasta contra él y se ve como una
   mancha oscura.
 

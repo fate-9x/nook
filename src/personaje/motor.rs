@@ -432,6 +432,10 @@ impl Motor {
         };
         mirada.guinada = mezclar(mirada.guinada, MIRADA_PASTILLA.guinada, pose.mirar_pastilla);
         mirada.cabeceo = mezclar(mirada.cabeceo, MIRADA_PASTILLA.cabeceo, pose.mirar_pastilla);
+        // La cabeza no gira más de lo que diga la figura (las pupilas siguen mirando, ver `muestrear`).
+        let [giro, cabeceo] = self.figura.giro.map(|g| g.unwrap_or(f32::INFINITY));
+        mirada.guinada = mirada.guinada.clamp(-giro, giro);
+        mirada.cabeceo = mirada.cabeceo.clamp(-cabeceo, cabeceo);
 
         // El cuerpo se inclina un poco hacia donde mira, y el estado lo mueve, estira y gira.
         let dx = mirada.guinada.to_radians().sin() * INCLINACION + vida.deriva_x + pose.dx;
@@ -497,7 +501,11 @@ impl Motor {
                     // Con párpados, parpadea bajándolos; sin ellos, aplastando el ojo.
                     matriz: sobre_cuerpo(&ojo, reposo, if self.figura.parpado.is_some() { 1.0 } else { cara::aplastado(vida.parpado) }),
                     alfa: alfa(&ojo),
-                    pupila: ((mirada.guinada / PUPILA_GUINADA).clamp(-1.0, 1.0), (-mirada.cabeceo / PUPILA_CABECEO).clamp(-1.0, 1.0)),
+                    // Con la cabeza limitada, las pupilas llegan al borde justo en su límite.
+                    pupila: (
+                        (mirada.guinada / self.figura.giro[0].unwrap_or(PUPILA_GUINADA).max(1.0)).clamp(-1.0, 1.0),
+                        (-mirada.cabeceo / self.figura.giro[1].unwrap_or(PUPILA_CABECEO).max(1.0)).clamp(-1.0, 1.0),
+                    ),
                     parpado: self.figura.parpado.map_or(0.0, |cierre| cierre + (1.0 - cierre) * (1.0 - vida.parpado.clamp(0.0, 1.0))),
                 })
                 .collect();
@@ -588,6 +596,25 @@ mod tests {
         let izquierda = motor.muestrear(2.0);
         let centro = |c: &Cuadro| c.ojos.iter().map(|o| o.matriz[4]).sum::<f32>() / c.ojos.len() as f32;
         assert!(centro(&derecha) > 0.2 && centro(&izquierda) < -0.2);
+    }
+
+    #[test]
+    fn la_cabeza_no_gira_mas_de_su_limite_pero_las_pupilas_siguen() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg"><circle id="cuerpo" r="40"/><circle id="ojo" cx="15" r="5"/></svg>"##;
+        let figura = Figura::desde("x".into(), Some(r#"{"giro": 20, "cabeceo": 10}"#), Some(svg), &|_| Err(String::new())).unwrap();
+        assert_eq!(figura.giro, [Some(20.0), Some(10.0)]);
+        let figura = Arc::new(figura);
+        // Dos iguales, en el mismo instante: uno mirando justo al límite y otro más allá.
+        let mirando = |guinada: f32, cabeceo: f32| {
+            let mut motor = Motor::new();
+            motor.poner_figura(figura.clone());
+            motor.poner_mirada(seguir(guinada, cabeceo), 0.0, 0.001);
+            motor.muestrear(1.0)
+        };
+        let centro = |c: &Cuadro| c.ojos.iter().map(|o| o.matriz[4]).sum::<f32>() / c.ojos.len() as f32;
+        let (en_el_limite, mas_alla) = (mirando(20.0, 10.0), mirando(35.0, 26.0));
+        assert!((centro(&mas_alla) - centro(&en_el_limite)).abs() < 1e-3, "la cara se queda en el límite");
+        assert!(mas_alla.ojos.iter().all(|o| o.pupila.0 > 0.99 && o.pupila.1 < -0.99), "las pupilas, al borde");
     }
 
     #[test]

@@ -232,6 +232,8 @@ pub struct Figura {
     pub avisos: Vec<String>,
     /// Cuánto tapan los párpados la parte de arriba de los ojos (0–1), si los dibuja el motor.
     pub parpado: Option<f32>,
+    /// Hasta cuántos grados gira la cabeza a cada lado y hacia arriba o abajo, si se limita.
+    pub giro: [Option<f32>; 2],
     /// Sus expresiones, por su nombre y en su orden: la misma figura con otras piezas.
     pub expresiones: Vec<(String, Arc<Figura>)>,
     /// Contorno del cuerpo en reposo (para saber cuánto mide en cada dirección).
@@ -305,7 +307,8 @@ impl Figura {
         }
         let svg = svg.ok_or("falta personaje.svg (o «imagenes» en personaje.json)")?;
         let parpado = descripcion.parpado.map(|p| p.clamp(0.0, 1.0));
-        de_svg(id, nombre, colores, descripcion.capas.as_deref(), parpado, &descripcion.expresiones, svg)
+        let giro = [descripcion.giro, descripcion.cabeceo].map(|g| g.map(|g| g.clamp(0.0, 90.0)));
+        de_svg(id, nombre, colores, descripcion.capas.as_deref(), parpado, giro, &descripcion.expresiones, svg)
     }
 
     /// La figura con la expresión `nombre` o, si no la tiene (o es la normal), ella misma.
@@ -369,6 +372,9 @@ struct Descripcion {
     imagenes: Option<DescripcionImagenes>,
     /// Párpados que dibuja el motor: cuánto tapan los ojos por arriba (0–1).
     parpado: Option<f32>,
+    /// Hasta cuántos grados gira la cabeza a cada lado, y hacia arriba o abajo.
+    giro: Option<f32>,
+    cabeceo: Option<f32>,
     #[serde(deserialize_with = "en_orden")]
     expresiones: Vec<(String, DescripcionExpresion)>,
 }
@@ -552,6 +558,7 @@ fn de_svg(
     colores: Colores,
     capas: Option<&[DescripcionCapa]>,
     parpado: Option<f32>,
+    giro: [Option<f32>; 2],
     expresiones: &[(String, DescripcionExpresion)],
     svg: &str,
 ) -> Result<Figura, String> {
@@ -811,13 +818,14 @@ fn de_svg(
                 dibujo: Dibujo::Vectorial(capas),
                 avisos: Vec::new(),
                 parpado,
+                giro,
                 expresiones: Vec::new(),
                 contorno: contorno.clone(),
             };
             (nombre_expresion, Arc::new(figura))
         })
         .collect();
-    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, parpado, expresiones, contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, parpado, giro, expresiones, contorno })
 }
 
 /// Sin oreja izquierda, la derecha se refleja (como el ojo), justo después de ella.
@@ -945,7 +953,7 @@ fn de_imagenes(
     };
     let fps = d.fps.unwrap_or(8.0).clamp(0.5, 60.0);
     let imagenes = Imagenes { animaciones, fps, pixelado: d.pixelado, centro, unidad };
-    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), parpado: None, expresiones: Vec::new(), contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), parpado: None, giro: [None; 2], expresiones: Vec::new(), contorno })
 }
 
 /// Nombre de un archivo de la carpeta del personaje: sin carpetas ni nada raro.
