@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-75 -90 150 150">
+  <!-- Un profesor de dibujos animados, con contorno: cabeza alargada (66 × 90), calvo por arriba,
+       pelo alborotado a los lados, orejas, cejas pobladas, párpados caídos, nariz grande y bigote.
+       Centro de la cabeza en (0, 0). Todas las piezas llevan el mismo contorno oscuro. -->
+  <!-- Pelo de atrás: mechones a los lados, distintos en cada lado. La parte de arriba queda dentro
+       de la cabeza, así que de frente no se ve: es calvo. -->
+  <path id="pelo" d="M -24 24 L -40 30 L -36 18 L -54 16 L -40 6 L -58 -4 L -40 -10 L -54 -24 L -36 -26 L -24 -36 L 0 -40 L 24 -36 L 34 -26 L 50 -20 L 36 -10 L 52 -2 L 38 6 L 48 16 L 34 18 L 36 28 L 22 24 Z" fill="#e8e8ee" stroke="#2a211c" stroke-width="2.2" stroke-linejoin="round"/>
+  <circle id="ancla-pelo" cx="0" cy="-6" r="1" fill="none"/>
+  <!-- Orejas: una por lado, después del pelo para quedar encima de él. -->
+  <g id="oreja-izquierda">
+    <path d="M -31 -8 C -42 -10 -44 12 -31 12 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M -33 -2 C -38 -2 -38 6 -33 6" fill="none" stroke="#2a211c" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <circle id="ancla-oreja-izquierda" cx="-32" cy="2" r="1" fill="none"/>
+  <g id="oreja-derecha">
+    <path d="M 31 -8 C 42 -10 44 12 31 12 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M 33 -2 C 38 -2 38 6 33 6" fill="none" stroke="#2a211c" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  <circle id="ancla-oreja-derecha" cx="32" cy="2" r="1" fill="none"/>
+  <!-- La cabeza, con su contorno: el trazo del cuerpo se dibuja fijo sobre la silueta. -->
+  <path id="cuerpo" d="M 0 -45 C 22 -45 33 -28 33 -4 C 33 24 22 45 0 45 C -22 45 -33 24 -33 -4 C -33 -28 -22 -45 0 -45 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="2.2"/>
+  <!-- Pelo de los lados de la cabeza: franjas con el borde pegado por dentro al de la cabeza. -->
+  <path id="nuca-izquierda" d="M -26 -30 C -30 -22 -31 -12 -30 -2 L -30 8 C -30 12 -33 15 -38 16" fill="#e8e8ee" stroke="#2a211c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="nuca-derecha" d="M 26 -30 C 30 -22 31 -12 30 -2 L 30 8 C 30 12 33 15 38 16" fill="#e8e8ee" stroke="#2a211c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Cejas: dos elementos sueltos, para que cada una se desvanezca sola al pasar al otro lado. -->
+  <g id="cejas" fill="#e8e8ee" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M -22 -15 C -18 -22 -8 -22 -4 -17 C -10 -16 -16 -15 -22 -12 Z"/>
+    <path d="M 22 -15 C 18 -22 8 -22 4 -17 C 10 -16 16 -15 22 -12 Z"/>
+  </g>
+  <g id="ojeras" fill="none" stroke="#2a211c" stroke-width="1.4" stroke-linecap="round">
+    <path d="M -19 3 Q -12 7 -5 3"/>
+    <path d="M 5 3 Q 12 7 19 3"/>
+  </g>
+  <!-- Ojo con párpado: el blanco, el párpado del color de la piel tapando la parte de arriba y la
+       pupila. Con párpado, el ojo contento necesita «ojo-alegre». -->
+  <g id="ojo">
+    <circle cx="12" cy="-6" r="7.5" fill="#ffffff" stroke="#2a211c" stroke-width="1.8"/>
+    <path d="M 4.6 -7.5 A 7.5 7.5 0 0 1 19.4 -7.5 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="11" cy="-4.5" r="1.8" fill="#2a211c"/>
+  </g>
+  <path id="ojo-alegre" d="M 5 -5 Q 12 -1 19 -5" fill="none" stroke="#2a211c" stroke-width="2" stroke-linecap="round"/>
+  <!-- Nariz y bigote: un solo elemento centrado cada uno, así siguen visibles al girar. -->
+  <path id="nariz" d="M -3 -4 C -3 4 -10 8 -8 14 C -6 19 6 19 8 14 C 10 8 3 4 3 -4" fill="#e9bfa0" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
+  <path id="bigote" d="M 0 18 C -6 15 -16 16 -20 24 C -14 21 -8 24 0 22 C 8 24 14 21 20 24 C 16 16 6 15 0 18 Z" fill="#e8e8ee" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
+  <path id="boca" d="M -6 30 Q 0 27 6 30" fill="none" stroke="#2a211c" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

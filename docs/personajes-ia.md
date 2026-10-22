@@ -23,6 +23,7 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 | `animal` | Animales con orejas o cuernos a los lados (gato, zorro, perro, oso, conejo, dragón). |
 | `pelo` | Personas con pelo: flequillo, pelo alrededor, nuca y moño o coleta. |
 | `completo` | Lo más complejo: orejas + pelo en punta + flequillo + cejas + un ojo de cada color. |
+| `caricatura` | Personas o personajes de series con contorno: cabeza con su forma, orejas, párpados, nariz y bigote. |
 | `antena` | Algo encima de la cabeza que se balancea (robot, insecto, alien) y cuerpos no redondos. |
 | `fruta` | Comida, plantas y objetos: silueta con forma, hojas encima y algo que asoma al girar. |
 | `imagenes` | Pixel art o dibujos en PNG con una animación por momento (no mira al cursor). |
@@ -60,6 +61,27 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 - **Nombre:** `"nombre": { "es": "…", "en": "…" }` es el que sale en la lista.
 - **La cara, sin pegarla a los bordes:** al girar, lo que está cerca del borde se aplasta. Ojos a
   unos ±15 del centro y la boca entre 5 y 20 por debajo.
+
+## Trucos
+
+- **Copiar un personaje:** dibuja la cabeza con las proporciones de la referencia (alargada, ancha,
+  con la barbilla estrecha…); una cabeza redonda lo convierte en otro.
+- **Fijo en el cuerpo:** las formas que van dentro del grupo `cuerpo`, después de la primera, se
+  pintan sobre él pero **no giran con la cara** (un cuello de camisa, un caparazón, una barriga
+  quieta). Lo pintado, en cambio, gira con la cara.
+- **Contorno:** un `stroke` en el `cuerpo` se dibuja fijo sobre la silueta; en una franja, a lo
+  largo de su borde.
+- **Lo pintado se desvanece por elementos**, según dónde quede el centro de cada uno: dos mejillas o
+  dos cejas sueltas desaparecen cada una al pasar al otro lado; algo de un solo elemento centrado
+  (una uniceja, una nariz, un bigote) se ve siempre.
+- **`"muelle": true` sirve en cualquier capa:** en el `cuerpo`, la parte de arriba se bambolea como
+  gelatina (slimes, flanes); en el pelo o una antena, se queda atrás al moverse y luego se asienta.
+- **Ojos con párpado, pestañas o varias piezas:** ponles siempre `ojo-alegre`; sin él, el motor
+  recorta el ojo en arco al estar contento y solo queda bien con ojos rellenos de una pieza.
+- **Semitransparente:** `fill-opacity` funciona (brillos, sombras); y `fill-rule="evenodd"` hace
+  agujeros (unas gafas dibujadas, un dónut).
+- **Nada pintado pegado al borde de arriba:** al mirar arriba se aplasta contra él y se ve como una
+  mancha oscura.
 
 ## Si la comprobación avisa
 

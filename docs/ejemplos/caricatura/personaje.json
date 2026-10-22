@@ -1,0 +1,19 @@
+{
+  "nombre": { "es": "Profesor", "en": "Professor" },
+  "colores": { "aviso": "#e0455a" },
+  "capas": [
+    { "id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.1, "muelle": true },
+    { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },
+    { "id": "oreja-derecha", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },
+    { "id": "cuerpo" },
+    { "id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda" },
+    { "id": "nuca-derecha", "tipo": "franja", "hacia": "derecha" },
+    { "id": "cejas" },
+    { "id": "ojeras" },
+    { "id": "ojo" },
+    { "id": "ojo-alegre" },
+    { "id": "nariz" },
+    { "id": "bigote" },
+    { "id": "boca" }
+  ]
+}

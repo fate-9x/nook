@@ -261,7 +261,7 @@ corregirse sola:
 
 1. **`personaje__guia`** le da lo esencial (en vez de esta guía entera) y, según el tipo de
    personaje, un ejemplo listo para adaptar: `simple`, `animal`, `pelo`, `completo` (orejas, pelo
-   y ojos distintos), `antena`, `fruta` o `imagenes`. Son los de [`ejemplos/`](ejemplos), cada uno
+   y ojos distintos), `caricatura` (con contorno, orejas y párpados), `antena`, `fruta` o `imagenes`. Son los de [`ejemplos/`](ejemplos), cada uno
    con sus `notas.md`.
 2. **`personaje__guardar`** guarda su versión en la carpeta de personajes y le devuelve la
    comprobación y un mosaico con el personaje de frente, mirando a los dos lados y hacia arriba y

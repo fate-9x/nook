@@ -37,11 +37,12 @@ const VISTAS: [&str; 8] = ["frente", "derecha", "izquierda", "arriba", "abajo", 
 
 /// Los ejemplos que da la guía, por tipo de personaje: para qué sirve cada uno, sus notas y sus
 /// archivos (el de imágenes no tiene SVG).
-const EJEMPLOS: [(&str, &str, &str, &str, &str); 7] = [
+const EJEMPLOS: [(&str, &str, &str, &str, &str); 8] = [
     ("simple", "mascota redonda sin nada que sobresalga", include_str!("../../docs/ejemplos/simple/notas.md"), include_str!("../../docs/ejemplos/simple/personaje.svg"), include_str!("../../docs/ejemplos/simple/personaje.json")),
     ("animal", "orejas o cuernos a los lados", include_str!("../../docs/ejemplos/animal/notas.md"), include_str!("../../docs/ejemplos/animal/personaje.svg"), include_str!("../../docs/ejemplos/animal/personaje.json")),
     ("pelo", "persona con flequillo, nuca y moño", include_str!("../../docs/ejemplos/pelo/notas.md"), include_str!("../../docs/ejemplos/pelo/personaje.svg"), include_str!("../../docs/ejemplos/pelo/personaje.json")),
     ("completo", "orejas, pelo en punta, cejas y un ojo de cada color", include_str!("../../docs/ejemplos/completo/notas.md"), include_str!("../../docs/ejemplos/completo/personaje.svg"), include_str!("../../docs/ejemplos/completo/personaje.json")),
+    ("caricatura", "personas o personajes de series con contorno, orejas y párpados", include_str!("../../docs/ejemplos/caricatura/notas.md"), include_str!("../../docs/ejemplos/caricatura/personaje.svg"), include_str!("../../docs/ejemplos/caricatura/personaje.json")),
     ("antena", "algo encima que se balancea, como un robot", include_str!("../../docs/ejemplos/antena/notas.md"), include_str!("../../docs/ejemplos/antena/personaje.svg"), include_str!("../../docs/ejemplos/antena/personaje.json")),
     ("fruta", "comida u objetos con forma, hojas y algo que asoma", include_str!("../../docs/ejemplos/fruta/notas.md"), include_str!("../../docs/ejemplos/fruta/personaje.svg"), include_str!("../../docs/ejemplos/fruta/personaje.json")),
     ("imagenes", "pixel art o dibujos en PNG", include_str!("../../docs/ejemplos/fantasma/notas.md"), "", include_str!("../../docs/ejemplos/fantasma/personaje.json")),
@@ -496,7 +497,7 @@ mod tests {
 
     #[test]
     fn los_ejemplos_se_leen_sin_avisos() {
-        for carpeta in ["simple", "animal", "pelo", "completo", "antena", "fruta", "fantasma"] {
+        for carpeta in ["simple", "animal", "pelo", "completo", "caricatura", "antena", "fruta", "fantasma"] {
             let texto = comprobar(&ejemplos().join(carpeta).to_string_lossy()).unwrap();
             assert!(texto.contains("se lee bien") && texto.contains("Sin avisos"), "{carpeta}: {texto}");
         }
