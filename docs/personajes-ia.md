@@ -74,7 +74,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 
 - **Párpados:** `"parpado": 0.4` en el json y el motor los dibuja: tapa ese tanto de cada ojo por
   arriba con el color del cuerpo, recortado a la forma del ojo, con una línea del color y el grosor
-  del contorno del ojo (si lo tiene), y parpadea bajándolos. No los dibujes tú.
+  del contorno del ojo (si lo tiene), y parpadea bajándolos. No los dibujes tú. Con
+  `"parpado": { "cierre": 0.4, "estilo": "abierto" }` el contorno del ojo solo se ve por debajo
+  de la línea del párpado (el ojo queda abierto por arriba, como en muchas series); por defecto,
+  `"cerrado"`, se ve entero.
 - **Expresiones:** el usuario elige una en la configuración. Cada una cambia unas capas por otras
   piezas del dibujo y, si quiere, los párpados; lo demás sigue igual:
 

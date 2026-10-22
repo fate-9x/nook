@@ -232,6 +232,7 @@ pub struct Figura {
     pub avisos: Vec<String>,
     /// Cuánto tapan los párpados la parte de arriba de los ojos (0–1), si los dibuja el motor.
     pub parpado: Option<f32>,
+    pub estilo_parpado: EstiloParpado,
     /// Hasta cuántos grados gira la cabeza a cada lado y hacia arriba o abajo, si se limita.
     pub giro: [Option<f32>; 2],
     /// Sus expresiones, por su nombre y en su orden: la misma figura con otras piezas.
@@ -306,9 +307,14 @@ impl Figura {
             return de_imagenes(id, nombre, colores, imagenes, leer_archivo);
         }
         let svg = svg.ok_or("falta personaje.svg (o «imagenes» en personaje.json)")?;
-        let parpado = descripcion.parpado.map(|p| p.clamp(0.0, 1.0));
+        let (parpado, estilo_parpado) = match descripcion.parpado {
+            Some(DescripcionParpado::Cierre(cierre)) => (Some(cierre), EstiloParpado::default()),
+            Some(DescripcionParpado::Completo { cierre, estilo }) => (Some(cierre), estilo),
+            None => (None, EstiloParpado::default()),
+        };
+        let parpado = parpado.map(|p| p.clamp(0.0, 1.0));
         let giro = [descripcion.giro, descripcion.cabeceo].map(|g| g.map(|g| g.clamp(0.0, 90.0)));
-        de_svg(id, nombre, colores, descripcion.capas.as_deref(), parpado, giro, &descripcion.expresiones, svg)
+        de_svg(id, nombre, colores, descripcion.capas.as_deref(), (parpado, estilo_parpado), giro, &descripcion.expresiones, svg)
     }
 
     /// La figura con la expresión `nombre` o, si no la tiene (o es la normal), ella misma.
@@ -370,13 +376,38 @@ struct Descripcion {
     colores: DescripcionColores,
     capas: Option<Vec<DescripcionCapa>>,
     imagenes: Option<DescripcionImagenes>,
-    /// Párpados que dibuja el motor: cuánto tapan los ojos por arriba (0–1).
-    parpado: Option<f32>,
+    /// Párpados que dibuja el motor: cuánto tapan los ojos por arriba (0–1) y, si se quiere, su
+    /// estilo.
+    parpado: Option<DescripcionParpado>,
     /// Hasta cuántos grados gira la cabeza a cada lado, y hacia arriba o abajo.
     giro: Option<f32>,
     cabeceo: Option<f32>,
     #[serde(deserialize_with = "en_orden")]
     expresiones: Vec<(String, DescripcionExpresion)>,
+}
+
+/// Los párpados: solo cuánto tapan, o eso y su estilo.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum DescripcionParpado {
+    Cierre(f32),
+    Completo {
+        cierre: f32,
+        #[serde(default)]
+        estilo: EstiloParpado,
+    },
+}
+
+/// Cómo se dibuja el párpado sobre el contorno del ojo.
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum EstiloParpado {
+    /// El contorno del ojo se ve entero, también por encima del párpado.
+    #[default]
+    Cerrado,
+    /// El contorno del ojo solo se ve por debajo de la línea del párpado: por encima, el
+    /// párpado lo tapa y el ojo queda abierto por arriba.
+    Abierto,
 }
 
 /// Una expresión: qué capas cambian por qué piezas del dibujo, y sus párpados.
@@ -557,7 +588,7 @@ fn de_svg(
     nombre: HashMap<String, String>,
     colores: Colores,
     capas: Option<&[DescripcionCapa]>,
-    parpado: Option<f32>,
+    (parpado, estilo_parpado): (Option<f32>, EstiloParpado),
     giro: [Option<f32>; 2],
     expresiones: &[(String, DescripcionExpresion)],
     svg: &str,
@@ -818,6 +849,7 @@ fn de_svg(
                 dibujo: Dibujo::Vectorial(capas),
                 avisos: Vec::new(),
                 parpado,
+                estilo_parpado,
                 giro,
                 expresiones: Vec::new(),
                 contorno: contorno.clone(),
@@ -825,7 +857,7 @@ fn de_svg(
             (nombre_expresion, Arc::new(figura))
         })
         .collect();
-    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, parpado, giro, expresiones, contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, parpado, estilo_parpado, giro, expresiones, contorno })
 }
 
 /// Sin oreja izquierda, la derecha se refleja (como el ojo), justo después de ella.
@@ -953,7 +985,7 @@ fn de_imagenes(
     };
     let fps = d.fps.unwrap_or(8.0).clamp(0.5, 60.0);
     let imagenes = Imagenes { animaciones, fps, pixelado: d.pixelado, centro, unidad };
-    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), parpado: None, giro: [None; 2], expresiones: Vec::new(), contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), parpado: None, estilo_parpado: EstiloParpado::default(), giro: [None; 2], expresiones: Vec::new(), contorno })
 }
 
 /// Nombre de un archivo de la carpeta del personaje: sin carpetas ni nada raro.
@@ -1061,6 +1093,7 @@ mod tests {
         let figura = Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &sin_archivos).unwrap());
         assert!(figura.avisos.is_empty(), "las piezas no cuentan como trazados sueltos: {:?}", figura.avisos);
         assert_eq!(figura.parpado, Some(0.3));
+        assert_eq!(figura.estilo_parpado, EstiloParpado::Cerrado);
         // En su orden, cada una con sus párpados (o los de la figura).
         let nombres: Vec<&str> = figura.expresiones.iter().map(|(n, _)| n.as_str()).collect();
         assert_eq!(nombres, ["Triste", "Enojado"]);
@@ -1073,6 +1106,12 @@ mod tests {
         assert_ne!(boca(&triste), boca(&figura), "la boca triste es otra");
         // La normal (o una que no existe) es la misma figura.
         assert!(Arc::ptr_eq(&figura.con_expresion("Normal"), &figura));
+
+        // Los párpados también pueden llevar su estilo.
+        let abierto = json.replace(r#""parpado": 0.3,"#, r#""parpado": {"cierre": 0.3, "estilo": "abierto"},"#);
+        let abierto = Figura::desde("x".into(), Some(&abierto), Some(svg), &sin_archivos).unwrap();
+        assert_eq!((abierto.parpado, abierto.estilo_parpado), (Some(0.3), EstiloParpado::Abierto));
+        assert_eq!(abierto.expresiones[1].1.estilo_parpado, EstiloParpado::Abierto, "las expresiones lo conservan");
 
         let mal = json.replace(r#""boca": "boca-triste""#, r#""nariz": "boca-triste""#);
         assert!(Figura::desde("x".into(), Some(&mal), Some(svg), &sin_archivos).unwrap_err().contains("nariz"));

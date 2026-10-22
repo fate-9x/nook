@@ -7,7 +7,7 @@
 
 use super::accesorios::{self, Estilo, Puesto};
 use super::estados::{OJO_ALTO, OJO_ANCHO};
-use super::figura::{Apendice, Capa, Delante, Dibujo, Figura, Forma, Fotograma, Hacia, Imagenes, Orientacion, TipoCapa};
+use super::figura::{Apendice, Capa, Delante, Dibujo, EstiloParpado, Figura, Forma, Fotograma, Hacia, Imagenes, Orientacion, TipoCapa};
 use super::forma::Punto;
 use super::motor::{Cabeza, Cuadro, Ojo};
 use super::svg::{Extremo, Pintura, Subtrazo, Union};
@@ -452,7 +452,12 @@ impl Pintor<'_> {
                 }
             };
             let alegria = if alegre.is_some() { arco } else { 0.0 };
+            // Con el párpado abierto, el contorno del ojo lo dibuja el párpado (solo por debajo).
+            let abierto = parpado > 0.001 && self.figura.estilo_parpado == EstiloParpado::Abierto;
             for forma in &normal.formas {
+                if abierto && forma.pupila.is_none() && matches!(forma.pintura, Pintura::Linea { .. }) {
+                    continue;
+                }
                 let mut cubre = self.forma(forma, alfa * (1.0 - alegria), &colocar(1.0, 0.0, reflejo, forma));
                 // Sin forma alegre, lo relleno se recorta con otra igual algo más ancha y más
                 // baja: queda solo la parte de arriba, «∩».
@@ -485,9 +490,11 @@ impl Pintor<'_> {
         if x0 > x1 {
             return;
         }
-        // Hasta dónde llega el párpado: lo relleno del ojo (o todo, si solo tiene líneas).
+        // Hasta dónde llega el párpado: lo relleno del ojo (o todo, si solo tiene líneas); abierto,
+        // también su contorno, que solo queda por debajo de la línea del párpado.
+        let abierto = self.figura.estilo_parpado == EstiloParpado::Abierto;
         let rellenas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Relleno { .. })).collect();
-        let dentro: Vec<&&Forma> = if rellenas.is_empty() { fijas.iter().collect() } else { rellenas };
+        let dentro: Vec<&&Forma> = if rellenas.is_empty() || abierto { fijas.iter().collect() } else { rellenas };
         let mut ojo_entero: Mascara = vec![0.0; (self.lado * self.lado) as usize];
         for f in &dentro {
             for (t, v) in ojo_entero.iter_mut().zip(self.subtrazos(&f.subtrazos, f.pintura, 1.0, colocar)) {
@@ -496,13 +503,14 @@ impl Pintor<'_> {
         }
         let borde = y0 + (y1 - y0) * cierre;
         let margen = (x1 - x0) * 0.1;
-        let tapa = Subtrazo { puntos: vec![(x0 - margen, y0 - margen), (x1 + margen, y0 - margen), (x1 + margen, borde), (x0 - margen, borde)], cerrado: true };
-        let mut cubre = self.subtrazos(&[tapa], Pintura::Relleno { par_impar: false }, alfa, colocar);
+        let rectangulo = |arriba: f32, abajo: f32| Subtrazo { puntos: vec![(x0 - margen, arriba), (x1 + margen, arriba), (x1 + margen, abajo), (x0 - margen, abajo)], cerrado: true };
+        let relleno = Pintura::Relleno { par_impar: false };
+        let mut cubre = self.subtrazos(&[rectangulo(y0 - margen, borde)], relleno, alfa, colocar);
         cubre.iter_mut().zip(&ojo_entero).for_each(|(v, &o)| *v = v.min(o));
         let piel = self.figura.capas().iter().find(|c| c.tipo == TipoCapa::Cuerpo).and_then(|c| c.formas.first()).map_or([255; 3], |f| f.color);
         capas.pinturas.push((self.color(piel), cubre));
-        // Su línea, del color y el grosor del contorno del ojo, y el contorno otra vez encima: el
-        // párpado queda dentro del ojo.
+        // Su línea, del color y el grosor del contorno del ojo, y el contorno otra vez encima
+        // (cerrado, entero; abierto, solo por debajo de la línea del párpado).
         let lineas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Linea { .. })).collect();
         if let Some(contorno) = lineas.first() {
             let linea = Subtrazo { puntos: vec![(x0 - margen, borde), (x1 + margen, borde)], cerrado: false };
@@ -510,8 +518,13 @@ impl Pintor<'_> {
             cubre.iter_mut().zip(&ojo_entero).for_each(|(v, &o)| *v = v.min(o));
             capas.pinturas.push((self.color(contorno.color), cubre));
         }
+        let debajo = abierto.then(|| self.subtrazos(&[rectangulo(borde, y1 + margen)], relleno, 1.0, colocar));
         for f in lineas {
-            capas.pinturas.push((self.color(f.color), self.subtrazos(&f.subtrazos, f.pintura, alfa * f.alfa, colocar)));
+            let mut cubre = self.subtrazos(&f.subtrazos, f.pintura, alfa * f.alfa, colocar);
+            if let Some(debajo) = &debajo {
+                cubre.iter_mut().zip(debajo).for_each(|(v, &d)| *v = v.min(d));
+            }
+            capas.pinturas.push((self.color(f.color), cubre));
         }
     }
 

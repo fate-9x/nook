@@ -517,6 +517,18 @@ Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de
   `giro`, unos 35) y hacia arriba o abajo. Sirven cuando a partir de cierto ángulo algo se ve mal
   (el pelo se despega, un ojo se aplasta contra el borde): la cabeza se para ahí, y las pupilas que
   se mueven siguen mirando hasta el borde del ojo.
+- **`parpado`** (opcional): párpados que dibuja el motor. Con un número (`"parpado": 0.4`) tapan
+  ese tanto de cada ojo por arriba, del color del cuerpo, con una línea del color y el grosor del
+  contorno del ojo, y el personaje parpadea bajándolos. Con un objeto se elige también su estilo:
+  `"parpado": { "cierre": 0.4, "estilo": "abierto" }`. `"cerrado"` (por defecto) deja ver el
+  contorno del ojo entero; `"abierto"` solo por debajo de la línea del párpado, y el ojo queda
+  abierto por arriba.
+- **`expresiones`** (opcional): las expresiones que el usuario puede elegir en la configuración,
+  en su orden. Cada una dice qué capas cambia por qué piezas del dibujo (dibujadas en su sitio,
+  fuera de cualquier capa) y, si quiere, cuánto cierran los párpados:
+  `"expresiones": { "Enojado": { "cejas": "cejas-enojado", "boca": "boca-enojado", "parpado": 0.5 } }`.
+  Una capa puede estar vacía en la cara normal si alguna expresión le da piezas (unas cejas que solo
+  salen al enfadarse).
 
 ## Las capas
 
