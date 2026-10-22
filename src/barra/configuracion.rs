@@ -131,7 +131,7 @@ impl Ctx {
         ui.set_colores_accesorios_base(COLORES_ACCESORIOS.len() as i32);
         ui.set_aviso_automatico(ajustes.personaje.color_aviso.is_none());
         ui.set_color_aviso(color(ajustes.personaje.color_aviso.as_deref().unwrap_or(config::COLOR_AVISO_INICIAL)));
-        self.refrescar_personajes(ui, &ajustes.personaje.figura);
+        self.refrescar_personajes(ui, &ajustes.personaje);
         let idioma = config::Idioma::TODOS.iter().position(|&i| i == ajustes.idioma).unwrap_or(0);
         ui.set_idioma(idioma as i32);
     }

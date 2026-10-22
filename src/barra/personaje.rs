@@ -245,7 +245,7 @@ impl Ctx {
         }
         if let Some(ui) = self.ui.upgrade() {
             let personaje = self.estado.borrow().config.ajustes.personaje.clone();
-            self.refrescar_personajes(&ui, &personaje.figura);
+            self.refrescar_personajes(&ui, &personaje);
             self.refrescar_accesorios(&ui, &personaje);
         }
         self.poner_icono(false);
@@ -310,17 +310,19 @@ impl Ctx {
         }
     }
 
-    /// Pasa a la configuración los personajes que hay, cuál es el elegido (`id`), sus expresiones
-    /// (la normal y las suyas) con la elegida, y los que no se pudieron leer.
-    pub(crate) fn refrescar_personajes(&self, ui: &Barra, id: &str) {
+    /// Pasa a la configuración los personajes que hay, cuál es el elegido, sus expresiones (la
+    /// normal y las suyas) con la elegida, y los que no se pudieron leer. Recibe los ajustes del
+    /// personaje (quien llama puede tener el estado tomado).
+    pub(crate) fn refrescar_personajes(&self, ui: &Barra, personaje: &config::Personaje) {
+        let id = personaje.figura.as_str();
         let p = self.personaje.borrow();
         let figuras = &p.coleccion.figuras;
         let nombres = figuras.iter().map(|f| SharedString::from(addons::traducido(&f.nombre))).collect();
         ui.set_figuras(modelo(nombres));
         ui.set_figura(figuras.iter().position(|f| f.id == id).unwrap_or(0) as i32);
         let suyas = p.coleccion.buscar(id).expresiones.iter().map(|(n, _)| SharedString::from(n.as_str())).collect::<Vec<_>>();
-        let elegida = self.estado.borrow().config.ajustes.personaje.expresiones.get(id).cloned();
-        let i = elegida.and_then(|e| suyas.iter().position(|n| n.as_str() == e)).map_or(0, |i| i + 1);
+        let elegida = personaje.expresiones.get(id);
+        let i = elegida.and_then(|e| suyas.iter().position(|n| n.as_str() == e.as_str())).map_or(0, |i| i + 1);
         ui.set_expresiones(modelo(std::iter::once(SharedString::from(tr("Normal"))).chain(suyas).collect()));
         ui.set_expresion(i as i32);
         let errores: Vec<String> = p.coleccion.errores.iter().map(|(carpeta, error)| format!("{carpeta}: {error}")).collect();
