@@ -1,19 +1,23 @@
 {
-  "nombre": { "es": "Profesor", "en": "Professor" },
-  "colores": { "aviso": "#e0455a" },
+  "nombre": "Profesor",
+  "colores": {"aviso": "#e0455a"},
+  "parpado": 0.4,
   "capas": [
-    { "id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.1, "muelle": true },
-    { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },
-    { "id": "oreja-derecha", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },
-    { "id": "cuerpo" },
-    { "id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda" },
-    { "id": "nuca-derecha", "tipo": "franja", "hacia": "derecha" },
-    { "id": "cejas" },
-    { "id": "ojeras" },
-    { "id": "ojo" },
-    { "id": "ojo-alegre" },
-    { "id": "nariz" },
-    { "id": "bigote" },
-    { "id": "boca" }
-  ]
+    {"id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.1, "muelle": true},
+    {"id": "cuerpo"},
+    {"id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda"},
+    {"id": "nuca-derecha", "tipo": "franja", "hacia": "derecha"},
+    {"id": "oreja"},
+    {"id": "cejas"},
+    {"id": "ojeras"},
+    {"id": "ojo"},
+    {"id": "ojo-alegre"},
+    {"id": "nariz"},
+    {"id": "bigote"},
+    {"id": "boca"}
+  ],
+  "expresiones": {
+    "Enojado": {"cejas": "cejas-enojado", "parpado": 0.55},
+    "Sorprendido": {"cejas": "cejas-sorprendido", "boca": "boca-sorprendido", "parpado": 0.1}
+  }
 }

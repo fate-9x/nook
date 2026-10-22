@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Fantasma pixel", "en": "Pixel ghost" },
+  "nombre": "Fantasma pixel",
   "imagenes": {
     "reposo": ["reposo-1.png", "reposo-1.png", "reposo-1.png", "reposo-2.png"],
     "aviso": ["aviso-1.png"],

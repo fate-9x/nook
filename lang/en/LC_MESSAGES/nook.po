@@ -178,6 +178,12 @@ msgstr "System"
 msgid "FIGURA"
 msgstr "FIGURE"
 
+msgid "EXPRESIÓN"
+msgstr "EXPRESSION"
+
+msgid "Normal"
+msgstr "Normal"
+
 msgid "TUS PERSONAJES"
 msgstr "YOUR CHARACTERS"
 

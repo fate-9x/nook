@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Chica", "en": "Girl" },
+  "nombre": "Chica",
   "colores": { "aviso": "#e0455a" },
   "capas": [
     { "id": "mono", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.4, "muelle": true },

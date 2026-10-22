@@ -417,7 +417,7 @@ impl Pintor<'_> {
         let de = |tipo: TipoCapa| self.figura.capas().iter().find(|c| c.tipo == tipo);
         let (Some(derecho), izquierdo, alegre) = (de(TipoCapa::Ojo), de(TipoCapa::OjoIzquierdo), de(TipoCapa::OjoAlegre)) else { return };
         for ojo in &self.cuadro.ojos {
-            let Ojo { lado, ancho, alto, arco, matriz: [a, b, c, d, e, f], alfa, pupila } = *ojo;
+            let Ojo { lado, ancho, alto, arco, matriz: [a, b, c, d, e, f], alfa, pupila, parpado } = *ojo;
             let (normal, reflejo) = match izquierdo {
                 Some(izquierdo) if lado < 0.0 => (izquierdo, 1.0),
                 _ => (derecho, lado.signum()),
@@ -449,12 +449,56 @@ impl Pintor<'_> {
                 }
                 capas.pinturas.push((self.color(forma.color), cubre));
             }
+            if let Some(fija) = normal.formas.iter().find(|f| f.pupila.is_none()).filter(|_| parpado > 0.001) {
+                self.parpado(normal, parpado, alfa * (1.0 - alegria), &colocar(1.0, 0.0, reflejo, fija), capas);
+            }
             if let Some(alegre) = alegre.filter(|_| arco > 0.01) {
                 for forma in &alegre.formas {
                     let cubre = self.forma(forma, alfa * arco, &colocar(1.0, 0.0, lado.signum(), forma));
                     capas.pinturas.push((self.color(forma.color), cubre));
                 }
             }
+        }
+    }
+
+    /// El párpado de un ojo: tapa su parte de arriba (`cierre`, 0–1, de su alto) con el color del
+    /// cuerpo, recortado por la forma del ojo, y lleva una línea en su borde del color y el grosor
+    /// del contorno del ojo, si lo tiene. `colocar` lleva el ojo a la pantalla.
+    fn parpado(&self, ojo: &Capa, cierre: f32, alfa: f32, colocar: &dyn Fn(Punto) -> Punto, capas: &mut Capas) {
+        let fijas: Vec<&Forma> = ojo.formas.iter().filter(|f| f.pupila.is_none()).collect();
+        let puntos = || fijas.iter().flat_map(|f| f.subtrazos.iter().flat_map(|s| s.puntos.iter().copied()));
+        let (x0, x1) = puntos().fold((f32::MAX, f32::MIN), |(a, b), (x, _)| (a.min(x), b.max(x)));
+        let (y0, y1) = puntos().fold((f32::MAX, f32::MIN), |(a, b), (_, y)| (a.min(y), b.max(y)));
+        if x0 > x1 {
+            return;
+        }
+        // Hasta dónde llega el párpado: lo relleno del ojo (o todo, si solo tiene líneas).
+        let rellenas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Relleno { .. })).collect();
+        let dentro: Vec<&&Forma> = if rellenas.is_empty() { fijas.iter().collect() } else { rellenas };
+        let mut ojo_entero: Mascara = vec![0.0; (self.lado * self.lado) as usize];
+        for f in &dentro {
+            for (t, v) in ojo_entero.iter_mut().zip(self.subtrazos(&f.subtrazos, f.pintura, 1.0, colocar)) {
+                *t = t.max(v);
+            }
+        }
+        let borde = y0 + (y1 - y0) * cierre;
+        let margen = (x1 - x0) * 0.1;
+        let tapa = Subtrazo { puntos: vec![(x0 - margen, y0 - margen), (x1 + margen, y0 - margen), (x1 + margen, borde), (x0 - margen, borde)], cerrado: true };
+        let mut cubre = self.subtrazos(&[tapa], Pintura::Relleno { par_impar: false }, alfa, colocar);
+        cubre.iter_mut().zip(&ojo_entero).for_each(|(v, &o)| *v = v.min(o));
+        let piel = self.figura.capas().iter().find(|c| c.tipo == TipoCapa::Cuerpo).and_then(|c| c.formas.first()).map_or([255; 3], |f| f.color);
+        capas.pinturas.push((self.color(piel), cubre));
+        // Su línea, del color y el grosor del contorno del ojo, y el contorno otra vez encima: el
+        // párpado queda dentro del ojo.
+        let lineas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Linea { .. })).collect();
+        if let Some(contorno) = lineas.first() {
+            let linea = Subtrazo { puntos: vec![(x0 - margen, borde), (x1 + margen, borde)], cerrado: false };
+            let mut cubre = self.subtrazos(&[linea], contorno.pintura, alfa, colocar);
+            cubre.iter_mut().zip(&ojo_entero).for_each(|(v, &o)| *v = v.min(o));
+            capas.pinturas.push((self.color(contorno.color), cubre));
+        }
+        for f in lineas {
+            capas.pinturas.push((self.color(f.color), self.subtrazos(&f.subtrazos, f.pintura, alfa * f.alfa, colocar)));
         }
     }
 
@@ -470,21 +514,28 @@ impl Pintor<'_> {
             };
             if capa.muelle { self.con_muelle(q) } else { q }
         };
-        if apendice.fundir {
-            for forma in &capa.formas {
-                let cubre = self.forma(forma, 1.0, &colocar);
-                for (t, &v) in capas.cuerpo.iter_mut().zip(&cubre) {
-                    *t = t.max(v);
-                }
-                capas.pinturas.push((self.color(forma.color), cubre));
-            }
-            return;
-        }
         let delante = match apendice.delante {
             Delante::Siempre | Delante::Revelar => 1.0,
             Delante::Nunca => 0.0,
             Delante::Girar => al_frente(cabeza.profundidad(ancla)),
         };
+        // Fundido, se suma al cuerpo y se pinta sobre él (también sobre su contorno) mientras se
+        // ve; si va también detrás, lo que no se ve de él queda detrás del cuerpo.
+        if apendice.fundir {
+            for forma in &capa.formas {
+                if apendice.detras {
+                    capas.detras.push((self.color(forma.color), self.forma(forma, 1.0, &colocar)));
+                }
+                if delante > 0.0 {
+                    let cubre = self.forma(forma, delante, &colocar);
+                    for (t, &v) in capas.cuerpo.iter_mut().zip(&cubre) {
+                        *t = t.max(v);
+                    }
+                    capas.pinturas.push((self.color(forma.color), cubre));
+                }
+            }
+            return;
+        }
         // Al asomar: de frente se ve lo de encima de su centro; mirándolo, entero.
         let corte = (apendice.delante == Delante::Revelar).then(|| {
             let largo = ancla[0].hypot(ancla[1]).max(1e-3);

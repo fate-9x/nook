@@ -175,6 +175,9 @@ pub struct Personaje {
     /// Color del circulito que sale cuando llega una notificación (de la fila de colores de los
     /// accesorios). Sin elegir, el de los ojos.
     pub color_aviso: Option<String>,
+    /// La expresión elegida de cada figura que tiene alguna, por el id de la figura; las que no
+    /// están, con la normal.
+    pub expresiones: std::collections::BTreeMap<String, String>,
 }
 
 /// Formato de la fecha de la tira (ver `fecha.rs`).
@@ -204,7 +207,13 @@ impl FormatoFecha {
 
 impl Default for Personaje {
     fn default() -> Self {
-        Personaje { figura: FIGURA_INICIAL.into(), accesorios: Vec::new(), colores_propios: Vec::new(), color_aviso: None }
+        Personaje {
+            figura: FIGURA_INICIAL.into(),
+            accesorios: Vec::new(),
+            colores_propios: Vec::new(),
+            color_aviso: None,
+            expresiones: Default::default(),
+        }
     }
 }
 

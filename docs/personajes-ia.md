@@ -23,7 +23,7 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 | `animal` | Animales con orejas o cuernos a los lados (gato, zorro, perro, oso, conejo, dragón). |
 | `pelo` | Personas con pelo: flequillo, pelo alrededor, nuca y moño o coleta. |
 | `completo` | Lo más complejo: orejas + pelo en punta + flequillo + cejas + un ojo de cada color. |
-| `caricatura` | Personas o personajes de series con contorno: cabeza con su forma, orejas, párpados, nariz y bigote. |
+| `caricatura` | Personas o personajes de series con contorno: cabeza con su forma, orejas, párpados, nariz, bigote y expresiones. |
 | `antena` | Algo encima de la cabeza que se balancea (robot, insecto, alien) y cuerpos no redondos. |
 | `fruta` | Comida, plantas y objetos: silueta con forma, hojas encima y algo que asoma al girar. |
 | `imagenes` | Pixel art o dibujos en PNG con una animación por momento (no mira al cursor). |
@@ -34,8 +34,9 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   hacia abajo. El `viewBox` da igual.
 - **Cada parte es un elemento o un grupo `<g>` con su `id`.** Nombres fijos: `cuerpo` (la silueta,
   obligatoria), `ojo` (**solo el ojo derecho**, el de x positiva: el izquierdo se hace como su
-  reflejo), `ojo-izquierdo` (si los ojos son distintos), `ojo-alegre` (el ojo derecho contento) y
-  `boca`. El resto de nombres los eliges tú.
+  reflejo), `ojo-izquierdo` (si los ojos son distintos), `ojo-alegre` (el ojo derecho contento),
+  `boca` y `oreja` (**solo la derecha**: la izquierda es su reflejo, salvo que dibujes
+  `oreja-izquierda`). El resto de nombres los eliges tú.
 - **En `capas` del json van todas las partes que se dibujan, en orden de pintado** (la primera queda
   debajo). Lo que no está en `capas` no se dibuja. Cada `id` una sola vez y existente en el SVG.
 - **Tres tipos de capa para lo que no es cuerpo, ojo ni boca:**
@@ -47,8 +48,15 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   - `cabeza`: **todo lo que sobresale del cuerpo** (orejas, pelo alrededor, cuernos, antenas, hojas).
     Se mueve con la cabeza según su ancla: un circulito sin relleno con id `ancla-<id de la capa>` en
     el punto donde se pega a la cabeza. Las anclas no van en `capas`.
-- **Lo que está a los dos lados** (orejas, cuernos) va en **dos capas**, una por lado, cada una con
-  su ancla, `"detras": true, "delante": "girar"` y `"profundidad"` de `0` a `-0.2`.
+- **Orejas: la capa `oreja`.** Dibuja la derecha pegada al lado de la cabeza, con el relleno
+  entrando un poco en ella y la línea de contorno solo por fuera (no por la base): el motor la funde
+  con la cabeza (le tapa el contorno), la engancha por su lado de dentro, la refleja para el otro
+  lado y la esconde detrás al girar. No necesita opciones en el json. En `capas`, ponla después
+  del cuerpo y de las franjas de pelo de los lados: como pasa a ser parte de la silueta, lo que se
+  pinte después hasta el borde de la cabeza la tapa.
+- **Lo demás que está a los dos lados** (cuernos, alas) va en **dos capas** de tipo `cabeza`, una
+  por lado, cada una con su ancla, `"detras": true, "delante": "girar"` y `"profundidad"` de `0` a
+  `-0.2`.
 - **Espacio:** caben 1,55 radios del cuerpo hacia arriba, 1,05 hacia abajo y 1,35 a los lados; si
   algo sale más, todo el personaje se encoge.
 - **Solo formas con relleno y borde** (`path`, `circle`, `ellipse`, `rect`, `polygon`, `g` con
@@ -58,9 +66,33 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   trazado de exactamente ese color por el color de acento del usuario (cuerpo) y por el que se lee
   sobre él (rasgos: ojos y boca). Sin ellos, el personaje queda con los colores del dibujo.
   `"aviso"` es el color del circulito de las notificaciones.
-- **Nombre:** `"nombre": { "es": "…", "en": "…" }` es el que sale en la lista.
+- **Nombre:** `"nombre": "…"`, el que sale en la lista (un solo texto vale para todos los idiomas).
 - **La cara, sin pegarla a los bordes:** al girar, lo que está cerca del borde se aplasta. Ojos a
   unos ±15 del centro y la boca entre 5 y 20 por debajo.
+
+## Párpados y expresiones
+
+- **Párpados:** `"parpado": 0.4` en el json y el motor los dibuja: tapa ese tanto de cada ojo por
+  arriba con el color del cuerpo, recortado a la forma del ojo, con una línea del color y el grosor
+  del contorno del ojo (si lo tiene), y parpadea bajándolos. No los dibujes tú.
+- **Expresiones:** el usuario elige una en la configuración. Cada una cambia unas capas por otras
+  piezas del dibujo y, si quiere, los párpados; lo demás sigue igual:
+
+  ```json
+  "expresiones": {
+    "Enojado": { "cejas": "cejas-enojado", "boca": "boca-enojado", "parpado": 0.5 },
+    "Triste": { "cejas": "cejas-triste", "boca": "boca-triste", "parpado": 0.45 },
+    "Sorprendido": { "boca": "boca-sorprendido", "parpado": 0.1 }
+  }
+  ```
+
+  - El nombre es el que ve el usuario; salen en este orden, después de «Normal».
+  - Cada pieza (`cejas-enojado`…) es un elemento o grupo del SVG **fuera de las capas** (no va en
+    `capas`), dibujado en su sitio; se dibuja como la capa a la que sustituye.
+  - Una capa puede estar vacía en la cara normal si alguna expresión le da piezas: pon
+    `{"id": "cejas"}` en `capas` sin nada llamado `cejas` en el dibujo, y solo tendrá cejas al
+    enfadarse o entristecerse.
+  - Compruébalas con `personaje__ver` y su `expresion`.
 
 ## Trucos
 

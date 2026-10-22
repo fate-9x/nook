@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Mochi", "en": "Mochi" },
+  "nombre": "Mochi",
   "colores": { "cuerpo": "#7ec8e3", "rasgos": "#1d2b3a", "aviso": "#ff6b8a" },
   "capas": [
     { "id": "cuerpo" },

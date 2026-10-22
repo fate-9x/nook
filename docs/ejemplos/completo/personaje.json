@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Chico gato", "en": "Cat boy" },
+  "nombre": "Chico gato",
   "colores": { "aviso": "#3b6fd8" },
   "capas": [
     { "id": "pelo-atras", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.12 },

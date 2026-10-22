@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Trucos", "en": "Tricks" },
+  "nombre": "Trucos",
   "colores": { "cuerpo": "#4ab3c9", "rasgos": "#123a44", "aviso": "#e0455a" },
   "capas": [
     { "id": "pelo-atras", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.35 },

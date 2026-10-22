@@ -230,6 +230,10 @@ pub struct Figura {
     /// de la cabeza mal enganchado, los ojos pegados al borde…). Los da `personaje::mcp` y
     /// cualquier otra herramienta que quiera ayudar a quien hace el personaje.
     pub avisos: Vec<String>,
+    /// Cuánto tapan los párpados la parte de arriba de los ojos (0–1), si los dibuja el motor.
+    pub parpado: Option<f32>,
+    /// Sus expresiones, por su nombre y en su orden: la misma figura con otras piezas.
+    pub expresiones: Vec<(String, Arc<Figura>)>,
     /// Contorno del cuerpo en reposo (para saber cuánto mide en cada dirección).
     contorno: Vec<Vec<Punto>>,
 }
@@ -300,7 +304,13 @@ impl Figura {
             return de_imagenes(id, nombre, colores, imagenes, leer_archivo);
         }
         let svg = svg.ok_or("falta personaje.svg (o «imagenes» en personaje.json)")?;
-        de_svg(id, nombre, colores, descripcion.capas.as_deref(), svg)
+        let parpado = descripcion.parpado.map(|p| p.clamp(0.0, 1.0));
+        de_svg(id, nombre, colores, descripcion.capas.as_deref(), parpado, &descripcion.expresiones, svg)
+    }
+
+    /// La figura con la expresión `nombre` o, si no la tiene (o es la normal), ella misma.
+    pub fn con_expresion(self: &Arc<Self>, nombre: &str) -> Arc<Figura> {
+        self.expresiones.iter().find(|(n, _)| n == nombre).map_or_else(|| self.clone(), |(_, f)| f.clone())
     }
 
     /// Si mira al cursor y tiene cara (las de imágenes, no).
@@ -335,13 +345,59 @@ fn integrada(id: &str, json: &str, svg: &str) -> Arc<Figura> {
 
 // ---- Lo que dice personaje.json ----
 
+/// Un nombre: un texto, que vale en todos los idiomas, o uno por idioma (`{"es": …, "en": …}`).
+pub fn nombre<'de, D: serde::Deserializer<'de>>(d: D) -> Result<HashMap<String, String>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Nombre {
+        Uno(String),
+        PorIdioma(HashMap<String, String>),
+    }
+    Ok(match Nombre::deserialize(d)? {
+        Nombre::Uno(texto) => HashMap::from([("es".to_string(), texto)]),
+        Nombre::PorIdioma(textos) => textos,
+    })
+}
+
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 struct Descripcion {
+    #[serde(deserialize_with = "nombre")]
     nombre: HashMap<String, String>,
     colores: DescripcionColores,
     capas: Option<Vec<DescripcionCapa>>,
     imagenes: Option<DescripcionImagenes>,
+    /// Párpados que dibuja el motor: cuánto tapan los ojos por arriba (0–1).
+    parpado: Option<f32>,
+    #[serde(deserialize_with = "en_orden")]
+    expresiones: Vec<(String, DescripcionExpresion)>,
+}
+
+/// Una expresión: qué capas cambian por qué piezas del dibujo, y sus párpados.
+#[derive(Deserialize, Default)]
+struct DescripcionExpresion {
+    parpado: Option<f32>,
+    #[serde(flatten)]
+    cambios: HashMap<String, String>,
+}
+
+/// Un objeto del json como lista de sus pares, en el orden en que están escritos.
+fn en_orden<'de, D: serde::Deserializer<'de>, V: Deserialize<'de>>(d: D) -> Result<Vec<(String, V)>, D::Error> {
+    struct Pares<V>(std::marker::PhantomData<V>);
+    impl<'de, V: Deserialize<'de>> serde::de::Visitor<'de> for Pares<V> {
+        type Value = Vec<(String, V)>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("un objeto")
+        }
+        fn visit_map<M: serde::de::MapAccess<'de>>(self, mut mapa: M) -> Result<Self::Value, M::Error> {
+            let mut pares = Vec::new();
+            while let Some(par) = mapa.next_entry()? {
+                pares.push(par);
+            }
+            Ok(pares)
+        }
+    }
+    d.deserialize_map(Pares(std::marker::PhantomData))
 }
 
 #[derive(Deserialize, Default)]
@@ -363,6 +419,8 @@ enum Tipo {
     OjoAlegre,
     Boca,
     Cabeza,
+    /// Una oreja: sale de la cabeza por un lado, fundida con ella (ver `TipoCapa::Cabeza`).
+    Oreja,
 }
 
 /// Hacia dónde se rellena una franja desde su borde.
@@ -432,13 +490,14 @@ impl DescripcionCapa {
             "ojo-izquierdo" => Tipo::OjoIzquierdo,
             "ojo-alegre" => Tipo::OjoAlegre,
             "boca" => Tipo::Boca,
+            "oreja" | "oreja-izquierda" => Tipo::Oreja,
             _ => Tipo::Pintado,
         })
     }
 }
 
 /// Capas que se buscan en el dibujo si personaje.json no dice cuáles hay.
-const CAPAS_POR_DEFECTO: [&str; 6] = ["cuerpo", "pintado", "ojo", "ojo-izquierdo", "ojo-alegre", "boca"];
+const CAPAS_POR_DEFECTO: [&str; 8] = ["cuerpo", "oreja", "oreja-izquierda", "pintado", "ojo", "ojo-izquierdo", "ojo-alegre", "boca"];
 
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
@@ -487,7 +546,15 @@ fn centro_de(caja: (Punto, Punto)) -> Punto {
     ((caja.0.0 + caja.1.0) / 2.0, (caja.0.1 + caja.1.1) / 2.0)
 }
 
-fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: Option<&[DescripcionCapa]>, svg: &str) -> Result<Figura, String> {
+fn de_svg(
+    id: String,
+    nombre: HashMap<String, String>,
+    colores: Colores,
+    capas: Option<&[DescripcionCapa]>,
+    parpado: Option<f32>,
+    expresiones: &[(String, DescripcionExpresion)],
+    svg: &str,
+) -> Result<Figura, String> {
     let elementos = svg::leer(svg)?;
     let descripciones: Vec<DescripcionCapa> = match capas {
         Some(capas) => capas.to_vec(),
@@ -516,7 +583,10 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
     let mut anclas: HashMap<&str, (Punto, Punto)> = HashMap::new();
     // Avisos de cosas que no fallan pero pueden ser un descuido.
     let mut avisos: Vec<String> = Vec::new();
-    let sin_capa = elementos.iter().filter(|e| duenio(e, &descripciones).is_none()).count();
+    // Las piezas de las expresiones no son de ninguna capa, pero se dibujan en su lugar.
+    let piezas: Vec<&str> = expresiones.iter().flat_map(|(_, e)| e.cambios.values().map(String::as_str)).collect();
+    let es_pieza = |e: &Elemento| e.nombres.iter().any(|n| piezas.contains(&n.as_str()));
+    let sin_capa = elementos.iter().filter(|e| duenio(e, &descripciones).is_none() && !es_pieza(e)).count();
     if sin_capa == 1 {
         avisos.push("hay un trazado del dibujo que no es de ninguna capa ni ancla: no se va a dibujar".into());
     } else if sin_capa > 1 {
@@ -532,7 +602,10 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
             de_capa[i].push(elemento);
         }
     }
-    if let Some(i) = de_capa.iter().position(Vec::is_empty) {
+    // Una capa puede estar vacía en la cara normal si alguna expresión le da sus piezas (unas cejas
+    // que solo salen al enfadarse).
+    let de_expresion = |id: &str| expresiones.iter().any(|(_, e)| e.cambios.contains_key(id));
+    if let Some(i) = de_capa.iter().zip(&descripciones).position(|(es, d)| es.is_empty() && !de_expresion(&d.id)) {
         return Err(format!("no hay nada llamado «{}» en el dibujo", descripciones[i].id));
     }
 
@@ -563,13 +636,11 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
     let a_unidades = |(x, y): Punto| ((x - centro.0) / unidad, (y - centro.1) / unidad);
     let ancla = |nombre: &str| anclas.get(nombre).map(|&c| a_unidades(centro_de(c)));
 
-    // Las formas de cada capa en unidades de radio respecto al centro del cuerpo.
-    let formas: Vec<Vec<Forma>> = de_capa
-        .iter()
-        .map(|elementos| {
-            elementos
-                .iter()
-                .map(|e| {
+    // Las formas de unos elementos en unidades de radio respecto al centro del cuerpo.
+    let a_formas = |elementos: &[&Elemento]| -> Vec<Forma> {
+        elementos
+            .iter()
+            .map(|e| {
                     let subtrazos: Vec<Subtrazo> = e
                         .subtrazos
                         .iter()
@@ -582,10 +653,10 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                     };
                     let pupila = e.nombres.iter().any(|n| n.starts_with("pupila")).then_some([0.0; 4]);
                     Forma { subtrazos, pintura, color: e.color, alfa: e.alfa, centro, pupila }
-                })
-                .collect()
-        })
-        .collect();
+            })
+            .collect()
+    };
+    let formas: Vec<Vec<Forma>> = de_capa.iter().map(|elementos| a_formas(elementos)).collect();
 
     let contorno: Vec<Vec<Punto>> = formas[i_cuerpo].iter().flat_map(|f| &f.subtrazos).map(|s| s.puntos.clone()).collect();
     let cajas: Vec<Option<(Punto, Punto)>> = formas.iter().map(|f| caja(f.iter().flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos)))).collect();
@@ -618,8 +689,8 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
 
     // Cada capa con lo suyo, y sus formas respecto a su sitio si se mueven con algo: el ojo
     // (también el izquierdo y el alegre), la boca o el ancla de lo que sale de la cabeza.
-    let mut capas = Vec::new();
-    for ((d, formas), i) in descripciones.iter().zip(formas).zip(0..) {
+    let construir = |d: &DescripcionCapa, formas: Vec<Forma>, avisos: &mut Vec<String>| -> Capa {
+        let caja_suya = caja(formas.iter().flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos)));
         let (tipo, origen) = match d.tipo() {
             Tipo::Cuerpo => (TipoCapa::Cuerpo, (0.0, 0.0)),
             Tipo::Pintado => (TipoCapa::Pintado, (0.0, 0.0)),
@@ -631,13 +702,21 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
             Tipo::OjoAlegre => (TipoCapa::OjoAlegre, ojo),
             Tipo::OjoIzquierdo => (TipoCapa::OjoIzquierdo, (-ojo.0, ojo.1)),
             Tipo::Boca => (TipoCapa::Boca, boca),
-            Tipo::Cabeza => {
-                // Sin ancla, donde arranca: abajo y en medio de lo que dibuja.
-                let (c0, c1) = caja_de(i).unwrap_or_default();
-                let (ax, ay) = ancla(&format!("ancla-{}", d.id)).unwrap_or(((c0.0 + c1.0) / 2.0, c1.1));
+            Tipo::Cabeza | Tipo::Oreja => {
+                let oreja = d.tipo() == Tipo::Oreja;
+                // Sin ancla, donde arranca: abajo y en medio de lo que dibuja; una oreja, por su
+                // lado de dentro (el que da a la cabeza), a media altura.
+                let (c0, c1) = caja_suya.unwrap_or_default();
+                let arranque = if oreja {
+                    let dentro = if (c0.0 + c1.0) / 2.0 > 0.0 { c0.0 } else { c1.0 };
+                    (dentro, (c0.1 + c1.1) / 2.0)
+                } else {
+                    ((c0.0 + c1.0) / 2.0, c1.1)
+                };
+                let (ax, ay) = ancla(&format!("ancla-{}", d.id)).unwrap_or(arranque);
                 // Avisos de lo que suele fallar: enganchado a un lado sin profundidad, o con
                 // cosas de los dos lados en una sola capa.
-                if d.profundidad.is_none() && ax.abs() > 0.5 * ancho {
+                if !oreja && d.profundidad.is_none() && ax.abs() > 0.5 * ancho {
                     avisos.push(format!("la capa «{}» engancha a un lado de la cabeza y no tiene profundidad: al mirar a otros lados se quedará pegada a la cara (pruébale una de 0 a -0.2)", d.id));
                 }
                 if c0.0 < -0.5 * ancho && c1.0 > 0.5 * ancho && !(d.detras && d.delante == Some(Delante::Nunca)) {
@@ -647,14 +726,16 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                 // queda delante de él.
                 let vertical = if ay < 0.0 { alto_arriba } else { alto_abajo };
                 let dentro = 1.0 - (ax / ancho.max(1e-3)).powi(2) - (ay / vertical.max(1e-3)).powi(2);
-                let z = d.profundidad.unwrap_or(dentro.max(0.0).sqrt() * vertical);
+                let z = d.profundidad.unwrap_or(if oreja { 0.0 } else { dentro.max(0.0).sqrt() * vertical });
+                // Una oreja, por defecto, se funde con la cabeza cuando se ve y se esconde detrás
+                // al quedar del otro lado, y no la tapa un gorro.
                 let apendice = Apendice {
                     ancla: [ax, ay, z],
                     orientacion: d.orientacion.unwrap_or(Orientacion::Cabeza),
-                    detras: d.detras,
-                    delante: d.delante.unwrap_or(Delante::Siempre),
-                    fundir: d.fundir,
-                    tapable: d.tapable.unwrap_or(true),
+                    detras: d.detras || oreja,
+                    delante: d.delante.unwrap_or(if oreja { Delante::Girar } else { Delante::Siempre }),
+                    fundir: d.fundir || oreja,
+                    tapable: d.tapable.unwrap_or(!oreja),
                 };
                 (TipoCapa::Cabeza(apendice), (ax, ay))
             }
@@ -694,10 +775,69 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
             })
             .collect();
         let caja = caja(formas.iter().flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos))).unwrap_or_default();
-        capas.push(Capa { id: d.id.clone(), tipo, formas, muelle: d.muelle, caja });
+        Capa { id: d.id.clone(), tipo, formas, muelle: d.muelle, caja }
+    };
+    let mut capas: Vec<Capa> = descripciones.iter().zip(formas).map(|(d, formas)| construir(d, formas, &mut avisos)).collect();
+
+    // Cada expresión: las mismas capas, con las que cambia hechas de sus piezas.
+    let mut variantes = Vec::new();
+    for (nombre_expresion, expresion) in expresiones {
+        let mut variante = capas.clone();
+        for (capa, pieza) in &expresion.cambios {
+            let i = descripciones
+                .iter()
+                .position(|d| &d.id == capa)
+                .ok_or_else(|| format!("la expresión «{nombre_expresion}» cambia «{capa}», que no es ninguna capa"))?;
+            let suyos: Vec<&Elemento> = elementos.iter().filter(|e| e.nombres.iter().any(|n| n == pieza)).collect();
+            if suyos.is_empty() {
+                return Err(format!("la expresión «{nombre_expresion}» usa «{pieza}», y no hay nada con ese nombre en el dibujo"));
+            }
+            variante[i] = construir(&descripciones[i], a_formas(&suyos), &mut Vec::new());
+        }
+        reflejar_oreja(&mut variante);
+        variantes.push((nombre_expresion.clone(), variante, expresion.parpado.map(|p| p.clamp(0.0, 1.0)).or(parpado)));
     }
+    reflejar_oreja(&mut capas);
     let muelle = descripciones.iter().any(|d| d.muelle).then(|| ancla("ancla-muelle").map_or(-0.27 * alto_arriba, |p| p.1));
-    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, contorno })
+    let expresiones = variantes
+        .into_iter()
+        .map(|(nombre_expresion, capas, parpado)| {
+            let figura = Figura {
+                id: id.clone(),
+                nombre: nombre.clone(),
+                medidas,
+                colores,
+                muelle,
+                dibujo: Dibujo::Vectorial(capas),
+                avisos: Vec::new(),
+                parpado,
+                expresiones: Vec::new(),
+                contorno: contorno.clone(),
+            };
+            (nombre_expresion, Arc::new(figura))
+        })
+        .collect();
+    Ok(Figura { id, nombre, medidas, colores, muelle, dibujo: Dibujo::Vectorial(capas), avisos, parpado, expresiones, contorno })
+}
+
+/// Sin oreja izquierda, la derecha se refleja (como el ojo), justo después de ella.
+fn reflejar_oreja(capas: &mut Vec<Capa>) {
+    if !capas.iter().any(|c| c.id == "oreja-izquierda") {
+        if let Some(i) = capas.iter().position(|c| c.id == "oreja") {
+            let mut izquierda = capas[i].clone();
+            izquierda.id = "oreja-izquierda".into();
+            if let TipoCapa::Cabeza(apendice) = &mut izquierda.tipo {
+                apendice.ancla[0] = -apendice.ancla[0];
+            }
+            for f in &mut izquierda.formas {
+                f.subtrazos.iter_mut().flat_map(|s| s.puntos.iter_mut()).for_each(|p| p.0 = -p.0);
+                f.centro.0 = -f.centro.0;
+            }
+            let ((x0, y0), (x1, y1)) = izquierda.caja;
+            izquierda.caja = ((-x1, y0), (-x0, y1));
+            capas.insert(i + 1, izquierda);
+        }
+    }
 }
 
 /// Hasta dónde llega el contorno desde el centro en la dirección `angulo`: el corte más lejano
@@ -805,7 +945,7 @@ fn de_imagenes(
     };
     let fps = d.fps.unwrap_or(8.0).clamp(0.5, 60.0);
     let imagenes = Imagenes { animaciones, fps, pixelado: d.pixelado, centro, unidad };
-    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), contorno })
+    Ok(Figura { id, nombre, medidas, colores, muelle: None, dibujo: Dibujo::Imagenes(imagenes), avisos: Vec::new(), parpado: None, expresiones: Vec::new(), contorno })
 }
 
 /// Nombre de un archivo de la carpeta del personaje: sin carpetas ni nada raro.
@@ -894,6 +1034,54 @@ mod tests {
     }
 
     #[test]
+    fn las_expresiones_cambian_sus_piezas_y_sus_parpados() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100">
+            <circle id="cuerpo" r="40" fill="#abcdef"/>
+            <circle id="ojo" cx="15" cy="0" r="6" fill="#fff"/>
+            <path id="boca" d="M -6 20 Q 0 24 6 20" stroke="#000"/>
+            <path id="boca-triste" d="M -6 24 Q 0 18 6 24" stroke="#000"/>
+            <path id="cejas-enojado" d="M 8 -12 L 22 -16" stroke="#000"/>
+        </svg>"##;
+        let json = r#"{
+            "parpado": 0.3,
+            "capas": [{"id": "cuerpo"}, {"id": "cejas"}, {"id": "ojo"}, {"id": "boca"}],
+            "expresiones": {
+                "Triste": {"boca": "boca-triste"},
+                "Enojado": {"cejas": "cejas-enojado", "parpado": 0.5}
+            }
+        }"#;
+        let figura = Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &sin_archivos).unwrap());
+        assert!(figura.avisos.is_empty(), "las piezas no cuentan como trazados sueltos: {:?}", figura.avisos);
+        assert_eq!(figura.parpado, Some(0.3));
+        // En su orden, cada una con sus párpados (o los de la figura).
+        let nombres: Vec<&str> = figura.expresiones.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(nombres, ["Triste", "Enojado"]);
+        let (triste, enojado) = (figura.con_expresion("Triste"), figura.con_expresion("Enojado"));
+        assert_eq!((triste.parpado, enojado.parpado), (Some(0.3), Some(0.5)));
+        // Las cejas solo existen al enfadarse; la boca triste sustituye a la normal.
+        let capa = |f: &Figura, id: &str| f.capas().iter().find(|c| c.id == id).unwrap().formas.len();
+        assert!(capa(&figura, "cejas") == 0 && capa(&enojado, "cejas") > 0);
+        let boca = |f: &Figura| f.capas().iter().find(|c| c.id == "boca").unwrap().formas[0].subtrazos[0].puntos[1].1;
+        assert_ne!(boca(&triste), boca(&figura), "la boca triste es otra");
+        // La normal (o una que no existe) es la misma figura.
+        assert!(Arc::ptr_eq(&figura.con_expresion("Normal"), &figura));
+
+        let mal = json.replace(r#""boca": "boca-triste""#, r#""nariz": "boca-triste""#);
+        assert!(Figura::desde("x".into(), Some(&mal), Some(svg), &sin_archivos).unwrap_err().contains("nariz"));
+        let mal = json.replace(r#""boca": "boca-triste""#, r#""boca": "boca-feliz""#);
+        assert!(Figura::desde("x".into(), Some(&mal), Some(svg), &sin_archivos).unwrap_err().contains("boca-feliz"));
+    }
+
+    #[test]
+    fn el_nombre_puede_ser_un_texto_o_uno_por_idioma() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg"><circle id="cuerpo" r="40"/></svg>"##;
+        let figura = Figura::desde("x".into(), Some(r#"{"nombre": "Rudi"}"#), Some(svg), &sin_archivos).unwrap();
+        assert_eq!(crate::addons::traducido(&figura.nombre), "Rudi");
+        let figura = Figura::desde("x".into(), Some(r#"{"nombre": {"es": "Gato", "en": "Cat"}}"#), Some(svg), &sin_archivos).unwrap();
+        assert_eq!(figura.nombre["en"], "Cat");
+    }
+
+    #[test]
     fn las_pupilas_tienen_su_recorrido_dentro_del_ojo() {
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100">
             <circle id="cuerpo" r="40" fill="#abcdef"/>
@@ -916,6 +1104,27 @@ mod tests {
         let recorrido = ojo.formas[1].pupila.unwrap();
         let esperado = [4.0, 0.0, 2.0, 3.0].map(|v| v / 40.0);
         assert!(recorrido.iter().zip(esperado).all(|(a, b)| (a - b).abs() < 0.001), "{recorrido:?}");
+    }
+
+    #[test]
+    fn una_oreja_sola_se_refleja_y_se_funde_con_la_cabeza() {
+        // Sin personaje.json: la oreja se reconoce por su nombre.
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+            <circle id="cuerpo" r="40" fill="#abcdef"/>
+            <path id="oreja" d="M 36 -6 C 48 -10 50 14 36 10 Z" fill="#abcdef"/>
+            <circle id="ojo" cx="15" cy="0" r="4"/>
+        </svg>"##;
+        let figura = Figura::desde("x".into(), None, Some(svg), &sin_archivos).unwrap();
+        let orejas: Vec<&Capa> = figura.capas().iter().filter(|c| c.id.starts_with("oreja")).collect();
+        assert_eq!(orejas.iter().map(|c| c.id.as_str()).collect::<Vec<_>>(), ["oreja", "oreja-izquierda"]);
+        let (TipoCapa::Cabeza(derecha), TipoCapa::Cabeza(izquierda)) = (orejas[0].tipo, orejas[1].tipo) else { panic!("no son de la cabeza") };
+        assert!(derecha.fundir && derecha.detras && derecha.delante == Delante::Girar && !derecha.tapable);
+        // Enganchada por su lado de dentro (x = 36), a media altura (y = 2), en el plano del centro.
+        assert!((derecha.ancla[0] - 0.9).abs() < 0.01 && (derecha.ancla[1] - 0.05).abs() < 0.01 && derecha.ancla[2] == 0.0, "{derecha:?}");
+        assert_eq!(izquierda.ancla, [-derecha.ancla[0], derecha.ancla[1], derecha.ancla[2]]);
+        let x_de = |c: &Capa| c.formas[0].subtrazos[0].puntos[1].0;
+        assert_eq!(x_de(orejas[1]), -x_de(orejas[0]), "la izquierda es su reflejo");
+        assert!(figura.avisos.is_empty(), "{:?}", figura.avisos);
     }
 
     #[test]

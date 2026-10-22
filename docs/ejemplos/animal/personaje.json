@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Zorro", "en": "Fox" },
+  "nombre": "Zorro",
   "colores": { "aviso": "#e0455a" },
   "capas": [
     { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },

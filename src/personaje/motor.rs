@@ -111,6 +111,8 @@ pub struct Ojo {
     /// Hacia dónde miran sus pupilas dentro del ojo: de -1 a 1 en cada eje (x a la derecha, y
     /// hacia abajo), hasta el borde de lo que pueden moverse.
     pub pupila: Punto,
+    /// Cuánto lo tapa el párpado por arriba (0–1), en las figuras con párpados (si no, 0).
+    pub parpado: f32,
 }
 
 /// Boca lista para dibujar: `SONRISA` y `COLMILLO` transformados por `matriz` (como un ojo).
@@ -492,9 +494,11 @@ impl Motor {
                     ancho: pose.ojo_ancho,
                     alto: pose.ojo_alto,
                     arco: pose.ojo_arco,
-                    matriz: sobre_cuerpo(&ojo, reposo, cara::aplastado(vida.parpado)),
+                    // Con párpados, parpadea bajándolos; sin ellos, aplastando el ojo.
+                    matriz: sobre_cuerpo(&ojo, reposo, if self.figura.parpado.is_some() { 1.0 } else { cara::aplastado(vida.parpado) }),
                     alfa: alfa(&ojo),
                     pupila: ((mirada.guinada / PUPILA_GUINADA).clamp(-1.0, 1.0), (-mirada.cabeceo / PUPILA_CABECEO).clamp(-1.0, 1.0)),
+                    parpado: self.figura.parpado.map_or(0.0, |cierre| cierre + (1.0 - cierre) * (1.0 - vida.parpado.clamp(0.0, 1.0))),
                 })
                 .collect();
             let (lateral, vertical) = angulos(&self.figura, medidas.boca);

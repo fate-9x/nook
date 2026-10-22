@@ -178,6 +178,12 @@ msgstr "システム"
 msgid "FIGURA"
 msgstr "種類"
 
+msgid "EXPRESIÓN"
+msgstr "表情"
+
+msgid "Normal"
+msgstr "通常"
+
 msgid "TUS PERSONAJES"
 msgstr "自作キャラクター"
 

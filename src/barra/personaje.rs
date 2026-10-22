@@ -310,14 +310,19 @@ impl Ctx {
         }
     }
 
-    /// Pasa a la configuración los personajes que hay, cuál es el elegido (`id`) y los que no se
-    /// pudieron leer.
+    /// Pasa a la configuración los personajes que hay, cuál es el elegido (`id`), sus expresiones
+    /// (la normal y las suyas) con la elegida, y los que no se pudieron leer.
     pub(crate) fn refrescar_personajes(&self, ui: &Barra, id: &str) {
         let p = self.personaje.borrow();
         let figuras = &p.coleccion.figuras;
         let nombres = figuras.iter().map(|f| SharedString::from(addons::traducido(&f.nombre))).collect();
         ui.set_figuras(modelo(nombres));
         ui.set_figura(figuras.iter().position(|f| f.id == id).unwrap_or(0) as i32);
+        let suyas = p.coleccion.buscar(id).expresiones.iter().map(|(n, _)| SharedString::from(n.as_str())).collect::<Vec<_>>();
+        let elegida = self.estado.borrow().config.ajustes.personaje.expresiones.get(id).cloned();
+        let i = elegida.and_then(|e| suyas.iter().position(|n| n.as_str() == e)).map_or(0, |i| i + 1);
+        ui.set_expresiones(modelo(std::iter::once(SharedString::from(tr("Normal"))).chain(suyas).collect()));
+        ui.set_expresion(i as i32);
         let errores: Vec<String> = p.coleccion.errores.iter().map(|(carpeta, error)| format!("{carpeta}: {error}")).collect();
         ui.set_errores_personajes(errores.join("\n").into());
     }
@@ -344,6 +349,20 @@ impl Ctx {
         if let Err(e) = sistema::lanzar(&carpeta.to_string_lossy()) {
             eprintln!("{e}");
         }
+    }
+
+    /// Elige la expresión `i` de la figura elegida (0, la normal; si no, la `i`-ésima suya).
+    pub(crate) fn elegir_expresion(&self, i: usize) {
+        let id = self.estado.borrow().config.ajustes.personaje.figura.clone();
+        let nombre = i.checked_sub(1).and_then(|i| self.personaje.borrow().coleccion.buscar(&id).expresiones.get(i).map(|(n, _)| n.clone()));
+        self.modificar_ajustes(|a| match nombre {
+            Some(nombre) => {
+                a.personaje.expresiones.insert(id, nombre);
+            }
+            None => {
+                a.personaje.expresiones.remove(&id);
+            }
+        });
     }
 
     /// Elige la figura `id`: el personaje da un saltito.
@@ -454,7 +473,13 @@ impl Ctx {
 
         let (figura, aspecto) = {
             let e = self.estado.borrow();
-            (p.coleccion.buscar(&e.config.ajustes.personaje.figura), aspecto_de(&e.config.ajustes, &p.coleccion))
+            let personaje = &e.config.ajustes.personaje;
+            let figura = p.coleccion.buscar(&personaje.figura);
+            let figura = match personaje.expresiones.get(&personaje.figura) {
+                Some(expresion) => figura.con_expresion(expresion),
+                None => figura,
+            };
+            (figura, aspecto_de(&e.config.ajustes, &p.coleccion))
         };
         if let Some(s) = p.segundo.as_mut() {
             s.motor.poner_figura(figura.clone());
@@ -566,6 +591,8 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
             c.elegir_figura(id);
         }
     });
+    let c = ctx.clone();
+    ui.on_elegir_expresion(move |i| c.elegir_expresion(i.max(0) as usize));
     let c = ctx.clone();
     ui.on_nuevo_personaje(move || {
         let c = c.clone();

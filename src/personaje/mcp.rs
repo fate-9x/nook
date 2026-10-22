@@ -97,6 +97,7 @@ pub fn herramientas() -> Vec<Value> {
                     "guinada": { "type": "number", "description": "Hacia dónde mira: grados a la derecha del de frente (una vista sola)" },
                     "cabeceo": { "type": "number", "description": "Hacia dónde mira: grados hacia arriba (una vista sola)" },
                     "acento": { "type": "string", "description": "Color de acento con el que dibujarlo («#rrggbb»); sin él, como lo dibujó su autor" },
+                    "expresion": { "type": "string", "description": "El nombre de una de sus expresiones, para verlo con ella; sin él, con la normal" },
                 },
                 "required": ["carpeta"],
             },
@@ -250,6 +251,11 @@ impl Vista {
 fn ver(argumentos: &Value) -> Result<Vec<u8>, String> {
     let (ruta, id) = carpeta_de(argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?)?;
     let figura = Arc::new(Figura::leer(&ruta, id).map_err(|e| format!("El personaje no se puede leer:\n- {e}"))?);
+    let figura = match argumentos["expresion"].as_str() {
+        Some(nombre) if !figura.expresiones.iter().any(|(n, _)| n == nombre) => return Err(format!("no tiene ninguna expresión llamada «{nombre}»")),
+        Some(nombre) => figura.con_expresion(nombre),
+        None => figura,
+    };
     let aspecto = aspecto_de(&figura, argumentos["acento"].as_str())?;
     let vistas: Vec<Vista> = if let Some(nombre) = argumentos["vista"].as_str() {
         vec![Vista::de(nombre).ok_or_else(|| format!("no hay ninguna vista llamada «{nombre}»"))?]
@@ -402,6 +408,13 @@ fn resumen(figura: &Figura) -> String {
     });
     if figura.capas().iter().any(|c| c.formas.iter().any(|f| f.pupila.is_some())) {
         texto.push_str("\nSus pupilas se mueven dentro del ojo hacia donde mira.");
+    }
+    if let Some(parpado) = figura.parpado {
+        texto.push_str(&format!("\nEl motor le dibuja párpados que tapan un {:.0} % de los ojos por arriba, y parpadea bajándolos.", parpado * 100.0));
+    }
+    if !figura.expresiones.is_empty() {
+        let nombres: Vec<String> = figura.expresiones.iter().map(|(n, _)| format!("«{n}»")).collect();
+        texto.push_str(&format!("\nExpresiones, además de la normal (velas con «ver» y su «expresion»): {}.", nombres.join(", ")));
     }
     if figura.muelle.is_some() {
         texto.push_str("\nTiene pelo con muelle.");

@@ -178,6 +178,12 @@ msgstr "시스템"
 msgid "FIGURA"
 msgstr "종류"
 
+msgid "EXPRESIÓN"
+msgstr "표정"
+
+msgid "Normal"
+msgstr "기본"
+
 msgid "TUS PERSONAJES"
 msgstr "직접 만든 캐릭터"
 

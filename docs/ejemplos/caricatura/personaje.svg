@@ -6,19 +6,15 @@
        de la cabeza, así que de frente no se ve: es calvo. -->
   <path id="pelo" d="M -24 24 L -40 30 L -36 18 L -54 16 L -40 6 L -58 -4 L -40 -10 L -54 -24 L -36 -26 L -24 -36 L 0 -40 L 24 -36 L 34 -26 L 50 -20 L 36 -10 L 52 -2 L 38 6 L 48 16 L 34 18 L 36 28 L 22 24 Z" fill="#e8e8ee" stroke="#2a211c" stroke-width="2.2" stroke-linejoin="round"/>
   <circle id="ancla-pelo" cx="0" cy="-6" r="1" fill="none"/>
-  <!-- Orejas: una por lado, después del pelo para quedar encima de él. -->
-  <g id="oreja-izquierda">
-    <path d="M -31 -8 C -42 -10 -44 12 -31 12 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="2.2" stroke-linejoin="round"/>
-    <path d="M -33 -2 C -38 -2 -38 6 -33 6" fill="none" stroke="#2a211c" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
-  <circle id="ancla-oreja-izquierda" cx="-32" cy="2" r="1" fill="none"/>
-  <g id="oreja-derecha">
-    <path d="M 31 -8 C 42 -10 44 12 31 12 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="2.2" stroke-linejoin="round"/>
-    <path d="M 33 -2 C 38 -2 38 6 33 6" fill="none" stroke="#2a211c" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
-  <circle id="ancla-oreja-derecha" cx="32" cy="2" r="1" fill="none"/>
   <!-- La cabeza, con su contorno: el trazo del cuerpo se dibuja fijo sobre la silueta. -->
   <path id="cuerpo" d="M 0 -45 C 22 -45 33 -28 33 -4 C 33 24 22 45 0 45 C -22 45 -33 24 -33 -4 C -33 -28 -22 -45 0 -45 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="2.2"/>
+  <!-- Oreja (solo la derecha: la izquierda es su reflejo). El relleno entra un poco en la cabeza
+       para taparle el contorno; la línea va solo por fuera. El motor la funde con la cabeza. -->
+  <g id="oreja">
+    <path d="M 28 -8 C 42 -10 44 12 28 12 Z" fill="#f1d3b8"/>
+    <path d="M 32 -8.5 C 42 -10 44 12 31.5 12" fill="none" stroke="#2a211c" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M 33 -2 C 38 -2 38 6 33 6" fill="none" stroke="#2a211c" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
   <!-- Pelo de los lados de la cabeza: franjas con el borde pegado por dentro al de la cabeza. -->
   <path id="nuca-izquierda" d="M -26 -30 C -30 -22 -31 -12 -30 -2 L -30 8 C -30 12 -33 15 -38 16" fill="#e8e8ee" stroke="#2a211c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   <path id="nuca-derecha" d="M 26 -30 C 30 -22 31 -12 30 -2 L 30 8 C 30 12 33 15 38 16" fill="#e8e8ee" stroke="#2a211c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -31,12 +27,11 @@
     <path d="M -19 3 Q -12 7 -5 3"/>
     <path d="M 5 3 Q 12 7 19 3"/>
   </g>
-  <!-- Ojo con párpado: el blanco, el párpado del color de la piel tapando la parte de arriba y la
-       pupila («pupila»: se mueve dentro del ojo hacia donde mira). Con párpado, el ojo contento necesita «ojo-alegre». -->
+  <!-- Ojo: el blanco con su contorno y la pupila («pupila»: se mueve dentro del ojo hacia donde
+       mira). El párpado lo dibuja el motor ("parpado" en el json); el ojo contento, «ojo-alegre». -->
   <g id="ojo">
     <circle cx="12" cy="-6" r="7.5" fill="#ffffff" stroke="#2a211c" stroke-width="1.8"/>
     <circle id="pupila" cx="11" cy="-4.5" r="1.8" fill="#2a211c"/>
-    <path d="M 4.6 -7.5 A 7.5 7.5 0 0 1 19.4 -7.5 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
   </g>
   <!-- Por dónde puede ir el centro de la pupila: no sube del párpado. -->
   <rect id="ancla-pupila" x="7" y="-5.7" width="10" height="5.2" fill="none"/>
@@ -45,4 +40,14 @@
   <path id="nariz" d="M -3 -4 C -3 4 -10 8 -8 14 C -6 19 6 19 8 14 C 10 8 3 4 3 -4" fill="#e9bfa0" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
   <path id="bigote" d="M 0 18 C -6 15 -16 16 -20 24 C -14 21 -8 24 0 22 C 8 24 14 21 20 24 C 16 16 6 15 0 18 Z" fill="#e8e8ee" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
   <path id="boca" d="M -6 30 Q 0 27 6 30" fill="none" stroke="#2a211c" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Piezas de las expresiones (no van en «capas»: las pone cada expresión en lugar de su capa). -->
+  <g id="cejas-enojado" fill="#e8e8ee" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M -22 -20 C -16 -20 -8 -16 -4 -12 C -10 -12 -16 -14 -22 -16 Z"/>
+    <path d="M 22 -20 C 16 -20 8 -16 4 -12 C 10 -12 16 -14 22 -16 Z"/>
+  </g>
+  <g id="cejas-sorprendido" fill="#e8e8ee" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round">
+    <path d="M -22 -19 C -18 -26 -8 -26 -4 -21 C -10 -21 -16 -20 -22 -16 Z"/>
+    <path d="M 22 -19 C 18 -26 8 -26 4 -21 C 10 -21 16 -20 22 -16 Z"/>
+  </g>
+  <ellipse id="boca-sorprendido" cx="0" cy="30" rx="3.5" ry="4.5" fill="#5a2a22" stroke="#2a211c" stroke-width="1.8"/>
 </svg>

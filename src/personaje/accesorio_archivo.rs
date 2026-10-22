@@ -69,7 +69,7 @@ struct Colores {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Descripcion {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "super::figura::nombre")]
     nombre: HashMap<String, String>,
     modo: Modo,
     #[serde(default)]

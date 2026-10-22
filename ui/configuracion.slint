@@ -713,6 +713,8 @@ export component PanelConfiguracion inherits Rectangle {
     in property <image> personaje-muestra;
     in property <[string]> figuras;
     in property <int> figura;
+    in property <[string]> expresiones;
+    in property <int> expresion;
     in property <string> errores-personajes;
     in property <[AccesorioItem]> accesorios;
     in property <[color]> colores-accesorios;
@@ -765,6 +767,7 @@ export component PanelConfiguracion inherits Rectangle {
     callback elegir-posicion(int);
     callback elegir-idioma(int);
     callback elegir-figura(int);
+    callback elegir-expresion(int);
     callback nuevo-personaje();
     callback abrir-carpeta-personajes();
     callback alternar-accesorio(string);
@@ -1173,6 +1176,26 @@ export component PanelConfiguracion inherits Rectangle {
                                             elegida: root.figura == i;
                                             clicked => { root.elegir-figura(i); }
                                         }
+                                    }
+                                }
+                            }
+                        }
+                        // Las expresiones del elegido, si tiene alguna además de la normal.
+                        if root.expresiones.length > 1 : VerticalLayout {
+                            Titulo { text: @tr("EXPRESIÓN"); }
+                            Rectangle {
+                                height: root.expresiones.length * 30px + 6px;
+                                border-radius: 14px;
+                                background: Tema.capa;
+                                VerticalLayout {
+                                    alignment: start;
+                                    padding: 3px;
+                                    spacing: 2px;
+                                    for nombre[i] in root.expresiones : OpcionSegmento {
+                                        height: 28px;
+                                        texto: nombre;
+                                        elegida: root.expresion == i;
+                                        clicked => { root.elegir-expresion(i); }
                                     }
                                 }
                             }

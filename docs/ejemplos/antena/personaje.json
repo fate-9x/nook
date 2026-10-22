@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Robot", "en": "Robot" },
+  "nombre": "Robot",
   "colores": { "cuerpo": "#b8c4d6", "aviso": "#ff5c7a" },
   "capas": [
     { "id": "cuerpo" },

@@ -120,6 +120,8 @@ export component Barra inherits Window {
     in property <image> personaje-muestra;
     in property <[string]> figuras;         // los personajes que hay (personaje::coleccion)
     in property <int> figura;               // el elegido, su posición en `figuras`
+    in property <[string]> expresiones;     // las del elegido: la normal y las suyas
+    in property <int> expresion;            // la elegida, su posición en `expresiones`
     in property <string> errores-personajes; // los que no se pudieron leer, uno por línea
     in property <int> idioma;               // 0 el del sistema, 1 español, 2 inglés, 3 japonés, 4 coreano (config::Idioma::TODOS)
     in property <[AccesorioItem]> accesorios;
@@ -247,6 +249,7 @@ export component Barra inherits Window {
     callback volver-en-boveda();            // salir del grupo a la vista de arriba
     callback cancelar-entrada-boveda();
     callback elegir-figura(int);
+    callback elegir-expresion(int);
     callback nuevo-personaje();             // crea uno a partir de Nook y abre su carpeta
     callback abrir-carpeta-personajes();
     callback elegir-idioma(int);
@@ -1553,6 +1556,8 @@ export component Barra inherits Window {
         personaje-muestra: root.personaje-muestra;
         figuras: root.figuras;
         figura: root.figura;
+        expresiones: root.expresiones;
+        expresion: root.expresion;
         errores-personajes: root.errores-personajes;
         accesorios: root.accesorios;
         colores-accesorios: root.colores-accesorios;
@@ -1604,6 +1609,7 @@ export component Barra inherits Window {
         elegir-posicion(a) => { root.elegir-posicion(a); }
         elegir-idioma(a) => { root.elegir-idioma(a); }
         elegir-figura(a) => { root.elegir-figura(a); }
+        elegir-expresion(a) => { root.elegir-expresion(a); }
         nuevo-personaje => { root.nuevo-personaje(); }
         abrir-carpeta-personajes => { root.abrir-carpeta-personajes(); }
         alternar-accesorio(a) => { root.alternar-accesorio(a); }

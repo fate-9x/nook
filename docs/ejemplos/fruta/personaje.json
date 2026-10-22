@@ -1,5 +1,5 @@
 {
-  "nombre": { "es": "Fresa", "en": "Strawberry" },
+  "nombre": "Fresa",
   "colores": { "aviso": "#3fae5a" },
   "capas": [
     { "id": "rabito", "tipo": "cabeza", "detras": true, "delante": "revelar", "profundidad": 0.2, "muelle": true },
