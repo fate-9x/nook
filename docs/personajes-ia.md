@@ -80,6 +80,15 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   recorta el ojo en arco al estar contento y solo queda bien con ojos rellenos de una pieza.
 - **Semitransparente:** `fill-opacity` funciona (brillos, sombras); y `fill-rule="evenodd"` hace
   agujeros (unas gafas dibujadas, un dónut).
+- **Los extremos de una franja, dentro de la cara:** el motor descarta los puntos del borde que
+  caen fuera de la cara o en su mismo borde y, desde el primero y el último que quedan, alarga en
+  recto hasta fuera del cuerpo (en horizontal las de `arriba`/`abajo`; en vertical las de los
+  lados). Si un extremo está pegado al borde de la cabeza, la franja empieza donde no esperas.
+- **Profundidad en el pelo:** pon dos franjas iguales, una debajo de un tono más oscuro con las
+  puntas algo más abajo (asoman entre los mechones claros) y, si quieres, una tercera del color de
+  la piel en sombra, más abajo aún y sin `encima`. Que las tres empiecen y acaben en el mismo punto.
+- **Sin líneas sueltas en el pelo:** a las franjas de los lados no les pongas `stroke`; el cambio de
+  color ya separa el pelo de la cara.
 - **Nada pintado pegado al borde de arriba:** al mirar arriba se aplasta contra él y se ve como una
   mancha oscura.
 
