@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-75 -95 150 150">
+  <!-- Una chica con flequillo y moño. La cabeza es el cuerpo: centro en (0, 0), ~90 de ancho. -->
+  <!-- Detrás de la cabeza (tipo «cabeza» con "delante": "nunca"): el moño, en la nuca, y la masa
+       de pelo que asoma alrededor de la cabeza. Cada uno con su ancla. -->
+  <circle id="mono" cx="0" cy="-56" r="13" fill="#5b3a29"/>
+  <circle id="ancla-mono" cx="0" cy="-44" r="1" fill="none"/>
+  <path id="pelo-atras" d="M -50 14 C -56 -28 -32 -52 0 -52 C 32 -52 56 -28 50 14 C 44 8 -44 8 -50 14 Z" fill="#5b3a29"/>
+  <circle id="ancla-pelo-atras" cx="0" cy="-30" r="1" fill="none"/>
+  <ellipse id="cuerpo" cx="0" cy="0" rx="44" ry="42" fill="#ffd9b8"/>
+  <!-- Nuca: dos franjas de borde vertical, pegadas por dentro al borde de la cabeza. De frente
+       son unas patillas; al girar cubren de pelo la parte de atrás de la cabeza. El borde acaba
+       saliendo del cuerpo hacia fuera para que la franja no siga hacia abajo. -->
+  <path id="nuca-izquierda" d="M -12 -42 C -26 -40 -36 -28 -37 -12 L -37 2 C -37 8 -42 12 -50 13" fill="#5b3a29"/>
+  <path id="nuca-derecha" d="M 12 -42 C 26 -40 36 -28 37 -12 L 37 2 C 37 8 42 12 50 13" fill="#5b3a29"/>
+  <g id="mejillas" fill="#ff9e9e">
+    <ellipse cx="-24" cy="14" rx="6" ry="3.5"/>
+    <ellipse cx="24" cy="14" rx="6" ry="3.5"/>
+  </g>
+  <g id="ojo">
+    <ellipse cx="16" cy="4" rx="4.5" ry="6" fill="#3a2418"/>
+    <circle cx="17.6" cy="1.8" r="1.6" fill="#ffffff"/>
+  </g>
+  <!-- El ojo contento (al hacerle clic o con música): un arco. -->
+  <path id="ojo-alegre" d="M 11 5 Q 16 -1 21 5" fill="none" stroke="#3a2418" stroke-width="2.2" stroke-linecap="round"/>
+  <path id="boca" d="M -5 19 Q 0 24 5 19" fill="none" stroke="#3a2418" stroke-width="2" stroke-linecap="round"/>
+  <!-- Flequillo: franja hacia arriba desde un borde en zigzag que cruza la frente de lado a lado,
+       por encima de los ojos ("encima": true) y con muelle. -->
+  <path id="flequillo" d="M -50 -4 C -40 -16 -32 -14 -26 -24 C -20 -14 -10 -14 -4 -26 C 2 -14 14 -12 20 -24 C 26 -14 36 -14 50 -4" fill="#5b3a29"/>
+</svg>

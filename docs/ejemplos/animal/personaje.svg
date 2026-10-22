@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-75 -95 150 150">
+  <!-- Zorro. Centro del cuerpo en (0, 0), ~100 de ancho. -->
+  <!-- Orejas: lo que sobresale del cuerpo es de tipo «cabeza». Una capa por oreja, cada una con
+       su ancla (circulito sin relleno) en la base, donde se pega a la cabeza: así, al girar, la
+       del otro lado se esconde detrás. -->
+  <g id="oreja-izquierda">
+    <path d="M -42 -20 L -38 -68 L -8 -38 Z" fill="#e8743b"/>
+    <path d="M -35 -30 L -33 -56 L -18 -38 Z" fill="#5a2e1a"/>
+  </g>
+  <circle id="ancla-oreja-izquierda" cx="-27" cy="-31" r="1" fill="none"/>
+  <g id="oreja-derecha">
+    <path d="M 42 -20 L 38 -68 L 8 -38 Z" fill="#e8743b"/>
+    <path d="M 35 -30 L 33 -56 L 18 -38 Z" fill="#5a2e1a"/>
+  </g>
+  <circle id="ancla-oreja-derecha" cx="27" cy="-31" r="1" fill="none"/>
+  <ellipse id="cuerpo" cx="0" cy="0" rx="50" ry="42" fill="#e8743b"/>
+  <!-- Franja: NO es una forma cerrada. Es una línea (su borde) de lado a lado del cuerpo; su
+       relleno es el color con el que se pinta desde esa línea hacia «abajo» (ver el json) hasta
+       el borde del cuerpo. -->
+  <path id="hocico" d="M -56 2 C -36 -2 -16 2 0 8 C 16 2 36 -2 56 2" fill="#fff4e6"/>
+  <ellipse id="nariz" cx="0" cy="12" rx="4.5" ry="3.2" fill="#2b1a12"/>
+  <ellipse id="ojo" cx="18" cy="-8" rx="4.5" ry="6" fill="#2b1a12"/>
+  <path id="boca" d="M -6 19 Q -3 23 0 19 Q 3 23 6 19" fill="none" stroke="#2b1a12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

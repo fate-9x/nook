@@ -1,0 +1,16 @@
+{
+  "nombre": { "es": "Chica", "en": "Girl" },
+  "colores": { "aviso": "#e0455a" },
+  "capas": [
+    { "id": "mono", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.4, "muelle": true },
+    { "id": "pelo-atras", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.1 },
+    { "id": "cuerpo" },
+    { "id": "nuca-izquierda", "tipo": "franja", "hacia": "izquierda" },
+    { "id": "nuca-derecha", "tipo": "franja", "hacia": "derecha" },
+    { "id": "mejillas" },
+    { "id": "ojo" },
+    { "id": "ojo-alegre" },
+    { "id": "boca" },
+    { "id": "flequillo", "tipo": "franja", "hacia": "arriba", "encima": true, "recorte": 1.06, "muelle": true }
+  ]
+}

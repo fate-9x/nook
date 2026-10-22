@@ -1,0 +1,13 @@
+{
+  "nombre": { "es": "Fresa", "en": "Strawberry" },
+  "colores": { "aviso": "#3fae5a" },
+  "capas": [
+    { "id": "rabito", "tipo": "cabeza", "detras": true, "delante": "revelar", "profundidad": 0.2, "muelle": true },
+    { "id": "cuerpo" },
+    { "id": "semillas" },
+    { "id": "brillo" },
+    { "id": "ojo" },
+    { "id": "boca" },
+    { "id": "hojas", "tipo": "cabeza", "muelle": true }
+  ]
+}

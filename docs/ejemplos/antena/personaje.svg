@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-75 -95 150 150">
+  <!-- Robot. El cuerpo puede tener cualquier forma: aquí, un cuadrado redondeado. Centro en
+       (0, 0), 100 de ancho. -->
+  <path id="cuerpo" d="M -38 -38 H 38 Q 50 -38 50 -26 V 26 Q 50 38 38 38 H -38 Q -50 38 -50 26 V -26 Q -50 -38 -38 -38 Z" fill="#b8c4d6"/>
+  <!-- Algo encima de la cabeza que se balancea: tipo «cabeza» con muelle, con el ancla en su
+       base, sobre la cabeza. "tapable": false para que un gorro no la esconda. -->
+  <g id="antena">
+    <path d="M 0 -38 L 0 -56" fill="none" stroke="#6b7a90" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="0" cy="-60" r="5" fill="#ff5c7a"/>
+  </g>
+  <circle id="ancla-antena" cx="0" cy="-38" r="1" fill="none"/>
+  <!-- Pintado en la cara: la pantalla gira con ella como sobre una pelota. -->
+  <rect id="pantalla" x="-38" y="-24" width="76" height="44" rx="10" fill="#1f2a3c"/>
+  <g id="tornillos" fill="#8794a8">
+    <circle cx="-43" cy="28" r="2.2"/>
+    <circle cx="43" cy="28" r="2.2"/>
+  </g>
+  <!-- Ojos y boca luminosos sobre la pantalla. El ojo contento: un arco «^». -->
+  <rect id="ojo" x="12" y="-12" width="9" height="13" rx="3" fill="#7df9ff"/>
+  <path id="ojo-alegre" d="M 11 -3 L 16.5 -10 L 22 -3" fill="none" stroke="#7df9ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="boca" d="M -7 9 Q 0 14 7 9" fill="none" stroke="#7df9ff" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

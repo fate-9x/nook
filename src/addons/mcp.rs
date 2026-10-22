@@ -17,8 +17,9 @@ const VERSIONES: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCCIONES: &str = "Nookly es la barra de tareas del usuario. Estas herramientas son de sus \
 addons (minijuegos y otros paneles de la barra): lo que hagas con ellas se ve en su barra. Con las \
-herramientas personaje__ puedes también hacer personajes para su barra: la guía del personaje lo \
-explica y las demás te dejan comprobar cómo va.";
+herramientas personaje__ puedes también hacer personajes para su barra: empieza por la guía con el \
+tipo de personaje que quieras hacer, que da un ejemplo para adaptar, y guárdalo con la de guardar, que \
+te enseña cómo queda.";
 
 /// Atiende al cliente hasta que cierra la entrada.
 pub fn servir() {
@@ -78,6 +79,9 @@ pub fn responder(mensaje: &Value, barra: &mut dyn FnMut(Value) -> Result<Value, 
                 let (contenido, es_error) = match personaje::llamar(nombre, &argumentos) {
                     Ok(personaje::Resultado::Texto(texto)) => (json!([{ "type": "text", "text": texto }]), false),
                     Ok(personaje::Resultado::Imagen { datos, tipo }) => (json!([{ "type": "image", "data": base64(&datos), "mimeType": tipo }]), false),
+                    Ok(personaje::Resultado::TextoEImagen { texto, datos, tipo }) => {
+                        (json!([{ "type": "text", "text": texto }, { "type": "image", "data": base64(&datos), "mimeType": tipo }]), false)
+                    }
                     Err(e) => (json!([{ "type": "text", "text": e }]), true),
                 };
                 json!({ "content": contenido, "isError": es_error })
@@ -153,7 +157,7 @@ mod tests {
         };
         let r = responder(&json!({"jsonrpc":"2.0","id":3,"method":"tools/list"}), &mut barra).unwrap();
         let nombres: Vec<&str> = r["result"]["tools"].as_array().unwrap().iter().map(|h| h["name"].as_str().unwrap()).collect();
-        assert_eq!(nombres.iter().filter(|n| n.starts_with(personaje::PREFIJO)).count(), 4, "{nombres:?}");
+        assert_eq!(nombres.iter().filter(|n| n.starts_with(personaje::PREFIJO)).count(), 5, "{nombres:?}");
         assert!(nombres.contains(&"dado__tirar"), "{nombres:?}");
     }
 
@@ -187,7 +191,7 @@ mod tests {
         let mut barra = |_: Value| -> Result<Value, String> { panic!("no hay que ir a la barra") };
         let r = responder(&json!({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"personaje__guia"}}), &mut barra).unwrap();
         assert_eq!(r["result"]["content"][0]["type"], "text");
-        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("Guía"), "{r}");
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("lo esencial"), "{r}");
         assert_eq!(r["result"]["isError"], false);
         // Los errores de las de personajes llegan como error también.
         let r = responder(&json!({"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"personaje__comprobar"}}), &mut barra).unwrap();

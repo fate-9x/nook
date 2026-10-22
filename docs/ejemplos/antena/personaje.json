@@ -1,0 +1,13 @@
+{
+  "nombre": { "es": "Robot", "en": "Robot" },
+  "colores": { "cuerpo": "#b8c4d6", "aviso": "#ff5c7a" },
+  "capas": [
+    { "id": "cuerpo" },
+    { "id": "antena", "tipo": "cabeza", "muelle": true, "tapable": false },
+    { "id": "pantalla" },
+    { "id": "tornillos" },
+    { "id": "ojo" },
+    { "id": "ojo-alegre" },
+    { "id": "boca" }
+  ]
+}

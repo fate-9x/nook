@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 -100 160 160">
+  <!-- Un chico gato: orejas, pelo en punta alrededor de la cabeza, flequillo, nuca, cejas y un ojo
+       de cada color. La cabeza es el cuerpo: centro en (0, 0), ~90 de ancho. -->
+  <!-- 1. Pelo en punta que asoma alrededor de la cabeza: va solo por detrás del cuerpo. -->
+  <path id="pelo-atras" d="M -48 16 L -53 0 L -50 -12 L -55 -26 L -46 -32 L -48 -48 L -32 -46 L -24 -60 L -10 -50 L 0 -62 L 10 -50 L 24 -60 L 32 -46 L 48 -48 L 46 -32 L 55 -26 L 50 -12 L 53 0 L 48 16 C 40 10 -40 10 -48 16 Z" fill="#e9e4f2"/>
+  <circle id="ancla-pelo-atras" cx="0" cy="-30" r="1" fill="none"/>
+  <!-- 2. Orejas (tipo «cabeza»): una capa por lado, cada una con su ancla en la base. Van
+       después del pelo de atrás para quedar encima de él, con un contorno que las separa. -->
+  <g id="oreja-izquierda">
+    <path d="M -40 -26 L -42 -76 L -12 -44 Z" fill="#e9e4f2" stroke="#b9aed0" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M -34 -36 L -35 -63 L -20 -45 Z" fill="#f5a9c0"/>
+  </g>
+  <circle id="ancla-oreja-izquierda" cx="-28" cy="-36" r="1" fill="none"/>
+  <g id="oreja-derecha">
+    <path d="M 40 -26 L 42 -76 L 12 -44 Z" fill="#e9e4f2" stroke="#b9aed0" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M 34 -36 L 35 -63 L 20 -45 Z" fill="#f5a9c0"/>
+  </g>
+  <circle id="ancla-oreja-derecha" cx="28" cy="-36" r="1" fill="none"/>
+  <ellipse id="cuerpo" cx="0" cy="0" rx="44" ry="42" fill="#ffe1c6"/>
+  <!-- 3. Nuca: franjas de borde vertical pegadas por dentro al borde de la cabeza. -->
+  <path id="nuca-izquierda" d="M -12 -42 C -26 -40 -36 -28 -37 -12 L -37 0 C -37 6 -42 10 -50 11" fill="#e9e4f2"/>
+  <path id="nuca-derecha" d="M 12 -42 C 26 -40 36 -28 37 -12 L 37 0 C 37 6 42 10 50 11" fill="#e9e4f2"/>
+  <g id="mejillas" fill="#ffaaa0">
+    <ellipse cx="-25" cy="15" rx="6" ry="3.5"/>
+    <ellipse cx="25" cy="15" rx="6" ry="3.5"/>
+  </g>
+  <!-- Las cejas, pintadas en la cara: se mueven con ella. -->
+  <g id="cejas" fill="none" stroke="#9a8fb0" stroke-width="2.2" stroke-linecap="round">
+    <path d="M -22 -12 Q -16 -15 -10 -13"/>
+    <path d="M 10 -13 Q 16 -15 22 -12"/>
+  </g>
+  <!-- 4. Ojos distintos: «ojo» es el derecho (azul) y «ojo-izquierdo» el izquierdo (ámbar), cada
+       uno en su sitio. «ojo-alegre» sirve para los dos (el izquierdo es su reflejo). -->
+  <g id="ojo">
+    <ellipse cx="16" cy="2" rx="5" ry="6.5" fill="#3b6fd8"/>
+    <ellipse cx="16" cy="3" rx="2.2" ry="3.6" fill="#1b2240"/>
+    <circle cx="17.8" cy="-0.6" r="1.6" fill="#ffffff"/>
+  </g>
+  <g id="ojo-izquierdo">
+    <ellipse cx="-16" cy="2" rx="5" ry="6.5" fill="#e0a020"/>
+    <ellipse cx="-16" cy="3" rx="2.2" ry="3.6" fill="#1b2240"/>
+    <circle cx="-14.2" cy="-0.6" r="1.6" fill="#ffffff"/>
+  </g>
+  <path id="ojo-alegre" d="M 11 3 Q 16 -3 21 3" fill="none" stroke="#1b2240" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- La boca de gato con un colmillo: un grupo con varias piezas. -->
+  <g id="boca">
+    <path d="M -6 18 Q -3 22 0 18 Q 3 22 6 18" fill="none" stroke="#1b2240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 2.4 20.4 L 3.6 24 L 4.8 20.2 Z" fill="#ffffff"/>
+  </g>
+  <!-- 5. Flequillo en punta: franja hacia arriba, encima de los ojos y con muelle. -->
+  <path id="flequillo" d="M -50 -6 L -38 -18 L -34 -6 L -22 -24 L -16 -10 L -6 -28 L 2 -12 L 12 -26 L 18 -12 L 28 -22 L 34 -8 L 50 -6" fill="#e9e4f2"/>
+</svg>

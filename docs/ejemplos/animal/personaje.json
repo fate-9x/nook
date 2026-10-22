@@ -1,0 +1,13 @@
+{
+  "nombre": { "es": "Zorro", "en": "Fox" },
+  "colores": { "aviso": "#e0455a" },
+  "capas": [
+    { "id": "oreja-izquierda", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },
+    { "id": "oreja-derecha", "tipo": "cabeza", "detras": true, "delante": "girar", "profundidad": -0.1, "tapable": false },
+    { "id": "cuerpo" },
+    { "id": "hocico", "tipo": "franja", "hacia": "abajo" },
+    { "id": "nariz" },
+    { "id": "ojo" },
+    { "id": "boca" }
+  ]
+}

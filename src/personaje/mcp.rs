@@ -1,6 +1,7 @@
 //! Herramientas de personajes para el servidor MCP (`nook.exe --mcp`, ver `addons/mcp.rs`): con
-//! ellas, la IA del usuario puede leer la guía para hacer personajes, comprobar el de una carpeta
-//! (errores, avisos y un resumen de cómo lo entiende Nookly) y verlo dibujado. Se atienden aquí
+//! ellas, la IA del usuario puede leer lo esencial para hacer personajes con un ejemplo del tipo
+//! que quiera, guardarlo en la carpeta de personajes, comprobar el de una carpeta (errores, avisos
+//! y un resumen de cómo lo entiende Nookly) y verlo dibujado. Se atienden aquí
 //! mismo, sin pasar por la barra: el motor de personajes es una librería. Para poner el personaje
 //! en la barra, en cambio, se manda la elección por la tubería (`tuberia.rs`).
 
@@ -15,11 +16,12 @@ use std::sync::Arc;
 /// Lo que va delante del nombre de todas las herramientas (como los addons usan `id__`).
 pub const PREFIJO: &str = "personaje__";
 
-/// La respuesta de una herramienta: texto o una imagen (PNG).
+/// La respuesta de una herramienta: texto, una imagen (PNG) o las dos cosas.
 #[derive(Debug)]
 pub enum Resultado {
     Texto(String),
     Imagen { datos: Vec<u8>, tipo: &'static str },
+    TextoEImagen { texto: String, datos: Vec<u8>, tipo: &'static str },
 }
 
 impl Resultado {
@@ -33,13 +35,44 @@ const LADO_VISTA: u32 = 256;
 /// Las vistas del mosaico, así se van apilando (4 por fila).
 const VISTAS: [&str; 8] = ["frente", "derecha", "izquierda", "arriba", "abajo", "aviso", "clic", "musica"];
 
+/// Los ejemplos que da la guía, por tipo de personaje: para qué sirve cada uno, sus notas y sus
+/// archivos (el de imágenes no tiene SVG).
+const EJEMPLOS: [(&str, &str, &str, &str, &str); 7] = [
+    ("simple", "mascota redonda sin nada que sobresalga", include_str!("../../docs/ejemplos/simple/notas.md"), include_str!("../../docs/ejemplos/simple/personaje.svg"), include_str!("../../docs/ejemplos/simple/personaje.json")),
+    ("animal", "orejas o cuernos a los lados", include_str!("../../docs/ejemplos/animal/notas.md"), include_str!("../../docs/ejemplos/animal/personaje.svg"), include_str!("../../docs/ejemplos/animal/personaje.json")),
+    ("pelo", "persona con flequillo, nuca y moño", include_str!("../../docs/ejemplos/pelo/notas.md"), include_str!("../../docs/ejemplos/pelo/personaje.svg"), include_str!("../../docs/ejemplos/pelo/personaje.json")),
+    ("completo", "orejas, pelo en punta, cejas y un ojo de cada color", include_str!("../../docs/ejemplos/completo/notas.md"), include_str!("../../docs/ejemplos/completo/personaje.svg"), include_str!("../../docs/ejemplos/completo/personaje.json")),
+    ("antena", "algo encima que se balancea, como un robot", include_str!("../../docs/ejemplos/antena/notas.md"), include_str!("../../docs/ejemplos/antena/personaje.svg"), include_str!("../../docs/ejemplos/antena/personaje.json")),
+    ("fruta", "comida u objetos con forma, hojas y algo que asoma", include_str!("../../docs/ejemplos/fruta/notas.md"), include_str!("../../docs/ejemplos/fruta/personaje.svg"), include_str!("../../docs/ejemplos/fruta/personaje.json")),
+    ("imagenes", "pixel art o dibujos en PNG", include_str!("../../docs/ejemplos/fantasma/notas.md"), "", include_str!("../../docs/ejemplos/fantasma/personaje.json")),
+];
+
 /// Las herramientas que se ofrecen, como las pide MCP (`tools/list`).
 pub fn herramientas() -> Vec<Value> {
+    let tipos: Vec<String> = EJEMPLOS.iter().map(|(tipo, para, ..)| format!("{tipo} ({para})")).collect();
     vec![
         json!({
             "name": format!("{PREFIJO}guia"),
-            "description": "La guía completa para hacer personajes de Nookly: léela antes de crear o cambiar un personaje.",
-            "inputSchema": { "type": "object", "properties": {} },
+            "description": format!("Empieza aquí para crear o cambiar un personaje de Nookly: da lo esencial y, con «tipo», un ejemplo completo (su SVG y su json) listo para copiar y adaptar. Pide el tipo más parecido a lo que quieres hacer: {}.", tipos.join(", ")),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "tipo": { "type": "string", "enum": EJEMPLOS.iter().map(|e| e.0).collect::<Vec<_>>(), "description": "El tipo de personaje del que quieres el ejemplo" },
+                },
+            },
+        }),
+        json!({
+            "name": format!("{PREFIJO}guardar"),
+            "description": "Guarda el personaje en una carpeta dentro de la de personajes de Nookly (la crea, o reemplaza su personaje.svg y su personaje.json) y devuelve su comprobación y una imagen con 8 vistas. Úsala para cada versión hasta que no haya errores ni avisos y se vea bien en todas las vistas.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "carpeta": { "type": "string", "description": "El nombre de la carpeta del personaje, sin barras (por ejemplo «zorro»). Una nueva para cada personaje nuevo" },
+                    "svg": { "type": "string", "description": "El contenido de personaje.svg" },
+                    "json": { "type": "string", "description": "El contenido de personaje.json" },
+                },
+                "required": ["carpeta"],
+            },
         }),
         json!({
             "name": format!("{PREFIJO}comprobar"),
@@ -84,7 +117,8 @@ pub fn herramientas() -> Vec<Value> {
 /// Usa la herramienta `nombre` con sus `argumentos` y da su respuesta (o por qué no).
 pub fn llamar(nombre: &str, argumentos: &Value) -> Result<Resultado, String> {
     match nombre.strip_prefix(PREFIJO) {
-        Some("guia") => Ok(Resultado::texto(guia())),
+        Some("guia") => Ok(Resultado::texto(guia(argumentos["tipo"].as_str())?)),
+        Some("guardar") => guardar_en(&crate::config::carpeta().join("personajes"), argumentos),
         Some("comprobar") => Ok(Resultado::texto(comprobar(argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?)?)),
         Some("ver") => {
             let datos = ver(argumentos)?;
@@ -95,9 +129,50 @@ pub fn llamar(nombre: &str, argumentos: &Value) -> Result<Resultado, String> {
     }
 }
 
-/// La guía para hacer personajes, la misma que va con el programa.
-fn guia() -> String {
-    include_str!("../../docs/guia-personajes.md").into()
+/// Lo esencial para hacer personajes, con la carpeta de personajes de verdad, y, con `tipo`, su
+/// ejemplo entero: sus notas y sus archivos.
+fn guia(tipo: Option<&str>) -> Result<String, String> {
+    let carpeta = crate::config::carpeta().join("personajes");
+    let mut texto = include_str!("../../docs/personajes-ia.md").replace("{carpeta}", &carpeta.to_string_lossy());
+    let Some(tipo) = tipo else { return Ok(texto) };
+    let (_, _, notas, svg, json) = EJEMPLOS.iter().find(|e| e.0 == tipo).ok_or_else(|| format!("no hay ningún ejemplo de tipo «{tipo}»"))?;
+    texto.push_str(&format!("\n# Ejemplo «{tipo}»\n\n{notas}"));
+    if !svg.is_empty() {
+        texto.push_str(&format!("\n## personaje.svg\n\n```svg\n{svg}```\n"));
+    }
+    texto.push_str(&format!("\n## personaje.json\n\n```json\n{json}```\n"));
+    Ok(texto)
+}
+
+/// Guarda el personaje que manda la IA en la carpeta `carpeta` de `personajes` (su SVG y su
+/// json, los que mande) y da su comprobación y, si se lee, el mosaico de sus vistas.
+fn guardar_en(personajes: &Path, argumentos: &Value) -> Result<Resultado, String> {
+    let carpeta = argumentos["carpeta"].as_str().ok_or("falta la carpeta del personaje")?.trim();
+    if carpeta.is_empty() || carpeta.starts_with('.') || carpeta.contains(['/', '\\', ':']) {
+        return Err(format!("«{carpeta}» no vale como carpeta: pon solo un nombre, sin barras (por ejemplo «zorro»)"));
+    }
+    // El json puede llegar como texto o, si la IA lo manda tal cual, como objeto.
+    let json = match &argumentos["json"] {
+        Value::String(texto) => Some(texto.clone()),
+        Value::Null => None,
+        otro => Some(serde_json::to_string_pretty(otro).map_err(|e| e.to_string())?),
+    };
+    let svg = argumentos["svg"].as_str();
+    if svg.is_none() && json.is_none() {
+        return Err("falta el dibujo («svg») o el «json» del personaje".into());
+    }
+    let ruta = personajes.join(carpeta);
+    std::fs::create_dir_all(&ruta).map_err(|e| format!("no se pudo crear la carpeta {}: {e}", ruta.display()))?;
+    for (archivo, contenido) in [("personaje.svg", svg), ("personaje.json", json.as_deref())] {
+        if let Some(contenido) = contenido {
+            std::fs::write(ruta.join(archivo), contenido).map_err(|e| format!("no se pudo guardar {archivo}: {e}"))?;
+        }
+    }
+    let texto = format!("Guardado en {}.\n{}", ruta.display(), comprobar(&ruta.to_string_lossy())?);
+    Ok(match ver(&json!({ "carpeta": ruta.to_string_lossy() })) {
+        Ok(datos) => Resultado::TextoEImagen { texto, datos, tipo: "image/png" },
+        Err(_) => Resultado::Texto(texto),
+    })
 }
 
 /// Comprueba el personaje de una carpeta: la lee entera (json y dibujo) y da qué errores tiene,
@@ -355,12 +430,13 @@ mod tests {
     #[test]
     fn lista_sus_herramientas() {
         let herramientas = herramientas();
-        assert_eq!(herramientas.len(), 4);
-        for (i, nombre) in ["guia", "comprobar", "ver", "poner"].iter().enumerate() {
+        assert_eq!(herramientas.len(), 5);
+        for (i, nombre) in ["guia", "guardar", "comprobar", "ver", "poner"].iter().enumerate() {
             assert_eq!(herramientas[i]["name"], format!("{PREFIJO}{nombre}"));
         }
-        assert_eq!(herramientas[1]["inputSchema"]["required"][0], "carpeta");
-        let vistas: Vec<&str> = herramientas[2]["inputSchema"]["properties"]["vista"]["enum"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(herramientas[0]["inputSchema"]["properties"]["tipo"]["enum"].as_array().unwrap().len(), EJEMPLOS.len());
+        assert_eq!(herramientas[2]["inputSchema"]["required"][0], "carpeta");
+        let vistas: Vec<&str> = herramientas[3]["inputSchema"]["properties"]["vista"]["enum"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
         assert_eq!(vistas, VISTAS.to_vec());
     }
 
@@ -403,12 +479,53 @@ mod tests {
     }
 
     #[test]
-    fn la_guia_es_la_del_repositorio() {
+    fn la_guia_da_lo_esencial_y_el_ejemplo_de_cada_tipo() {
         let texto = match llamar(&format!("{PREFIJO}guia"), &json!({})) {
             Ok(Resultado::Texto(texto)) => texto,
             otra => panic!("no es texto: {otra:?}"),
         };
-        assert!(texto.contains("# Guía: crea tu propio personaje para Nookly"), "{texto}");
+        assert!(texto.contains("# Personajes de Nookly: lo esencial") && !texto.contains("{carpeta}"), "{texto}");
+        assert!(!texto.contains("# Ejemplo"), "sin tipo no hay ejemplo");
+        for (tipo, ..) in EJEMPLOS {
+            let texto = guia(Some(tipo)).unwrap();
+            assert!(texto.contains(&format!("# Ejemplo «{tipo}»")) && texto.contains("```json"), "{tipo}");
+            assert!(texto.contains("```svg") != (tipo == "imagenes"), "{tipo}");
+        }
+        assert!(guia(Some("dinosaurio")).unwrap_err().contains("dinosaurio"));
+    }
+
+    #[test]
+    fn los_ejemplos_se_leen_sin_avisos() {
+        for carpeta in ["simple", "animal", "pelo", "completo", "antena", "fruta", "fantasma"] {
+            let texto = comprobar(&ejemplos().join(carpeta).to_string_lossy()).unwrap();
+            assert!(texto.contains("se lee bien") && texto.contains("Sin avisos"), "{carpeta}: {texto}");
+        }
+    }
+
+    #[test]
+    fn guarda_el_personaje_y_lo_comprueba() {
+        let personajes = std::env::temp_dir().join(format!("nook-prueba-guardar-{}", crate::azar::siguiente().to_bits()));
+        let (_, _, _, svg, json) = EJEMPLOS[1];
+        match guardar_en(&personajes, &json!({ "carpeta": "zorro", "svg": svg, "json": json })).unwrap() {
+            Resultado::TextoEImagen { texto, datos, .. } => {
+                assert!(texto.contains("Guardado en") && texto.contains("«Zorro»") && texto.contains("Sin avisos"), "{texto}");
+                assert_eq!(&datos[..4], &[137, 80, 78, 71]);
+            }
+            otra => panic!("esperaba texto e imagen: {otra:?}"),
+        }
+        assert_eq!(std::fs::read_to_string(personajes.join("zorro/personaje.svg")).unwrap(), svg);
+        // El json también vale como objeto; uno que no se lee se explica, sin imagen.
+        let objeto: Value = serde_json::from_str(json).unwrap();
+        assert!(matches!(guardar_en(&personajes, &json!({ "carpeta": "zorro", "json": objeto })).unwrap(), Resultado::TextoEImagen { .. }));
+        match guardar_en(&personajes, &json!({ "carpeta": "zorro", "json": "{" })).unwrap() {
+            Resultado::Texto(texto) => assert!(texto.contains("no se puede leer"), "{texto}"),
+            otra => panic!("esperaba solo texto: {otra:?}"),
+        }
+        for mala in ["", "../fuera", "a/b", "C:", ".oculta"] {
+            assert!(guardar_en(&personajes, &json!({ "carpeta": mala, "svg": svg })).is_err(), "{mala}");
+        }
+        assert!(guardar_en(&personajes, &json!({ "carpeta": "zorro" })).unwrap_err().contains("falta"));
+        let _ = std::fs::remove_dir_all(&personajes);
     }
 
     #[test]

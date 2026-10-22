@@ -259,15 +259,17 @@ Nookly trae un servidor MCP para la IA del usuario (Claude Desktop, Claude Code�
 usan sus addons. Con las herramientas `personaje__` la IA puede hacer personajes enteros, y
 corregirse sola:
 
-1. **`personaje__guia`** le da esta guía entera, sin que se la copies.
-2. Escribe la carpeta del personaje (un `personaje.svg`, o los PNG y su `personaje.json`) donde
-   quiera.
-3. **`personaje__comprobar`** le dice si se puede leer, qué avisos tiene y cómo lo entiende Nookly
-   (capas, ojos, boca, medidas). Itera hasta que no queden errores ni avisos.
-4. **`personaje__ver`** la dibuja y le enseña la imagen: por defecto, un mosaico con el personaje
-   de frente, mirando a los dos lados y hacia arriba y abajo, con una notificación, al hacerle clic
-   y con música; también una vista sola, con los ángulos que le pidas.
-5. Cuando ya quede bien, **`personaje__poner`** lo elige en tu barra y lo ves enseguida.
+1. **`personaje__guia`** le da lo esencial (en vez de esta guía entera) y, según el tipo de
+   personaje, un ejemplo listo para adaptar: `simple`, `animal`, `pelo`, `completo` (orejas, pelo
+   y ojos distintos), `antena`, `fruta` o `imagenes`. Son los de [`ejemplos/`](ejemplos), cada uno
+   con sus `notas.md`.
+2. **`personaje__guardar`** guarda su versión en la carpeta de personajes y le devuelve la
+   comprobación y un mosaico con el personaje de frente, mirando a los dos lados y hacia arriba y
+   abajo, con una notificación, al hacerle clic y con música. Itera hasta que no queden errores ni
+   avisos y se vea bien.
+3. **`personaje__comprobar`** y **`personaje__ver`** hacen lo mismo con una carpeta que ya esté
+   escrita (`ver` también saca una vista sola, con los ángulos que le pidas).
+4. Cuando ya quede bien, **`personaje__poner`** lo elige en tu barra y lo ves enseguida.
 
 Para que la IA vea las herramientas, tiene que tener a Nookly entre sus servidores MCP: en la
 configuración, sección **Addons**, está la conexión con Claude Desktop y el comando para Claude
