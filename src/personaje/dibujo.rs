@@ -497,9 +497,10 @@ impl Pintor<'_> {
         let rellenas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Relleno { .. })).collect();
         let dentro: Vec<&&Forma> = if rellenas.is_empty() || quita_contorno { fijas.iter().collect() } else { rellenas };
         let mut ojo_entero: Mascara = vec![0.0; (self.lado * self.lado) as usize];
+        // El borde suavizado del ojo, tapado entero: si no, asoma como un arco tenue.
         for f in &dentro {
             for (t, v) in ojo_entero.iter_mut().zip(self.subtrazos(&f.subtrazos, f.pintura, 1.0, colocar)) {
-                *t = t.max(v);
+                *t = t.max((v * 4.0).min(1.0));
             }
         }
         let borde = y0 + (y1 - y0) * cierre;
