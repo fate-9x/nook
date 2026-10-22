@@ -527,12 +527,12 @@ impl Pintor<'_> {
         };
         let debajo = corte.map(|corte| self.subtrazos(&[rectangulo(corte, y1 + margen)], relleno, 1.0, colocar));
         if let (EstiloParpado::Pestanas, Some(corte), Some(contorno)) = (estilo, corte, lineas.first()) {
-            // Donde el óvalo del ojo corta la altura del corte, un rabillo corto hacia fuera.
+            // Donde el óvalo del ojo corta la altura del corte, un rabillo recto hacia fuera.
             let (cx, cy, rx, ry) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0, (x1 - x0) / 2.0, (y1 - y0) / 2.0);
             let dx = rx * (1.0 - ((corte - cy) / ry.max(1e-3)).powi(2)).max(0.0).sqrt();
             let rabillos: Vec<Subtrazo> = [-1.0f32, 1.0]
                 .iter()
-                .map(|&lado| Subtrazo { puntos: vec![(cx + lado * dx, corte), (cx + lado * (dx + rx * 0.3), corte - ry * 0.06)], cerrado: false })
+                .map(|&lado| Subtrazo { puntos: vec![(cx + lado * dx, corte), (cx + lado * (dx + rx * 0.3), corte)], cerrado: false })
                 .collect();
             capas.pinturas.push((self.color(contorno.color), self.subtrazos(&rabillos, contorno.pintura, alfa, colocar)));
         }
