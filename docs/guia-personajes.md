@@ -520,9 +520,10 @@ Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de
 - **`parpado`** (opcional): párpados que dibuja el motor. Con un número (`"parpado": 0.4`) tapan
   ese tanto de cada ojo por arriba, del color del cuerpo, con una línea del color y el grosor del
   contorno del ojo, y el personaje parpadea bajándolos. Con un objeto se elige también su estilo:
-  `"parpado": { "cierre": 0.4, "estilo": "abierto" }`. `"cerrado"` (por defecto) deja ver el
-  contorno del ojo entero; `"abierto"` solo por debajo de la línea del párpado, y el ojo queda
-  abierto por arriba.
+  `"parpado": { "cierre": 0.4, "estilo": "cortado" }`. `"cerrado"` (por defecto) deja ver el
+  contorno del ojo entero; `"cortado"`, solo por debajo de la línea del párpado, y el ojo queda
+  cortado por arriba; `"pestanas"`, por los lados hasta cerca de lo alto del ojo, abierto solo
+  arriba, con un rabillo hacia fuera en cada extremo.
 - **`expresiones`** (opcional): las expresiones que el usuario puede elegir en la configuración,
   en su orden. Cada una dice qué capas cambia por qué piezas del dibujo (dibujadas en su sitio,
   fuera de cualquier capa) y, si quiere, cuánto cierran los párpados:

@@ -406,8 +406,11 @@ pub enum EstiloParpado {
     #[default]
     Cerrado,
     /// El contorno del ojo solo se ve por debajo de la línea del párpado: por encima, el
-    /// párpado lo tapa y el ojo queda abierto por arriba.
-    Abierto,
+    /// párpado lo tapa y el ojo queda cortado por arriba.
+    Cortado,
+    /// El contorno del ojo sube por los lados por encima del párpado, abierto solo en lo alto, y
+    /// cada extremo acaba en un rabillo hacia fuera.
+    Pestanas,
 }
 
 /// Una expresión: qué capas cambian por qué piezas del dibujo, y sus párpados.
@@ -1108,10 +1111,10 @@ mod tests {
         assert!(Arc::ptr_eq(&figura.con_expresion("Normal"), &figura));
 
         // Los párpados también pueden llevar su estilo.
-        let abierto = json.replace(r#""parpado": 0.3,"#, r#""parpado": {"cierre": 0.3, "estilo": "abierto"},"#);
-        let abierto = Figura::desde("x".into(), Some(&abierto), Some(svg), &sin_archivos).unwrap();
-        assert_eq!((abierto.parpado, abierto.estilo_parpado), (Some(0.3), EstiloParpado::Abierto));
-        assert_eq!(abierto.expresiones[1].1.estilo_parpado, EstiloParpado::Abierto, "las expresiones lo conservan");
+        let cortado = json.replace(r#""parpado": 0.3,"#, r#""parpado": {"cierre": 0.3, "estilo": "cortado"},"#);
+        let cortado = Figura::desde("x".into(), Some(&cortado), Some(svg), &sin_archivos).unwrap();
+        assert_eq!((cortado.parpado, cortado.estilo_parpado), (Some(0.3), EstiloParpado::Cortado));
+        assert_eq!(cortado.expresiones[1].1.estilo_parpado, EstiloParpado::Cortado, "las expresiones lo conservan");
 
         let mal = json.replace(r#""boca": "boca-triste""#, r#""nariz": "boca-triste""#);
         assert!(Figura::desde("x".into(), Some(&mal), Some(svg), &sin_archivos).unwrap_err().contains("nariz"));
