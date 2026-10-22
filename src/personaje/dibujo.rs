@@ -530,6 +530,12 @@ impl Pintor<'_> {
         let delante = match apendice.delante {
             Delante::Siempre | Delante::Revelar => 1.0,
             Delante::Nunca => 0.0,
+            // Lo fundido (una oreja) pasa de delante a detrás casi de golpe: a medias se vería
+            // transparente sobre la cabeza.
+            Delante::Girar if apendice.fundir => {
+                let k = ((cabeza.profundidad(ancla) + 0.27) / 0.04).clamp(0.0, 1.0);
+                k * k * (3.0 - 2.0 * k)
+            }
             Delante::Girar => al_frente(cabeza.profundidad(ancla)),
         };
         // Fundido, se suma al cuerpo y se pinta sobre él (también sobre su contorno) mientras se
