@@ -85,7 +85,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 - **Pupilas que siguen al cursor:** dentro del grupo del ojo, dale a la pupila (o a un grupo con
   la pupila y su brillo) un `id` que empiece por `pupila` (`pupila`, `pupila-izquierda`…). Además
   de girar la cabeza, se mueve dentro del ojo hacia donde mira, por el sitio que le deja el resto
-  del ojo. Va en su orden dentro del grupo: lo que esté después (un párpado) la tapa.
+  del ojo. Va en su orden dentro del grupo: lo que esté después (un párpado) la tapa. Para limitar
+  por dónde se mueve (que no se meta bajo el párpado), dibuja un rectángulo sin relleno con id
+  `ancla-pupila` (y `ancla-pupila-izquierda` si hay `ojo-izquierdo`): es la zona por la que puede
+  ir el centro de la pupila, y puede ser asimétrica (por ejemplo, empezar justo bajo el párpado).
 - **Ojos con párpado, pestañas o varias piezas:** ponles siempre `ojo-alegre`; sin él, el motor
   recorta el ojo en arco al estar contento y solo queda bien con ojos rellenos de una pieza.
 - **Semitransparente:** `fill-opacity` funciona (brillos, sombras); y `fill-rule="evenodd"` hace

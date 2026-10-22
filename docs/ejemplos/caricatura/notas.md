@@ -19,8 +19,8 @@ hace que se parezca; una cabeza redonda lo convierte en otro.
   uniceja, en cambio, va en un solo elemento: su centro está en medio y siempre se ve.
 - `ojo` con párpado, en este orden dentro del grupo: el blanco, la pupila (`id="pupila"`: se mueve
   dentro del ojo hacia donde mira) y encima el párpado, un trozo del color de la piel que tapa la
-  parte de arriba (un arco `A` cerrado con `Z`); así, al mirar arriba, la pupila se esconde bajo
-  él. Con párpado **hace falta `ojo-alegre`**: sin él, el motor recorta el ojo en arco y se ve raro.
+  parte de arriba (un arco `A` cerrado con `Z`). El rectángulo `ancla-pupila` limita por dónde va
+  el centro de la pupila: no sube del párpado, así que al mirar arriba se queda justo debajo. Con párpado **hace falta `ojo-alegre`**: sin él, el motor recorta el ojo en arco y se ve raro.
 - `nariz` y `bigote`: pintados, un solo elemento centrado cada uno, para que no desaparezcan al
   girar. Van antes de la `boca` para que la boca quede encima.
 

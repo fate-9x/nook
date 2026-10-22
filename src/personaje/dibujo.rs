@@ -424,9 +424,15 @@ impl Pintor<'_> {
             };
             let (kx, ky) = (ancho / OJO_ANCHO, alto / OJO_ALTO);
             // `bajar` (unidades de radio, ya estirado) es para el recorte del arco; las pupilas se
-            // apartan además hacia donde mira, después del reflejo (las dos miran al mismo lado).
+            // apartan además hacia donde mira, después del reflejo (las dos miran al mismo lado; en
+            // el ojo reflejado, su recorrido a cada lado también se cambia de lado).
             let colocar = |ensanchar: f32, bajar: f32, reflejo: f32, forma: &Forma| {
-                let (px, py) = forma.pupila.map_or((0.0, 0.0), |(rx, ry)| (pupila.0 * rx * kx, pupila.1 * ry * ky));
+                let (px, py) = forma.pupila.map_or((0.0, 0.0), |[izquierda, arriba, derecha, abajo]| {
+                    let (izquierda, derecha) = if reflejo < 0.0 { (derecha, izquierda) } else { (izquierda, derecha) };
+                    let x = pupila.0 * if pupila.0 < 0.0 { izquierda } else { derecha };
+                    let y = pupila.1 * if pupila.1 < 0.0 { arriba } else { abajo };
+                    (x * kx, y * ky)
+                });
                 move |(x, y): Punto| {
                     let (x, y) = (x * reflejo * kx * ensanchar + px, y * ky + bajar + py);
                     (a * x + c * y + e, b * x + d * y + f)

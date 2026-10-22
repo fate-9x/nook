@@ -59,8 +59,9 @@ pub struct Forma {
     pub alfa: f32,
     pub centro: Punto,
     /// En los ojos, si es una pupila (su nombre o el de un grupo que la contiene empieza por
-    /// «pupila»): cuánto puede moverse dentro del ojo hacia cada lado (x, y), en unidades de radio.
-    pub pupila: Option<Punto>,
+    /// «pupila»): cuánto puede moverse dentro del ojo hacia la izquierda, arriba, la derecha y
+    /// abajo, en unidades de radio.
+    pub pupila: Option<[f32; 4]>,
 }
 
 /// Cuánto del sitio libre dentro del ojo recorre una pupila: no llega a tocar el borde.
@@ -579,7 +580,7 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                         Pintura::Linea { grosor, extremo, union } => Pintura::Linea { grosor: grosor / unidad, extremo, union },
                         relleno => relleno,
                     };
-                    let pupila = e.nombres.iter().any(|n| n.starts_with("pupila")).then_some((0.0, 0.0));
+                    let pupila = e.nombres.iter().any(|n| n.starts_with("pupila")).then_some([0.0; 4]);
                     Forma { subtrazos, pintura, color: e.color, alfa: e.alfa, centro, pupila }
                 })
                 .collect()
@@ -658,16 +659,27 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                 (TipoCapa::Cabeza(apendice), (ax, ay))
             }
         };
-        // Las pupilas de un ojo se mueven por el sitio que les deja el resto del ojo.
+        // Las pupilas de un ojo se mueven por donde marque su ancla (`ancla-pupila`, o
+        // `ancla-pupila-izquierda` en el ojo izquierdo: la zona por la que va su centro) o, sin
+        // ella, por el sitio que les deja el resto del ojo.
         let mut formas = formas;
         if matches!(tipo, TipoCapa::Ojo | TipoCapa::OjoIzquierdo) {
             let caja_de = |fs: &mut dyn Iterator<Item = &Forma>| caja(fs.flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos)));
-            if let Some((o0, o1)) = caja_de(&mut formas.iter().filter(|f| f.pupila.is_none())) {
-                for f in formas.iter_mut().filter(|f| f.pupila.is_some()) {
-                    let (p0, p1) = caja_de(&mut std::iter::once(&*f)).unwrap_or_default();
-                    let libre = |ojo: f32, pupila: f32| ((ojo - pupila) / 2.0 * RECORRIDO_PUPILA).max(0.0);
-                    f.pupila = Some((libre(o1.0 - o0.0, p1.0 - p0.0), libre(o1.1 - o0.1, p1.1 - p0.1)));
-                }
+            let zona = if tipo == TipoCapa::Ojo { "ancla-pupila" } else { "ancla-pupila-izquierda" };
+            let zona = anclas.get(zona).map(|&(z0, z1)| (a_unidades(z0), a_unidades(z1)));
+            let ojo = caja_de(&mut formas.iter().filter(|f| f.pupila.is_none()));
+            for f in formas.iter_mut().filter(|f| f.pupila.is_some()) {
+                let (p0, p1) = caja_de(&mut std::iter::once(&*f)).unwrap_or_default();
+                let (cx, cy) = centro_de((p0, p1));
+                f.pupila = match (zona, ojo) {
+                    (Some((z0, z1)), _) => Some([cx - z0.0, cy - z0.1, z1.0 - cx, z1.1 - cy].map(|v| v.max(0.0))),
+                    (None, Some((o0, o1))) => {
+                        let libre = |ojo: f32, pupila: f32| ((ojo - pupila) / 2.0 * RECORRIDO_PUPILA).max(0.0);
+                        let (rx, ry) = (libre(o1.0 - o0.0, p1.0 - p0.0), libre(o1.1 - o0.1, p1.1 - p0.1));
+                        Some([rx, ry, rx, ry])
+                    }
+                    (None, None) => Some([0.0; 4]),
+                };
             }
         }
         let formas: Vec<Forma> = formas
@@ -889,12 +901,21 @@ mod tests {
         </svg>"##;
         let figura = Figura::desde("x".into(), None, Some(svg), &sin_archivos).unwrap();
         let ojo = figura.capas().iter().find(|c| c.tipo == TipoCapa::Ojo).unwrap();
-        let pupilas: Vec<Punto> = ojo.formas.iter().filter_map(|f| f.pupila).collect();
+        let pupilas: Vec<[f32; 4]> = ojo.formas.iter().filter_map(|f| f.pupila).collect();
         assert_eq!(pupilas.len(), 2, "la pupila y su brillo");
         // Con el ojo de 16 y la pupila de 4, en unidades de un radio de 40: (16 - 4) / 2 · 0,6 / 40.
         let esperado = 12.0 / 2.0 * RECORRIDO_PUPILA / 40.0;
-        assert!((pupilas[0].0 - esperado).abs() < 0.01 && (pupilas[0].1 - esperado).abs() < 0.01, "{pupilas:?}");
+        assert!(pupilas[0].iter().all(|v| (v - esperado).abs() < 0.01), "{pupilas:?}");
         assert!(ojo.formas[0].pupila.is_none(), "el blanco del ojo no se mueve");
+
+        // Con su ancla, solo por esa zona: aquí, de 4 a la izquierda a 2 a la derecha, y nada hacia
+        // arriba (un párpado) pero 3 hacia abajo.
+        let svg = svg.replace("</svg>", r##"<rect id="ancla-pupila" x="11" y="0" width="6" height="3" fill="none"/></svg>"##);
+        let figura = Figura::desde("x".into(), None, Some(&svg), &sin_archivos).unwrap();
+        let ojo = figura.capas().iter().find(|c| c.tipo == TipoCapa::Ojo).unwrap();
+        let recorrido = ojo.formas[1].pupila.unwrap();
+        let esperado = [4.0, 0.0, 2.0, 3.0].map(|v| v / 40.0);
+        assert!(recorrido.iter().zip(esperado).all(|(a, b)| (a - b).abs() < 0.001), "{recorrido:?}");
     }
 
     #[test]

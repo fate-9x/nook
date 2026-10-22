@@ -484,6 +484,7 @@ ponen en la lista `capas`: con que existan en el dibujo vale.
 | `ancla-cuerpo` | El centro del cuerpo, si no quieres que sea el centro de su caja. Desde ahí se miden todas las distancias. |
 | `ancla-ojo` | El centro de los ojos (por defecto, el centro del dibujo del ojo derecho). Es donde se colocan las gafas y demás accesorios de los ojos. |
 | `ancla-boca` | El centro de la boca (por defecto, el centro del dibujo de la boca). |
+| `ancla-pupila`, `ancla-pupila-izquierda` | La zona (un rectángulo sin relleno) por la que puede ir el centro de las pupilas del ojo derecho y del izquierdo. Sin ella, se mueven por el sitio que les deja el resto del ojo; con ella, se puede impedir, por ejemplo, que suban bajo un párpado. |
 | `ancla-muelle` | La altura desde la que el pelo con `muelle` se mueve (por defecto, un poco por debajo del borde superior de la cabeza). |
 | `ancla-<capa>` | Dónde se pega a la cabeza una capa de tipo `cabeza` (por ejemplo, `ancla-oreja-izquierda` para la capa `oreja-izquierda`). Por defecto, abajo y en medio de lo que dibuja esa capa. |
 

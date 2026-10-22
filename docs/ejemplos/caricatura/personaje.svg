@@ -38,6 +38,8 @@
     <circle id="pupila" cx="11" cy="-4.5" r="1.8" fill="#2a211c"/>
     <path d="M 4.6 -7.5 A 7.5 7.5 0 0 1 19.4 -7.5 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
   </g>
+  <!-- Por dónde puede ir el centro de la pupila: no sube del párpado. -->
+  <rect id="ancla-pupila" x="7" y="-5.7" width="10" height="5.2" fill="none"/>
   <path id="ojo-alegre" d="M 5 -5 Q 12 -1 19 -5" fill="none" stroke="#2a211c" stroke-width="2" stroke-linecap="round"/>
   <!-- Nariz y bigote: un solo elemento centrado cada uno, así siguen visibles al girar. -->
   <path id="nariz" d="M -3 -4 C -3 4 -10 8 -8 14 C -6 19 6 19 8 14 C 10 8 3 4 3 -4" fill="#e9bfa0" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
