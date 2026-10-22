@@ -430,6 +430,8 @@ fn tipo_texto(tipo: &TipoCapa) -> &'static str {
         TipoCapa::Franja { .. } => "franja",
         TipoCapa::Ojo => "ojo",
         TipoCapa::OjoIzquierdo => "ojo-izquierdo",
+        TipoCapa::Ceja => "ceja",
+        TipoCapa::CejaIzquierda => "ceja-izquierda",
         TipoCapa::OjoAlegre => "ojo-alegre",
         TipoCapa::Boca => "boca",
         TipoCapa::Cabeza(_) => "cabeza",

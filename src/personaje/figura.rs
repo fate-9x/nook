@@ -123,6 +123,10 @@ pub enum TipoCapa {
     Ojo,
     OjoIzquierdo,
     OjoAlegre,
+    /// La ceja derecha, dibujada en su sitio: se mueve con el ojo (y la izquierda es su reflejo,
+    /// salvo que haya `CejaIzquierda`), así que al mirar arriba o abajo no se separa de él.
+    Ceja,
+    CejaIzquierda,
     Boca,
     Cabeza(Apendice),
 }
@@ -456,6 +460,8 @@ enum Tipo {
     Ojo,
     OjoIzquierdo,
     OjoAlegre,
+    Ceja,
+    CejaIzquierda,
     Boca,
     Cabeza,
     /// Una oreja: sale de la cabeza por un lado, fundida con ella (ver `TipoCapa::Cabeza`).
@@ -527,6 +533,8 @@ impl DescripcionCapa {
             "cuerpo" => Tipo::Cuerpo,
             "ojo" => Tipo::Ojo,
             "ojo-izquierdo" => Tipo::OjoIzquierdo,
+            "ceja" => Tipo::Ceja,
+            "ceja-izquierda" => Tipo::CejaIzquierda,
             "ojo-alegre" => Tipo::OjoAlegre,
             "boca" => Tipo::Boca,
             "oreja" | "oreja-izquierda" => Tipo::Oreja,
@@ -536,7 +544,7 @@ impl DescripcionCapa {
 }
 
 /// Capas que se buscan en el dibujo si personaje.json no dice cuáles hay.
-const CAPAS_POR_DEFECTO: [&str; 8] = ["cuerpo", "oreja", "oreja-izquierda", "pintado", "ojo", "ojo-izquierdo", "ojo-alegre", "boca"];
+const CAPAS_POR_DEFECTO: [&str; 10] = ["cuerpo", "oreja", "oreja-izquierda", "pintado", "ceja", "ceja-izquierda", "ojo", "ojo-izquierdo", "ojo-alegre", "boca"];
 
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
@@ -741,6 +749,8 @@ fn de_svg(
             Tipo::Ojo => (TipoCapa::Ojo, ojo),
             Tipo::OjoAlegre => (TipoCapa::OjoAlegre, ojo),
             Tipo::OjoIzquierdo => (TipoCapa::OjoIzquierdo, (-ojo.0, ojo.1)),
+            Tipo::Ceja => (TipoCapa::Ceja, ojo),
+            Tipo::CejaIzquierda => (TipoCapa::CejaIzquierda, (-ojo.0, ojo.1)),
             Tipo::Boca => (TipoCapa::Boca, boca),
             Tipo::Cabeza | Tipo::Oreja => {
                 let oreja = d.tipo() == Tipo::Oreja;
@@ -1153,6 +1163,22 @@ mod tests {
         let recorrido = ojo.formas[1].pupila.unwrap();
         let esperado = [4.0, 0.0, 2.0, 3.0].map(|v| v / 40.0);
         assert!(recorrido.iter().zip(esperado).all(|(a, b)| (a - b).abs() < 0.001), "{recorrido:?}");
+    }
+
+    #[test]
+    fn la_ceja_va_con_el_ojo() {
+        // Sin personaje.json: la ceja se reconoce por su nombre y va respecto al ojo.
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100">
+            <circle id="cuerpo" r="40" fill="#abcdef"/>
+            <circle id="ojo" cx="15" cy="0" r="5"/>
+            <path id="ceja" d="M 9 -10 L 21 -10" stroke="#000" fill="none"/>
+        </svg>"##;
+        let figura = Figura::desde("x".into(), None, Some(svg), &sin_archivos).unwrap();
+        let ceja = figura.capas().iter().find(|c| c.id == "ceja").unwrap();
+        assert_eq!(ceja.tipo, TipoCapa::Ceja);
+        // Diez por encima del centro del ojo, en unidades de un radio de 40.
+        let (x, y) = ceja.formas[0].centro;
+        assert!(x.abs() < 1e-3 && (y + 10.0 / 40.0).abs() < 1e-3, "{:?}", ceja.formas[0].centro);
     }
 
     #[test]

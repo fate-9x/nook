@@ -396,6 +396,7 @@ impl Pintor<'_> {
                 }
             }
             TipoCapa::Ojo if !tapado.ojos => self.ojos(capas),
+            TipoCapa::Ceja => self.cejas(capas),
             TipoCapa::Boca if !tapado.boca => {
                 if let Some(boca) = self.cuadro.boca {
                     let [a, b, c, d, e, f] = boca.matriz;
@@ -475,6 +476,34 @@ impl Pintor<'_> {
                     let cubre = self.forma(forma, alfa * arco, &colocar(1.0, 0.0, lado.signum(), forma));
                     capas.pinturas.push((self.color(forma.color), cubre));
                 }
+            }
+        }
+    }
+
+    /// Las cejas: con cada ojo, colocadas como él (también al sorprenderse), pero sin parpadear
+    /// ni volverse arcos; la izquierda es el reflejo de la derecha si no hay `CejaIzquierda`.
+    fn cejas(&self, capas: &mut Capas) {
+        let de = |tipo: TipoCapa| self.figura.capas().iter().find(|c| c.tipo == tipo);
+        let (Some(derecha), izquierda) = (de(TipoCapa::Ceja), de(TipoCapa::CejaIzquierda)) else { return };
+        // Medio alto del ojo: lo que sube su borde de arriba al abrirse de sorpresa, por cada vez
+        // que crece.
+        let medio_ojo = de(TipoCapa::Ojo).map_or(0.0, |o| (o.caja.1.1 - o.caja.0.1) / 2.0);
+        for ojo in &self.cuadro.ojos {
+            let Ojo { lado, ancho, alto, matriz: [a, b, c, d, e, f], alfa, .. } = *ojo;
+            let (ceja, reflejo) = match izquierda {
+                Some(izquierda) if lado < 0.0 => (izquierda, 1.0),
+                _ => (derecha, lado.signum()),
+            };
+            let (kx, ky) = (ancho / OJO_ANCHO, alto / OJO_ALTO);
+            // Al abrirse el ojo de sorpresa sube la mitad que su borde de arriba (le sobra sitio
+            // hasta él), y no se estira con el ojo.
+            let subir = (ky - 1.0).max(0.0) * medio_ojo * 0.5;
+            let colocar = |(x, y): Punto| {
+                let (x, y) = (x * reflejo * kx.min(1.0), y - subir);
+                (a * x + c * y + e, b * x + d * y + f)
+            };
+            for forma in &ceja.formas {
+                capas.pinturas.push((self.color(forma.color), self.forma(forma, alfa, &colocar)));
             }
         }
     }
