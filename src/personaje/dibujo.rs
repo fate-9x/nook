@@ -423,6 +423,15 @@ impl Pintor<'_> {
                 _ => (derecho, lado.signum()),
             };
             let (kx, ky) = (ancho / OJO_ANCHO, alto / OJO_ALTO);
+            // Con párpados, dónde queda su borde en reposo (el de la expresión puesta, sin el
+            // parpadeo, más medio grosor de su línea) y el fondo del ojo: las pupilas no suben de él.
+            let alto_de = |f: &Forma| f.subtrazos.iter().flat_map(|s| &s.puntos).fold((f32::MAX, f32::MIN), |(a, b), &(_, y)| (a.min(y), b.max(y)));
+            let (y0, y1) = normal.formas.iter().filter(|f| f.pupila.is_none()).map(alto_de).fold((f32::MAX, f32::MIN), |(a, b), (c, d)| (a.min(c), b.max(d)));
+            let linea = normal.formas.iter().find_map(|f| match (f.pupila, f.pintura) {
+                (None, Pintura::Linea { grosor, .. }) => Some(grosor / 2.0),
+                _ => None,
+            });
+            let parpado_en_reposo = self.figura.parpado.filter(|_| y0 < y1).map(|cierre| (y0 + (y1 - y0) * cierre + linea.unwrap_or(0.0), y1));
             // `bajar` (unidades de radio, ya estirado) es para el recorte del arco; las pupilas se
             // apartan además hacia donde mira, después del reflejo (las dos miran al mismo lado; en
             // el ojo reflejado, su recorrido a cada lado también se cambia de lado).
@@ -430,7 +439,11 @@ impl Pintor<'_> {
                 let (px, py) = forma.pupila.map_or((0.0, 0.0), |[izquierda, arriba, derecha, abajo]| {
                     let (izquierda, derecha) = if reflejo < 0.0 { (derecha, izquierda) } else { (izquierda, derecha) };
                     let x = pupila.0 * if pupila.0 < 0.0 { izquierda } else { derecha };
-                    let y = pupila.1 * if pupila.1 < 0.0 { arriba } else { abajo };
+                    let mut y = pupila.1 * if pupila.1 < 0.0 { arriba } else { abajo };
+                    if let Some((borde, fondo)) = parpado_en_reposo {
+                        let (encima, debajo) = alto_de(forma);
+                        y = y.max(borde - encima).min(fondo - debajo);
+                    }
                     (x * kx, y * ky)
                 });
                 move |(x, y): Punto| {
@@ -878,6 +891,29 @@ mod tests {
         assert!(de_color(35.0, [0, 0, 0]) > 20, "no se ve el borde");
         assert!(a_la_derecha > de_frente * 4 + 200, "de frente {de_frente}, a la derecha {a_la_derecha}");
         assert!(a_la_izquierda <= de_frente, "a la izquierda {a_la_izquierda}, de frente {de_frente}");
+    }
+
+    #[test]
+    fn con_el_parpado_bajado_la_pupila_no_se_esconde_al_mirar_arriba() {
+        // Un párpado que tapa el 60 % del ojo: la pupila, en el centro, quedaría debajo.
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120">
+            <circle id="cuerpo" r="40" fill="#e0d0c0"/>
+            <g id="ojo"><ellipse cx="15" cy="-4" rx="12" ry="10" fill="#ffffff" stroke="#000000" stroke-width="2"/><circle id="pupila" cx="15" cy="-4" r="1.6" fill="#f01010"/></g>
+        </svg>"##;
+        let json = r#"{"parpado": 0.6, "capas": [{"id": "cuerpo"}, {"id": "ojo"}]}"#;
+        let figura = std::sync::Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err("no".into())).unwrap());
+        let mut motor = Motor::new();
+        motor.poner_figura(figura);
+        motor.poner_mirada(Mirar { guinada: 0.0, cabeceo: 26.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
+        // En algún momento sin parpadear se ven sus píxeles rojos.
+        let rojos = (1..20)
+            .map(|i| {
+                let imagen = dibujar(&motor.muestrear(i as f64 * 0.25), 128, &aspecto([1, 2, 3], [1, 2, 3]));
+                pixeles(&imagen).iter().filter(|p| p.a == 255 && p.r > 200 && p.g < 60 && p.b < 60).count()
+            })
+            .max()
+            .unwrap();
+        assert!(rojos > 2, "la pupila queda bajo el párpado ({rojos} píxeles)");
     }
 
     #[test]
