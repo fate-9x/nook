@@ -17,9 +17,10 @@ hace que se parezca; una cabeza redonda lo convierte en otro.
 - `cejas`: dos elementos sueltos dentro del grupo. Lo pintado se desvanece por **elementos**, según
   dónde quede el centro de cada uno: así cada ceja desaparece sola al pasar al otro lado. Una
   uniceja, en cambio, va en un solo elemento: su centro está en medio y siempre se ve.
-- `ojo` con párpado: el blanco, encima un trozo del color de la piel que tapa la parte de arriba
-  (un arco `A` cerrado con `Z`) y la pupila. Con párpado **hace falta `ojo-alegre`**: sin él, el
-  motor recorta el ojo en arco y se ve raro.
+- `ojo` con párpado, en este orden dentro del grupo: el blanco, la pupila (`id="pupila"`: se mueve
+  dentro del ojo hacia donde mira) y encima el párpado, un trozo del color de la piel que tapa la
+  parte de arriba (un arco `A` cerrado con `Z`); así, al mirar arriba, la pupila se esconde bajo
+  él. Con párpado **hace falta `ojo-alegre`**: sin él, el motor recorta el ojo en arco y se ve raro.
 - `nariz` y `bigote`: pintados, un solo elemento centrado cada uno, para que no desaparezcan al
   girar. Van antes de la `boca` para que la boca quede encima.
 

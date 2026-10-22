@@ -466,6 +466,7 @@ Estos nombres se reconocen solos, sin necesidad de `personaje.json`:
 | `ojo` | El ojo **derecho** (el de la derecha según lo miras), en su sitio. El izquierdo es su reflejo, salvo que haya `ojo-izquierdo`. |
 | `ojo-izquierdo` | El ojo izquierdo, en su sitio, para cuando los ojos no son iguales. |
 | `ojo-alegre` | El ojo derecho **cuando está contento** (al hacer clic o con música); el izquierdo sale como el reflejo del alegre. Si no lo hay, un ojo relleno se recorta solo por abajo y queda un arco «∩». |
+| `pupila…` | Dentro del grupo de un ojo, lo que tenga un nombre que empiece por `pupila` (la pupila, o un grupo con ella y su brillo): además de girar con la cabeza, se mueve dentro del ojo hacia donde mira, por el sitio que le deja el resto del ojo. Lo que va después en el grupo (un párpado) la tapa. |
 | `boca` | La boca, en su sitio. |
 | `pintado` | Todo lo que va pintado en la cara (manchas, coloretes, pecas), si quieres que sea una sola capa. |
 

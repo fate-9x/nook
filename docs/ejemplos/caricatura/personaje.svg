@@ -32,11 +32,11 @@
     <path d="M 5 3 Q 12 7 19 3"/>
   </g>
   <!-- Ojo con párpado: el blanco, el párpado del color de la piel tapando la parte de arriba y la
-       pupila. Con párpado, el ojo contento necesita «ojo-alegre». -->
+       pupila («pupila»: se mueve dentro del ojo hacia donde mira). Con párpado, el ojo contento necesita «ojo-alegre». -->
   <g id="ojo">
     <circle cx="12" cy="-6" r="7.5" fill="#ffffff" stroke="#2a211c" stroke-width="1.8"/>
+    <circle id="pupila" cx="11" cy="-4.5" r="1.8" fill="#2a211c"/>
     <path d="M 4.6 -7.5 A 7.5 7.5 0 0 1 19.4 -7.5 Z" fill="#f1d3b8" stroke="#2a211c" stroke-width="1.8" stroke-linejoin="round"/>
-    <circle cx="11" cy="-4.5" r="1.8" fill="#2a211c"/>
   </g>
   <path id="ojo-alegre" d="M 5 -5 Q 12 -1 19 -5" fill="none" stroke="#2a211c" stroke-width="2" stroke-linecap="round"/>
   <!-- Nariz y bigote: un solo elemento centrado cada uno, así siguen visibles al girar. -->

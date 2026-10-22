@@ -400,6 +400,9 @@ fn resumen(figura: &Figura) -> String {
     } else {
         "\nEs de imágenes: mira siempre de frente y no tiene ojos ni boca que animar, pero salta, baila y rebota igual."
     });
+    if figura.capas().iter().any(|c| c.formas.iter().any(|f| f.pupila.is_some())) {
+        texto.push_str("\nSus pupilas se mueven dentro del ojo hacia donde mira.");
+    }
     if figura.muelle.is_some() {
         texto.push_str("\nTiene pelo con muelle.");
     }

@@ -58,7 +58,13 @@ pub struct Forma {
     pub color: [u8; 3],
     pub alfa: f32,
     pub centro: Punto,
+    /// En los ojos, si es una pupila (su nombre o el de un grupo que la contiene empieza por
+    /// «pupila»): cuánto puede moverse dentro del ojo hacia cada lado (x, y), en unidades de radio.
+    pub pupila: Option<Punto>,
 }
+
+/// Cuánto del sitio libre dentro del ojo recorre una pupila: no llega a tocar el borde.
+const RECORRIDO_PUPILA: f32 = 0.6;
 
 /// Hacia dónde mira lo que sale de la cabeza: con la cabeza (se inclina con ella y se acorta al
 /// mirar arriba o abajo, como un cartel) o con el cuerpo (solo se gira y se estira con él).
@@ -573,7 +579,8 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                         Pintura::Linea { grosor, extremo, union } => Pintura::Linea { grosor: grosor / unidad, extremo, union },
                         relleno => relleno,
                     };
-                    Forma { subtrazos, pintura, color: e.color, alfa: e.alfa, centro }
+                    let pupila = e.nombres.iter().any(|n| n.starts_with("pupila")).then_some((0.0, 0.0));
+                    Forma { subtrazos, pintura, color: e.color, alfa: e.alfa, centro, pupila }
                 })
                 .collect()
         })
@@ -651,6 +658,18 @@ fn de_svg(id: String, nombre: HashMap<String, String>, colores: Colores, capas: 
                 (TipoCapa::Cabeza(apendice), (ax, ay))
             }
         };
+        // Las pupilas de un ojo se mueven por el sitio que les deja el resto del ojo.
+        let mut formas = formas;
+        if matches!(tipo, TipoCapa::Ojo | TipoCapa::OjoIzquierdo) {
+            let caja_de = |fs: &mut dyn Iterator<Item = &Forma>| caja(fs.flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos)));
+            if let Some((o0, o1)) = caja_de(&mut formas.iter().filter(|f| f.pupila.is_none())) {
+                for f in formas.iter_mut().filter(|f| f.pupila.is_some()) {
+                    let (p0, p1) = caja_de(&mut std::iter::once(&*f)).unwrap_or_default();
+                    let libre = |ojo: f32, pupila: f32| ((ojo - pupila) / 2.0 * RECORRIDO_PUPILA).max(0.0);
+                    f.pupila = Some((libre(o1.0 - o0.0, p1.0 - p0.0), libre(o1.1 - o0.1, p1.1 - p0.1)));
+                }
+            }
+        }
         let formas: Vec<Forma> = formas
             .into_iter()
             .map(|mut f| {
@@ -860,6 +879,22 @@ mod tests {
         let ojo = &figura.capas()[1].formas[0];
         assert!(ojo.centro.0.abs() < 1e-3 && ojo.centro.1.abs() < 1e-3);
         assert_eq!(figura.nombre["es"], "gato");
+    }
+
+    #[test]
+    fn las_pupilas_tienen_su_recorrido_dentro_del_ojo() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-50 -50 100 100">
+            <circle id="cuerpo" r="40" fill="#abcdef"/>
+            <g id="ojo"><circle cx="15" cy="0" r="8" fill="#fff"/><g id="pupila"><circle cx="15" cy="0" r="2" fill="#000"/><circle cx="16" cy="-1" r="0.5" fill="#fff"/></g></g>
+        </svg>"##;
+        let figura = Figura::desde("x".into(), None, Some(svg), &sin_archivos).unwrap();
+        let ojo = figura.capas().iter().find(|c| c.tipo == TipoCapa::Ojo).unwrap();
+        let pupilas: Vec<Punto> = ojo.formas.iter().filter_map(|f| f.pupila).collect();
+        assert_eq!(pupilas.len(), 2, "la pupila y su brillo");
+        // Con el ojo de 16 y la pupila de 4, en unidades de un radio de 40: (16 - 4) / 2 · 0,6 / 40.
+        let esperado = 12.0 / 2.0 * RECORRIDO_PUPILA / 40.0;
+        assert!((pupilas[0].0 - esperado).abs() < 0.01 && (pupilas[0].1 - esperado).abs() < 0.01, "{pupilas:?}");
+        assert!(ojo.formas[0].pupila.is_none(), "el blanco del ojo no se mueve");
     }
 
     #[test]

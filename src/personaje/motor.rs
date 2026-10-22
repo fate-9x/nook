@@ -40,6 +40,10 @@ fn angulos(figura: &Figura, (x, y): Punto) -> (f32, f32) {
 const MIRADA_REPOSO: Mirada = Mirada { guinada: 0.0, cabeceo: 0.0, alabeo: 0.0 };
 /// Hacia dónde mira la pastilla de aviso (arriba a la derecha) y dónde va sobre el contorno.
 const MIRADA_PASTILLA: Mirada = Mirada { guinada: 17.0, cabeceo: 15.0, alabeo: 0.0 };
+/// Grados de mirada (a un lado y hacia arriba o abajo) con los que las pupilas llegan al borde de
+/// lo que pueden moverse dentro del ojo: lo que gira la cabeza como mucho.
+const PUPILA_GUINADA: f32 = 35.0;
+const PUPILA_CABECEO: f32 = 26.0;
 const ANGULO_PASTILLA: f32 = -0.6; // radianes, unos 34° por encima de la horizontal (lejos del rulo)
 const RADIO_PASTILLA: f32 = 0.22;
 /// Hueco que la pastilla abre en el cuerpo alrededor de ella.
@@ -104,6 +108,9 @@ pub struct Ojo {
     pub matriz: [f32; 6],
     /// Opacidad: se desvanece al llegar al borde de la esfera.
     pub alfa: f32,
+    /// Hacia dónde miran sus pupilas dentro del ojo: de -1 a 1 en cada eje (x a la derecha, y
+    /// hacia abajo), hasta el borde de lo que pueden moverse.
+    pub pupila: Punto,
 }
 
 /// Boca lista para dibujar: `SONRISA` y `COLMILLO` transformados por `matriz` (como un ojo).
@@ -487,6 +494,7 @@ impl Motor {
                     arco: pose.ojo_arco,
                     matriz: sobre_cuerpo(&ojo, reposo, cara::aplastado(vida.parpado)),
                     alfa: alfa(&ojo),
+                    pupila: ((mirada.guinada / PUPILA_GUINADA).clamp(-1.0, 1.0), (-mirada.cabeceo / PUPILA_CABECEO).clamp(-1.0, 1.0)),
                 })
                 .collect();
             let (lateral, vertical) = angulos(&self.figura, medidas.boca);
@@ -576,6 +584,15 @@ mod tests {
         let izquierda = motor.muestrear(2.0);
         let centro = |c: &Cuadro| c.ojos.iter().map(|o| o.matriz[4]).sum::<f32>() / c.ojos.len() as f32;
         assert!(centro(&derecha) > 0.2 && centro(&izquierda) < -0.2);
+    }
+
+    #[test]
+    fn las_pupilas_miran_hacia_donde_mira() {
+        let mut motor = Motor::new();
+        motor.poner_mirada(seguir(35.0, 26.0), 0.0, 0.001);
+        assert!(motor.muestrear(1.0).ojos.iter().all(|o| o.pupila.0 > 0.9 && o.pupila.1 < -0.9));
+        motor.poner_mirada(seguir(-17.5, 0.0), 1.0, 0.001);
+        assert!(motor.muestrear(2.0).ojos.iter().all(|o| (o.pupila.0 + 0.5).abs() < 0.1 && o.pupila.1.abs() < 0.1));
     }
 
     #[test]

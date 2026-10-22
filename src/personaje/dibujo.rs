@@ -417,33 +417,35 @@ impl Pintor<'_> {
         let de = |tipo: TipoCapa| self.figura.capas().iter().find(|c| c.tipo == tipo);
         let (Some(derecho), izquierdo, alegre) = (de(TipoCapa::Ojo), de(TipoCapa::OjoIzquierdo), de(TipoCapa::OjoAlegre)) else { return };
         for ojo in &self.cuadro.ojos {
-            let Ojo { lado, ancho, alto, arco, matriz: [a, b, c, d, e, f], alfa } = *ojo;
+            let Ojo { lado, ancho, alto, arco, matriz: [a, b, c, d, e, f], alfa, pupila } = *ojo;
             let (normal, reflejo) = match izquierdo {
                 Some(izquierdo) if lado < 0.0 => (izquierdo, 1.0),
                 _ => (derecho, lado.signum()),
             };
             let (kx, ky) = (ancho / OJO_ANCHO, alto / OJO_ALTO);
-            // `bajar` (unidades de radio, ya estirado) es para el recorte del arco.
-            let colocar = |ensanchar: f32, bajar: f32, reflejo: f32| {
+            // `bajar` (unidades de radio, ya estirado) es para el recorte del arco; las pupilas se
+            // apartan además hacia donde mira, después del reflejo (las dos miran al mismo lado).
+            let colocar = |ensanchar: f32, bajar: f32, reflejo: f32, forma: &Forma| {
+                let (px, py) = forma.pupila.map_or((0.0, 0.0), |(rx, ry)| (pupila.0 * rx * kx, pupila.1 * ry * ky));
                 move |(x, y): Punto| {
-                    let (x, y) = (x * reflejo * kx * ensanchar, y * ky + bajar);
+                    let (x, y) = (x * reflejo * kx * ensanchar + px, y * ky + bajar + py);
                     (a * x + c * y + e, b * x + d * y + f)
                 }
             };
             let alegria = if alegre.is_some() { arco } else { 0.0 };
             for forma in &normal.formas {
-                let mut cubre = self.forma(forma, alfa * (1.0 - alegria), &colocar(1.0, 0.0, reflejo));
+                let mut cubre = self.forma(forma, alfa * (1.0 - alegria), &colocar(1.0, 0.0, reflejo, forma));
                 // Sin forma alegre, lo relleno se recorta con otra igual algo más ancha y más
                 // baja: queda solo la parte de arriba, «∩».
                 if alegre.is_none() && arco > 0.01 && matches!(forma.pintura, Pintura::Relleno { .. }) {
-                    let corte = self.subtrazos(&forma.subtrazos, forma.pintura, 1.0, &colocar(1.3, alto * (1.0 - 0.5 * arco), reflejo));
+                    let corte = self.subtrazos(&forma.subtrazos, forma.pintura, 1.0, &colocar(1.3, alto * (1.0 - 0.5 * arco), reflejo, forma));
                     cubre.iter_mut().zip(corte).for_each(|(v, q)| *v *= 1.0 - q.min(1.0));
                 }
                 capas.pinturas.push((self.color(forma.color), cubre));
             }
             if let Some(alegre) = alegre.filter(|_| arco > 0.01) {
                 for forma in &alegre.formas {
-                    let cubre = self.forma(forma, alfa * arco, &colocar(1.0, 0.0, lado.signum()));
+                    let cubre = self.forma(forma, alfa * arco, &colocar(1.0, 0.0, lado.signum(), forma));
                     capas.pinturas.push((self.color(forma.color), cubre));
                 }
             }
