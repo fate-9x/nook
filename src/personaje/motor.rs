@@ -222,6 +222,20 @@ impl Cabeza {
         (((px * c - py * s) * self.sx + self.dx, (px * s + py * c) * self.sy + self.dy), en(2) + fuera / ancho * frente[2])
     }
 
+    /// Un punto de algo que rodea la cabeza (el pelo), pegado a ella en `ancla`: `p` es su
+    /// posición respecto al ancla en reposo y `alcance`, hasta dónde llega a los lados desde el
+    /// centro de la cabeza (unidades de radio). Va sobre un cilindro vertical alrededor de la
+    /// cabeza, tan ancho como `alcance`, que por delante sale tanto como el ancla: al girar, lo de
+    /// en medio se mueve como el ancla y los lados apenas, así que lo del lado hacia el que gira
+    /// se estrecha (y acaba pasando por detrás) y lo del otro se ensancha. Devuelve el punto en la
+    /// pantalla y su profundidad (< 0, detrás del centro de la cabeza).
+    pub fn envuelto(&self, ancla: Vec3, alcance: f32, (x, y): Punto) -> (Punto, f32) {
+        let (x, y) = (ancla[0] + x, ancla[1] + y);
+        let u = (x / alcance.max(1e-3)).clamp(-1.0, 1.0);
+        let v = [x, y, ancla[2] * (1.0 - u * u).sqrt()];
+        (self.punto(v), self.profundidad(v))
+    }
+
     /// Un punto del contorno del cuerpo en reposo, en la pantalla: como `cuerpo`, pero con lo que
     /// la cara sale hacia delante a su altura (`Medidas::adelante`) llevado hacia donde mira. Sin
     /// `menton` es lo mismo que `cuerpo`; con él, al girar la cabeza la barbilla va hacia ese lado
@@ -709,6 +723,28 @@ mod tests {
         let girado = motor.muestrear(1.0);
         assert!(arranque_del_rulo(&girado).0 > arranque_del_rulo(&quieto).0 + 0.1);
         assert!(girado.boca.expect("boca").matriz[4] > 0.2);
+    }
+
+    #[test]
+    fn lo_que_envuelve_la_cabeza_se_estrecha_del_lado_al_que_gira() {
+        let cabeza = |guinada: f32| {
+            let mut motor = Motor::new();
+            motor.poner_mirada(seguir(guinada, 0.0), 0.0, 0.001);
+            motor.muestrear(1.0).cabeza
+        };
+        let ancla = [0.0, -0.5, 0.6];
+        // En reposo, como un cartel.
+        let quieta = cabeza(0.0);
+        for p in [(-1.2, 0.0), (0.0, 0.2), (0.7, -0.3)] {
+            let (a, b) = (quieta.envuelto(ancla, 1.2, p).0, quieta.cartel(ancla, p));
+            assert!((a.0 - b.0).abs() < 1e-4 && (a.1 - b.1).abs() < 1e-4, "{a:?} {b:?}");
+        }
+        // Mirando a la derecha, lo de la derecha se estrecha y su borde pasa por detrás.
+        let girada = cabeza(30.0);
+        let x = |px: f32| girada.envuelto(ancla, 1.2, (px, 0.0)).0 .0;
+        let (izquierda, derecha) = (x(0.0) - x(-1.2), x(1.2) - x(0.0));
+        assert!(derecha < izquierda * 0.75, "izquierda {izquierda}, derecha {derecha}");
+        assert!(girada.envuelto(ancla, 1.2, (1.2, 0.0)).1 < 0.0 && girada.envuelto(ancla, 1.2, (-1.2, 0.0)).1 > 0.0);
     }
 
     #[test]

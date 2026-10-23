@@ -80,12 +80,15 @@ pub struct Forma {
 const RECORRIDO_PUPILA: f32 = 0.6;
 
 /// Hacia dónde mira lo que sale de la cabeza: con la cabeza (se inclina con ella y se acorta al
-/// mirar arriba o abajo, como un cartel) o con el cuerpo (solo se gira y se estira con él).
+/// mirar arriba o abajo, como un cartel), con el cuerpo (solo se gira y se estira con él) o
+/// envolviéndola, como el pelo que la rodea (al girarla, lo de su lado se estrecha y pasa por
+/// detrás y lo del otro se ensancha; ver `Cabeza::envuelto`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Orientacion {
     Cabeza,
     Cuerpo,
+    Envolver,
 }
 
 /// Cuándo se ve delante del cuerpo lo que sale de la cabeza: siempre, nunca (solo detrás), según
@@ -800,8 +803,9 @@ fn de_svg(
                 if !oreja && d.profundidad.is_none() && ax.abs() > 0.5 * ancho {
                     avisos.push(format!("la capa «{}» engancha a un lado de la cabeza y no tiene profundidad: al mirar a otros lados se quedará pegada a la cara (pruébale una de 0 a -0.2)", d.id));
                 }
-                if c0.0 < -0.5 * ancho && c1.0 > 0.5 * ancho && !(d.detras && d.delante == Some(Delante::Nunca)) {
-                    avisos.push(format!("la capa «{}» tiene cosas a los dos lados de la cabeza: si son orejas o similares, sepárala en una capa por lado, cada una con su ancla, para que al girar se esconda la del otro lado; si es pelo que la rodea, pruébale «detras» y una profundidad pequeña", d.id));
+                let rodea = (d.detras && d.delante == Some(Delante::Nunca)) || d.orientacion == Some(Orientacion::Envolver);
+                if c0.0 < -0.5 * ancho && c1.0 > 0.5 * ancho && !rodea {
+                    avisos.push(format!("la capa «{}» tiene cosas a los dos lados de la cabeza: si son orejas o similares, sepárala en una capa por lado, cada una con su ancla, para que al girar se esconda la del otro lado; si es pelo que la rodea, pruébale «\"orientacion\": \"envolver\"» o, si va solo por detrás, «detras» y una profundidad pequeña", d.id));
                 }
                 // Su profundidad: la del punto de la cabeza (un elipsoide como el cuerpo) que
                 // queda delante de él.

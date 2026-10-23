@@ -149,6 +149,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   contra el borde), pon en el json `"giro": 22` (grados a cada lado; sin él, unos 35) y, si hace
   falta, `"cabeceo": 18` (arriba y abajo). Mira con `personaje__ver` y `guinada` a partir de qué
   ángulo falla. La cabeza se para ahí; las pupilas siguen hasta el borde del ojo.
+- **Pelo que gira con la cabeza:** a un pelo de tipo `cabeza` que la rodea y va delante (en punta,
+  alborotado), ponle `"orientacion": "envolver"`, `"detras": true` y una `"profundidad"` como la
+  de la cara (unos `0.6`): al girar, el lado hacia el que mira se estrecha y pasa por detrás de la
+  cabeza, y el otro se ensancha, en vez de moverse todo el pelo de una pieza.
 - **Barbilla que gira (caras de persona):** pon `"menton": 0.5` en el json (de 0 a 1, cuánto sale
   la barbilla hacia delante). Al girar la cabeza, la barbilla y la mandíbula se van hacia donde mira
   con la boca; sin él, el contorno se queda quieto y la boca se aparta de la barbilla. Para
