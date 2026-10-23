@@ -139,6 +139,9 @@ pub struct Capa {
     pub formas: Vec<Forma>,
     /// Si se mueve como el pelo, con un muelle (ver `Figura::muelle`).
     pub muelle: bool,
+    /// Hacia qué lado mira tal como está dibujada (1 a la derecha, -1 a la izquierda), si se
+    /// refleja al mirar la cabeza hacia el otro.
+    pub voltear: Option<f32>,
     /// Caja de sus formas: esquina de arriba a la izquierda y de abajo a la derecha.
     pub caja: (Punto, Punto),
 }
@@ -468,6 +471,14 @@ enum Tipo {
     Oreja,
 }
 
+/// Un lado, a la izquierda o a la derecha.
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum Lado {
+    Izquierda,
+    Derecha,
+}
+
 /// Hacia dónde se rellena una franja desde su borde.
 #[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -486,6 +497,9 @@ struct DescripcionCapa {
     tipo: Option<Tipo>,
     #[serde(default)]
     muelle: bool,
+    /// Hacia qué lado mira tal como está dibujada: al mirar la cabeza hacia el otro, se refleja.
+    #[serde(default)]
+    voltear: Option<Lado>,
     // Franja.
     #[serde(default)]
     hacia: Option<Hacia>,
@@ -516,6 +530,7 @@ impl DescripcionCapa {
             id: id.to_string(),
             tipo: None,
             muelle: false,
+            voltear: None,
             hacia: None,
             encima: false,
             recorte: None,
@@ -825,7 +840,8 @@ fn de_svg(
             })
             .collect();
         let caja = caja(formas.iter().flat_map(|f| f.subtrazos.iter().flat_map(|s| &s.puntos))).unwrap_or_default();
-        Capa { id: d.id.clone(), tipo, formas, muelle: d.muelle, caja }
+        let voltear = d.voltear.map(|lado| if lado == Lado::Derecha { 1.0 } else { -1.0 });
+        Capa { id: d.id.clone(), tipo, formas, muelle: d.muelle, voltear, caja }
     };
     let mut capas: Vec<Capa> = descripciones.iter().zip(formas).map(|(d, formas)| construir(d, formas, &mut avisos)).collect();
 
@@ -1163,6 +1179,16 @@ mod tests {
         let recorrido = ojo.formas[1].pupila.unwrap();
         let esperado = [4.0, 0.0, 2.0, 3.0].map(|v| v / 40.0);
         assert!(recorrido.iter().zip(esperado).all(|(a, b)| (a - b).abs() < 0.001), "{recorrido:?}");
+    }
+
+    #[test]
+    fn una_capa_puede_voltearse() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg"><circle id="cuerpo" r="40"/><path id="nariz" d="M 0 0 C 6 4 6 8 -2 8" stroke="#000" fill="none"/></svg>"##;
+        let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "nariz", "voltear": "derecha"}]}"#;
+        let figura = Figura::desde("x".into(), Some(json), Some(svg), &sin_archivos).unwrap();
+        assert_eq!(figura.capas()[1].voltear, Some(1.0));
+        let json = json.replace("derecha", "izquierda");
+        assert_eq!(Figura::desde("x".into(), Some(&json), Some(svg), &sin_archivos).unwrap().capas()[1].voltear, Some(-1.0));
     }
 
     #[test]

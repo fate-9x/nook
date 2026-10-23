@@ -597,6 +597,7 @@ tipo no hacen nada):
 | `"delante"` | `"siempre"` (por defecto), `"nunca"`, `"girar"` o `"revelar"` | `cabeza` | Cuándo se ve delante del cuerpo: `"siempre"`, nunca (solo detrás), `"girar"` (pasa delante al girar la cabeza hacia su lado, como una oreja, y se esconde al girar hacia el otro) o `"revelar"` (de frente solo se ve su mitad de arriba; al mirar el personaje hacia él, asoma poco a poco hasta verse entero, como el arándano del Limón). |
 | `"fundir"` | `true`/`false` | `cabeza` | Se suma a la silueta del cuerpo, como si fuera parte de él (el rulo de Nook es del mismo color y se funde con el cuerpo). |
 | `"tapable"` | `true` (por defecto)/`false` | `cabeza` | Si vale `false`, los accesorios de la cabeza no lo esconden (un gorro tapa el pelo, pero no las orejas de un gato con `"tapable": false`). |
+| `"voltear"` | `"derecha"` o `"izquierda"` | `pintado` | El lado hacia el que mira la pieza tal como está dibujada (una nariz de perfil, una sonrisa torcida). De frente y mirando hacia ese lado se ve tal cual; en cuanto la cabeza mira un poco hacia el otro, se refleja sobre su centro. |
 | `"profundidad"` | número | `cabeza` | Cuánto hacia delante (positivo) o hacia atrás (negativo) está su ancla, en radios del cuerpo: `0` es el plano del centro de la cabeza. Sin ella, el ancla queda en la superficie de la cara que hay delante de su punto, como pegada a la piel. |
 
 Ejemplo con todo:

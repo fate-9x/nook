@@ -78,6 +78,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   `"parpado": { "cierre": 0.4, "estilo": "cortado" }` el contorno del ojo solo se ve por debajo
   de la línea del párpado (el ojo queda cortado por arriba); con `"abierto"`, el contorno sube por
   los lados por encima del párpado y queda abierto solo en lo alto; por defecto, `"cerrado"`, se ve entero.
+- **Piezas que miran hacia un lado** (una nariz de perfil, un mechón, una sonrisa torcida): en su
+  capa, `"voltear": "derecha"` (o `"izquierda"`), el lado hacia el que mira tal como la dibujas.
+  De frente y mirando hacia ese lado se ve tal cual; en cuanto la cabeza mira un poco hacia el
+  otro, el motor la refleja sobre su centro. Solo en capas pintadas en la cara.
 - **Cejas:** dibuja solo la derecha con `id="ceja"` (y `ceja-izquierda` si son distintas): el motor
   la mueve con el ojo, así que al mirar arriba o abajo no se separa de él, y sube un poco al
   sorprenderse. Unas cejas pintadas en la cara, en cambio, se quedan atrás al mirar abajo.

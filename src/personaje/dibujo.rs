@@ -358,10 +358,14 @@ impl Pintor<'_> {
                 }
             }
             TipoCapa::Pintado => {
+                // Con `voltear`, al mirar hacia el otro lado se refleja sobre su centro.
+                let centro = (capa.caja.0.0 + capa.caja.1.0) / 2.0;
+                let reflejar = capa.voltear.is_some_and(|lado| cabeza.ejes.frente[0] * lado < -VOLTEAR);
+                let voltear = |(x, y): Punto| if reflejar { (2.0 * centro - x, y) } else { (x, y) };
                 for forma in &capa.formas {
-                    let visible = (cabeza.en_cara(forma.centro).1 / 0.12).clamp(0.0, 1.0);
+                    let visible = (cabeza.en_cara(voltear(forma.centro)).1 / 0.12).clamp(0.0, 1.0);
                     if visible > 0.0 {
-                        let cubre = self.forma(forma, visible, &|p| muelle(cabeza.en_cara(p).0));
+                        let cubre = self.forma(forma, visible, &|p| muelle(cabeza.en_cara(voltear(p)).0));
                         capas.pinturas.push((self.color(forma.color), cubre));
                     }
                 }
@@ -684,6 +688,10 @@ fn muestra(f: &Fotograma, x: f32, y: f32) -> [f32; 4] {
 
 /// Con párpados abiertos, a qué altura del ojo (desde arriba, 0–1) se corta su contorno.
 const ABIERTO: f32 = 0.18;
+
+/// Cuánto tiene que mirar la cabeza hacia un lado (seno del giro) para que lo que se voltea pase
+/// a mirar hacia ese lado: un poco, para que no cambie al mirar casi de frente.
+const VOLTEAR: f32 = 0.07;
 
 /// Lo que tapan los accesorios puestos.
 #[derive(Clone, Copy)]
