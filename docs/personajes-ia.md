@@ -149,6 +149,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   contra el borde), pon en el json `"giro": 22` (grados a cada lado; sin él, unos 35) y, si hace
   falta, `"cabeceo": 18` (arriba y abajo). Mira con `personaje__ver` y `guinada` a partir de qué
   ángulo falla. La cabeza se para ahí; las pupilas siguen hasta el borde del ojo.
+- **Barbilla que gira (caras de persona):** pon `"menton": 0.5` en el json (de 0 a 1, cuánto sale
+  la barbilla hacia delante). Al girar la cabeza, la barbilla y la mandíbula se van hacia donde mira
+  con la boca; sin él, el contorno se queda quieto y la boca se aparta de la barbilla. Para
+  mascotas redondas, no lo pongas.
 - **Nada pintado pegado al borde de arriba:** al mirar arriba se aplasta contra él y se ve como una
   mancha oscura.
 

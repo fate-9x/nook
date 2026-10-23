@@ -38,8 +38,9 @@ const MAX_LADO_FOTOGRAMA: u32 = 1024;
 const MAX_BYTES_FOTOGRAMA: usize = 8 * 1024 * 1024;
 
 /// Dónde están los rasgos de una figura con el personaje de frente y en reposo, en unidades de
-/// radio respecto al centro del cuerpo: el ojo derecho (el izquierdo es su reflejo), la boca, y
-/// cuánto mide el cuerpo hacia arriba, hacia abajo y hacia la derecha.
+/// radio respecto al centro del cuerpo: el ojo derecho (el izquierdo es su reflejo), la boca,
+/// cuánto mide el cuerpo hacia arriba, hacia abajo y hacia la derecha, y cuánto sale la barbilla
+/// hacia delante.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Medidas {
     pub ojo: Punto,
@@ -47,6 +48,17 @@ pub struct Medidas {
     pub arriba: f32,
     pub abajo: f32,
     pub ancho: f32,
+    pub menton: f32,
+}
+
+impl Medidas {
+    /// Cuánto sale la cara hacia delante a la altura `y` (unidades de radio): nada hasta los ojos
+    /// y, de ahí a la barbilla, cada vez más, hasta `menton`. Al girar, lo que sale se va hacia
+    /// donde mira: la barbilla gira con la cara (ver `Cabeza::contorno`).
+    pub fn adelante(&self, y: f32) -> f32 {
+        let s = ((y - self.ojo.1) / (self.abajo - self.ojo.1).max(1e-3)).clamp(0.0, 1.0);
+        self.menton * s * s
+    }
 }
 
 /// Una parte del dibujo ya en unidades de radio: sus trazos, cómo se pinta (el grosor de las
@@ -321,7 +333,8 @@ impl Figura {
         };
         let parpado = parpado.map(|p| p.clamp(0.0, 1.0));
         let giro = [descripcion.giro, descripcion.cabeceo].map(|g| g.map(|g| g.clamp(0.0, 90.0)));
-        de_svg(id, nombre, colores, descripcion.capas.as_deref(), (parpado, estilo_parpado), giro, &descripcion.expresiones, svg)
+        let menton = descripcion.menton.unwrap_or(0.0).clamp(0.0, 1.0);
+        de_svg(id, nombre, colores, descripcion.capas.as_deref(), (parpado, estilo_parpado), giro, menton, &descripcion.expresiones, svg)
     }
 
     /// La figura con la expresión `nombre` o, si no la tiene (o es la normal), ella misma.
@@ -389,6 +402,8 @@ struct Descripcion {
     /// Hasta cuántos grados gira la cabeza a cada lado, y hacia arriba o abajo.
     giro: Option<f32>,
     cabeceo: Option<f32>,
+    /// Cuánto sale la barbilla hacia delante, en radios del cuerpo (ver `Medidas::adelante`).
+    menton: Option<f32>,
     #[serde(deserialize_with = "en_orden")]
     expresiones: Vec<(String, DescripcionExpresion)>,
 }
@@ -615,6 +630,7 @@ fn de_svg(
     capas: Option<&[DescripcionCapa]>,
     (parpado, estilo_parpado): (Option<f32>, EstiloParpado),
     giro: [Option<f32>; 2],
+    menton: f32,
     expresiones: &[(String, DescripcionExpresion)],
     svg: &str,
 ) -> Result<Figura, String> {
@@ -733,7 +749,7 @@ fn de_svg(
     let boca = ancla("ancla-boca")
         .or_else(|| capa_de(Tipo::Boca).and_then(caja_de).map(centro_de))
         .unwrap_or((0.0, alto_abajo * 15.0 / 39.0));
-    let medidas = Medidas { ojo, boca, arriba: alto_arriba, abajo: alto_abajo, ancho };
+    let medidas = Medidas { ojo, boca, arriba: alto_arriba, abajo: alto_abajo, ancho, menton };
 
     // El dibujo cerca del límite de puntos, y los ojos muy pegados al borde de la cabeza (al
     // mirar de lado se aplastan contra él).
@@ -1010,6 +1026,7 @@ fn de_imagenes(
         arriba,
         abajo,
         ancho,
+        menton: 0.0,
     };
     let fps = d.fps.unwrap_or(8.0).clamp(0.5, 60.0);
     let imagenes = Imagenes { animaciones, fps, pixelado: d.pixelado, centro, unidad };

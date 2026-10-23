@@ -518,6 +518,12 @@ Nook: los ojos a un 27 % de la mitad del ancho del centro y la boca a un 38 % de
   `giro`, unos 35) y hacia arriba o abajo. Sirven cuando a partir de cierto ángulo algo se ve mal
   (el pelo se despega, un ojo se aplasta contra el borde): la cabeza se para ahí, y las pupilas que
   se mueven siguen mirando hasta el borde del ojo.
+- **`menton`** (opcional, de 0 a 1): cuánto sale la barbilla hacia delante, en radios del cuerpo.
+  Para caras con barbilla (personas, sobre todo de anime): la parte de abajo de la cara sale hacia
+  delante cada vez más desde los ojos hasta la barbilla, así que al girar la cabeza la barbilla y
+  la mandíbula se van hacia donde mira, con la boca, en vez de quedarse quietas. Al mirar arriba o
+  abajo, la barbilla sube o baja. Con un `0.5` la barbilla va con la boca en una cabeza alta; sin
+  él, el contorno del cuerpo no cambia al girar (lo que conviene a una mascota redonda).
 - **`parpado`** (opcional): párpados que dibuja el motor. Con un número (`"parpado": 0.4`) tapan
   ese tanto de cada ojo por arriba, del color del cuerpo, con una línea del color y el grosor del
   contorno del ojo, y el personaje parpadea bajándolos. Con un objeto se elige también su estilo:

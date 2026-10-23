@@ -2,6 +2,7 @@
   "nombre": "Profesor",
   "colores": {"aviso": "#e0455a"},
   "parpado": 0.4,
+  "menton": 0.4,
   "capas": [
     {"id": "pelo", "tipo": "cabeza", "detras": true, "delante": "nunca", "profundidad": -0.1, "muelle": true},
     {"id": "cuerpo"},

@@ -421,6 +421,9 @@ fn resumen(figura: &Figura) -> String {
     if figura.muelle.is_some() {
         texto.push_str("\nTiene pelo con muelle.");
     }
+    if m.menton > 0.0 {
+        texto.push_str(&format!("\nSu barbilla sale {:.2} hacia delante: al girar la cabeza, va hacia donde mira.", m.menton));
+    }
     texto
 }
 

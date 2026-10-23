@@ -323,7 +323,7 @@ impl Pintor<'_> {
         let cabeza = &self.cuadro.cabeza;
         let (cx, cy) = cabeza.punto([0.0; 3]);
         let mover = |p: Punto| {
-            let (x, y) = cabeza.cuerpo(p);
+            let (x, y) = cabeza.contorno(p);
             let q = (cx + (x - cx) * agrandar, cy + (y - cy) * agrandar);
             if muelle { self.con_muelle(q) } else { q }
         };
@@ -345,7 +345,7 @@ impl Pintor<'_> {
         match capa.tipo {
             TipoCapa::Cuerpo => {
                 for (i, forma) in capa.formas.iter().enumerate() {
-                    let cubre = self.forma(forma, 1.0, &|p| muelle(cabeza.cuerpo(p)));
+                    let cubre = self.forma(forma, 1.0, &|p| muelle(cabeza.contorno(p)));
                     for (t, &v) in capas.cuerpo.iter_mut().zip(&cubre) {
                         *t = t.max(v);
                     }
@@ -959,6 +959,24 @@ mod tests {
         assert!(de_color(35.0, [0, 0, 0]) > 20, "no se ve el borde");
         assert!(a_la_derecha > de_frente * 4 + 200, "de frente {de_frente}, a la derecha {a_la_derecha}");
         assert!(a_la_izquierda <= de_frente, "a la izquierda {a_la_izquierda}, de frente {de_frente}");
+    }
+
+    #[test]
+    fn con_menton_la_silueta_lleva_la_barbilla_hacia_donde_mira() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120"><ellipse id="cuerpo" rx="30" ry="45" fill="#e0d0c0"/></svg>"##;
+        // La x media de la fila más baja de la silueta, mirando a la derecha.
+        let barbilla = |json: &str| {
+            let figura = std::sync::Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err("no".into())).unwrap());
+            let mut motor = Motor::new();
+            motor.poner_figura(figura);
+            motor.poner_mirada(Mirar { guinada: 30.0, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
+            let p = pixeles(&dibujar(&motor.muestrear(1.0), 128, &aspecto([1, 2, 3], [1, 2, 3])));
+            let fila = (0..128).rev().find(|&y| (0..128).any(|x| p[y * 128 + x].a == 255)).unwrap();
+            let xs: Vec<usize> = (0..128).filter(|&x| p[fila * 128 + x].a == 255).collect();
+            xs.iter().sum::<usize>() as f32 / xs.len() as f32
+        };
+        let (sin, con) = (barbilla("{}"), barbilla(r#"{"menton": 0.5}"#));
+        assert!(con > sin + 4.0, "sin menton {sin}, con él {con}");
     }
 
     #[test]

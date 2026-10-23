@@ -203,19 +203,33 @@ impl Cabeza {
     /// cara es un elipsoide tan ancho y tan alto como el cuerpo: el punto se lleva a él, se gira
     /// con la cabeza y se vuelve a la pantalla. Con radios fijos (y no el del cuerpo en cada
     /// dirección, que cerca del centro de la cara cambia de golpe) lo que se pinta no se
-    /// deforma al girar. Devuelve el punto en la pantalla y su profundidad (> 0 mira hacia el
-    /// espectador; lo que pasa al otro lado de la cabeza baja de 0).
+    /// deforma al girar. Con `menton`, la cara sale además por delante del elipsoide hasta donde
+    /// diga `Medidas::adelante` (la barbilla), como el contorno (ver `contorno`). Devuelve el
+    /// punto en la pantalla y su profundidad (> 0 mira hacia el espectador; lo que pasa al otro
+    /// lado de la cabeza baja de 0).
     pub fn en_cara(&self, (x, y): Punto) -> (Punto, f32) {
-        let Medidas { ancho, abajo: alto, .. } = self.figura.medidas;
+        let medidas = self.figura.medidas;
+        let Medidas { ancho, abajo: alto, .. } = medidas;
         let abajo = (y / alto).clamp(-1.0, 1.0);
         let corte = (1.0 - abajo * abajo).sqrt();
         let lado = (x / ancho).clamp(-corte, corte);
         let v = [lado, abajo, (corte * corte - lado * lado).max(0.0).sqrt()];
         let cara::Ejes { frente, derecha, abajo } = self.ejes;
         let en = |i: usize| v[0] * derecha[i] + v[1] * abajo[i] + v[2] * frente[i];
-        let (px, py) = (en(0) * ancho, en(1) * alto);
+        let fuera = (medidas.adelante(y) - v[2] * ancho).max(0.0);
+        let (px, py) = (en(0) * ancho + fuera * frente[0], en(1) * alto + fuera * frente[1]);
         let (s, c) = self.giro.sin_cos();
-        (((px * c - py * s) * self.sx + self.dx, (px * s + py * c) * self.sy + self.dy), en(2))
+        (((px * c - py * s) * self.sx + self.dx, (px * s + py * c) * self.sy + self.dy), en(2) + fuera / ancho * frente[2])
+    }
+
+    /// Un punto del contorno del cuerpo en reposo, en la pantalla: como `cuerpo`, pero con lo que
+    /// la cara sale hacia delante a su altura (`Medidas::adelante`) llevado hacia donde mira. Sin
+    /// `menton` es lo mismo que `cuerpo`; con él, al girar la cabeza la barbilla va hacia ese lado
+    /// con la boca, y al mirar arriba o abajo sube o baja.
+    pub fn contorno(&self, p: Punto) -> Punto {
+        let (x, y) = self.cuerpo(p);
+        let (ax, ay) = self.direccion([0.0, 0.0, self.figura.medidas.adelante(p.1)]);
+        (x + ax, y + ay)
     }
 
     /// Un punto de un dibujo plano pegado a la cabeza en `ancla` y siempre de frente, como un
@@ -695,6 +709,30 @@ mod tests {
         let girado = motor.muestrear(1.0);
         assert!(arranque_del_rulo(&girado).0 > arranque_del_rulo(&quieto).0 + 0.1);
         assert!(girado.boca.expect("boca").matriz[4] > 0.2);
+    }
+
+    #[test]
+    fn con_menton_la_barbilla_gira_con_la_boca() {
+        // Una cabeza alta con la boca abajo: sin «menton», la barbilla (lo más bajo del contorno)
+        // no se mueve al girar y la boca sí.
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg"><ellipse id="cuerpo" rx="30" ry="45"/><circle id="ojo" cx="12" r="4"/><path id="boca" d="M -6 30 L 6 30" stroke="#000"/></svg>"##;
+        let mirando = |json: &str, guinada: f32| {
+            let mut motor = Motor::new();
+            motor.poner_figura(Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err(String::new())).unwrap()));
+            motor.poner_mirada(seguir(guinada, 0.0), 0.0, 0.001);
+            motor.muestrear(1.0)
+        };
+        // Cuánto se apartan del sitio en el que el cuerpo dejaría la barbilla y la boca.
+        let barbilla = |c: &Cuadro| c.cabeza.contorno((0.0, 1.0)).0 - c.cabeza.cuerpo((0.0, 1.0)).0;
+        let boca = |c: &Cuadro| c.boca.expect("boca").matriz[4] - c.cabeza.cuerpo(c.cabeza.figura.medidas.boca).0;
+        assert_eq!(Figura::desde("x".into(), Some(r#"{"menton": 3}"#), Some(svg), &|_| Err(String::new())).unwrap().medidas.menton, 1.0);
+        assert_eq!(barbilla(&mirando("{}", 30.0)), 0.0);
+        assert!(barbilla(&mirando(r#"{"menton": 0.5}"#, 0.0)).abs() < 0.01, "de frente no cambia");
+        for guinada in [30.0, -30.0] {
+            let c = mirando(r#"{"menton": 0.5}"#, guinada);
+            assert!(barbilla(&c) * guinada.signum() > 0.2, "la barbilla va hacia donde mira: {}", barbilla(&c));
+            assert!((barbilla(&c) - boca(&c)).abs() < 0.03, "con la boca: {} y {}", barbilla(&c), boca(&c));
+        }
     }
 
     #[test]

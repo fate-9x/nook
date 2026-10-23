@@ -25,6 +25,9 @@ hace que se parezca; una cabeza redonda lo convierte en otro.
 - `nariz` y `bigote`: pintados, un solo elemento centrado cada uno, para que no desaparezcan al
   girar. Van antes de la `boca` para que la boca quede encima.
 
+**Barbilla:** `"menton": 0.4` en el json la saca hacia delante: al girar la cabeza, la barbilla y la
+mandíbula se van hacia donde mira, con la boca y el bigote. Sin él, el contorno no cambia al girar.
+
 **Expresiones** (en el json, `expresiones`): Enojado cambia las cejas por `cejas-enojado` y baja
 los párpados (`"parpado": 0.55`); Sorprendido cambia las cejas y la boca y casi los abre (`0.1`).
 Las piezas están al final del SVG, fuera de las capas, dibujadas en su sitio.
