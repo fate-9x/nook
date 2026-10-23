@@ -223,17 +223,16 @@ impl Cabeza {
     }
 
     /// Un punto de algo que rodea la cabeza (el pelo), pegado a ella en `ancla`: `p` es su
-    /// posición respecto al ancla en reposo y `alcance`, hasta dónde llega a los lados desde el
-    /// centro de la cabeza (unidades de radio). Va sobre un cilindro vertical alrededor de la
-    /// cabeza, tan ancho como `alcance`, que por delante sale tanto como el ancla: al girar, lo de
-    /// en medio se mueve como el ancla y los lados apenas, así que lo del lado hacia el que gira
-    /// se estrecha (y acaba pasando por detrás) y lo del otro se ensancha. Devuelve el punto en la
-    /// pantalla y su profundidad (< 0, detrás del centro de la cabeza).
-    pub fn envuelto(&self, ancla: Vec3, alcance: f32, (x, y): Punto) -> (Punto, f32) {
+    /// posición respecto al ancla en reposo. Va sobre un cilindro vertical tan ancho como la
+    /// cabeza, que por delante sale tanto como el ancla, y lo que sobresale por los lados (las
+    /// puntas), en el plano de su centro: al girar, lo de en medio se mueve como el ancla y,
+    /// desde las orejas, lo del lado hacia el que gira se estrecha y lo del otro se ensancha. El
+    /// cilindro cae suave hacia los lados (no en semicírculo), para que al girar su borde no se
+    /// doble sobre sí mismo aunque salga por delante más de lo que la cabeza mide a lo ancho.
+    pub fn envuelto(&self, ancla: Vec3, (x, y): Punto) -> Punto {
         let (x, y) = (ancla[0] + x, ancla[1] + y);
-        let u = (x / alcance.max(1e-3)).clamp(-1.0, 1.0);
-        let v = [x, y, ancla[2] * (1.0 - u * u).sqrt()];
-        (self.punto(v), self.profundidad(v))
+        let u = x / self.figura.medidas.ancho.max(1e-3);
+        self.punto([x, y, ancla[2] * (1.0 - u * u).max(0.0).powi(2)])
     }
 
     /// Un punto del contorno del cuerpo en reposo, en la pantalla: como `cuerpo`, pero con lo que
@@ -736,15 +735,16 @@ mod tests {
         // En reposo, como un cartel.
         let quieta = cabeza(0.0);
         for p in [(-1.2, 0.0), (0.0, 0.2), (0.7, -0.3)] {
-            let (a, b) = (quieta.envuelto(ancla, 1.2, p).0, quieta.cartel(ancla, p));
+            let (a, b) = (quieta.envuelto(ancla, p), quieta.cartel(ancla, p));
             assert!((a.0 - b.0).abs() < 1e-4 && (a.1 - b.1).abs() < 1e-4, "{a:?} {b:?}");
         }
-        // Mirando a la derecha, lo de la derecha se estrecha y su borde pasa por detrás.
+        // Mirando a la derecha, lo de la derecha (hasta el borde de la cabeza: Nook mide 1 de
+        // radio a lo ancho) se estrecha, sin doblarse, y lo de la izquierda se ensancha.
         let girada = cabeza(30.0);
-        let x = |px: f32| girada.envuelto(ancla, 1.2, (px, 0.0)).0 .0;
-        let (izquierda, derecha) = (x(0.0) - x(-1.2), x(1.2) - x(0.0));
+        let x = |px: f32| girada.envuelto(ancla, (px, 0.0)).0;
+        let (izquierda, derecha) = (x(0.0) - x(-1.0), x(1.0) - x(0.0));
         assert!(derecha < izquierda * 0.75, "izquierda {izquierda}, derecha {derecha}");
-        assert!(girada.envuelto(ancla, 1.2, (1.2, 0.0)).1 < 0.0 && girada.envuelto(ancla, 1.2, (-1.2, 0.0)).1 > 0.0);
+        assert!((0..=24).map(|k| x(k as f32 * 0.05)).collect::<Vec<_>>().windows(2).all(|w| w[1] > w[0]), "se dobla");
     }
 
     #[test]

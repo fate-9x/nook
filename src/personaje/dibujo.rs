@@ -177,21 +177,14 @@ fn borde_visible(cabeza: &Cabeza, borde: &[Punto]) -> Vec<Subtrazo> {
     tramos
 }
 
-/// Lo que queda de unos subtrazos por encima de la altura `corte` (y ≤ corte).
+/// Lo que queda de unos subtrazos por encima de la altura `corte` (y ≤ corte): de lo relleno, el
+/// polígono recortado; de las líneas, los tramos que quedan.
 fn por_encima(subtrazos: &[Subtrazo], relleno: bool, corte: f32) -> Vec<Subtrazo> {
-    recortar(subtrazos, relleno, |p| corte - p.1)
-}
-
-/// Lo que queda de unos subtrazos donde `f` no es negativa: de lo relleno, los polígonos
-/// recortados; de las líneas, los tramos que quedan. Donde un tramo cruza, se corta donde `f`
-/// valdría 0 si cambiara en línea recta a lo largo de él.
-fn recortar(subtrazos: &[Subtrazo], relleno: bool, f: impl Fn(Punto) -> f32) -> Vec<Subtrazo> {
     let cruce = |a: Punto, b: Punto| {
-        let (fa, fb) = (f(a), f(b));
-        let t = fa / (fa - fb);
-        (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
+        let t = (corte - a.1) / (b.1 - a.1);
+        (a.0 + (b.0 - a.0) * t, corte)
     };
-    let dentro = |p: Punto| f(p) >= 0.0;
+    let dentro = |p: Punto| p.1 <= corte;
     let mut resultado = Vec::new();
     for s in subtrazos {
         let n = s.puntos.len();
@@ -581,14 +574,11 @@ impl Pintor<'_> {
     fn apendice(&self, capa: &Capa, apendice: Apendice, capas: &mut Capas) {
         let cabeza = &self.cuadro.cabeza;
         let ancla = apendice.ancla;
-        // Hasta dónde llega a los lados desde el centro de la cabeza (para envolverla).
-        let ((x0, _), (x1, _)) = capa.caja;
-        let alcance = (x0 + ancla[0]).abs().max((x1 + ancla[0]).abs());
         let colocar = |p: Punto| {
             let q = match apendice.orientacion {
                 Orientacion::Cabeza => cabeza.cartel(ancla, p),
                 Orientacion::Cuerpo => cabeza.en_cuerpo(ancla, p),
-                Orientacion::Envolver => cabeza.envuelto(ancla, alcance, p).0,
+                Orientacion::Envolver => cabeza.envuelto(ancla, p),
             };
             if capa.muelle { self.con_muelle(q) } else { q }
         };
@@ -635,13 +625,10 @@ impl Pintor<'_> {
                 capas.detras.push((color, self.forma(forma, 1.0, &colocar)));
             }
             if delante > 0.0 {
-                let relleno = matches!(forma.pintura, Pintura::Relleno { .. });
                 let cubre = match corte {
-                    Some(corte) => self.subtrazos(&por_encima(&forma.subtrazos, relleno, corte), forma.pintura, forma.alfa, &colocar),
-                    // Envolviendo la cabeza, delante va solo lo que no ha pasado detrás de ella.
-                    None if apendice.orientacion == Orientacion::Envolver => {
-                        let visto = recortar(&forma.subtrazos, relleno, |p| cabeza.envuelto(ancla, alcance, p).1);
-                        self.subtrazos(&visto, forma.pintura, forma.alfa * delante, &colocar)
+                    Some(corte) => {
+                        let relleno = matches!(forma.pintura, Pintura::Relleno { .. });
+                        self.subtrazos(&por_encima(&forma.subtrazos, relleno, corte), forma.pintura, forma.alfa, &colocar)
                     }
                     None => self.forma(forma, delante, &colocar),
                 };

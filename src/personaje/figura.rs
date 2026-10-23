@@ -81,8 +81,8 @@ const RECORRIDO_PUPILA: f32 = 0.6;
 
 /// Hacia dónde mira lo que sale de la cabeza: con la cabeza (se inclina con ella y se acorta al
 /// mirar arriba o abajo, como un cartel), con el cuerpo (solo se gira y se estira con él) o
-/// envolviéndola, como el pelo que la rodea (al girarla, lo de su lado se estrecha y pasa por
-/// detrás y lo del otro se ensancha; ver `Cabeza::envuelto`).
+/// envolviéndola, como el pelo que la rodea (al girarla, desde las orejas, lo de su lado se
+/// estrecha y lo del otro se ensancha; ver `Cabeza::envuelto`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Orientacion {
