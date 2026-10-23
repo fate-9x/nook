@@ -594,12 +594,22 @@ impl Pintor<'_> {
             }
             Delante::Girar => al_frente(cabeza.profundidad(ancla)),
         };
+        // Lo fundido que gira (una oreja), ya detrás, se estrecha hacia su base a medida que la
+        // cabeza sigue girando hacia su lado, como si diera la vuelta tras ella, hasta esconderse.
+        let ancho_detras = match apendice.delante {
+            Delante::Girar if apendice.fundir => {
+                let k = ((cabeza.profundidad(ancla) + 0.2) / 0.14).clamp(0.0, 1.0);
+                k * k * (3.0 - 2.0 * k)
+            }
+            _ => 1.0,
+        };
+        let colocar_detras = |(x, y): Punto| colocar((x * ancho_detras, y));
         // Fundido, se suma al cuerpo y se pinta sobre él (también sobre su contorno) mientras se
         // ve; si va también detrás, lo que no se ve de él queda detrás del cuerpo.
         if apendice.fundir {
             for forma in &capa.formas {
-                if apendice.detras {
-                    capas.detras.push((self.color(forma.color), self.forma(forma, 1.0, &colocar)));
+                if apendice.detras && ancho_detras > 0.0 {
+                    capas.detras.push((self.color(forma.color), self.forma(forma, 1.0, &colocar_detras)));
                 }
                 if delante > 0.0 {
                     let cubre = self.forma(forma, delante, &colocar);
@@ -981,12 +991,32 @@ mod tests {
     }
 
     #[test]
+    fn la_oreja_se_esconde_tras_la_cabeza_al_girar_hacia_ella() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120"><circle id="cuerpo" r="40" fill="#e0d0c0"/>
+            <path id="oreja" d="M 36 -8 C 52 -10 52 12 36 12 Z" fill="#1020f0"/></svg>"##;
+        let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "oreja"}]}"#;
+        let figura = std::sync::Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err("no".into())).unwrap());
+        let azules = |guinada: f32| {
+            let mut motor = Motor::new();
+            motor.poner_figura(figura.clone());
+            motor.poner_mirada(Mirar { guinada, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);
+            let p = pixeles(&dibujar(&motor.muestrear(1.0), 128, &aspecto([1, 2, 3], [1, 2, 3])));
+            let (izquierda, derecha): (Vec<_>, Vec<_>) = (0..p.len()).filter(|&i| p[i].a == 255 && [p[i].r, p[i].g, p[i].b] == [16, 32, 240]).partition(|&i| i % 128 < 64);
+            (izquierda.len(), derecha.len())
+        };
+        // De frente se ven las dos; mirando a la derecha, la derecha se esconde y la izquierda no.
+        let ((izq, der), (izq_girado, der_girado)) = (azules(0.0), azules(30.0));
+        assert!(izq > 20 && der > 20, "de frente: {izq} y {der}");
+        assert!(der_girado == 0 && izq_girado > 20, "mirando a la derecha: {izq_girado} y {der_girado}");
+    }
+
+    #[test]
     fn el_pelo_que_envuelve_la_cabeza_se_estrecha_del_lado_al_que_mira() {
         // Una franja de pelo de lado a lado: azul su mitad izquierda y roja la derecha.
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60 -60 120 120"><circle id="cuerpo" r="40" fill="#e0d0c0"/>
             <g id="pelo"><rect x="-55" y="-45" width="55" height="20" fill="#1020f0"/><rect x="0" y="-45" width="55" height="20" fill="#f02010"/></g>
             <circle id="ancla-pelo" cx="0" cy="-35" r="1" fill="none"/></svg>"##;
-        let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "pelo", "tipo": "cabeza", "orientacion": "envolver", "profundidad": 0.6}]}"#;
+        let json = r#"{"capas": [{"id": "cuerpo"}, {"id": "pelo", "tipo": "cabeza", "orientacion": "envolver"}]}"#;
         let figura = std::sync::Arc::new(Figura::desde("x".into(), Some(json), Some(svg), &|_| Err("no".into())).unwrap());
         assert!(figura.avisos.is_empty(), "{:?}", figura.avisos);
         let mitades = |guinada: f32| {

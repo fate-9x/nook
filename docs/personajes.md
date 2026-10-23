@@ -100,7 +100,7 @@ Opciones de las capas:
 | `"encima": true` | `franja` | Va por encima de los ojos y la boca (pelo que los tapa). |
 | `"recorte": 1.06` | `franja` con `encima` | Puede salirse del cuerpo hasta esas veces su tamaño (de 1 a 1,5). |
 | `"muelle": true` | cualquiera | Se mueve como el pelo: se queda atrás cuando la cabeza se mueve y luego se asienta. |
-| `"orientacion": "cabeza"`, `"cuerpo"` o `"envolver"` | `cabeza` | Si se inclina con la cabeza (por defecto), solo se gira y se estira con el cuerpo, o la envuelve como el pelo que la rodea: al girar, desde las orejas, lo de su lado se estrecha y lo del otro se ensancha. |
+| `"orientacion": "cabeza"`, `"cuerpo"` o `"envolver"` | `cabeza` | Si se inclina con la cabeza (por defecto), solo se gira y se estira con el cuerpo, o la envuelve como el pelo que la rodea: al girar, lo de su lado se estrecha y pasa por detrás. |
 | `"detras": true` | `cabeza` | También se dibuja detrás del cuerpo. |
 | `"delante"` | `cabeza` | Cuándo se ve delante: `"siempre"` (por defecto), `"nunca"`, `"girar"` (al girar la cabeza hacia su lado, como las orejas) o `"revelar"` (de frente se ve su mitad de arriba; mirándolo, entero). |
 | `"fundir": true` | `cabeza` | Se suma al cuerpo, como si fuera parte de él (el rulo de Nook). |

@@ -7,6 +7,7 @@ use super::cara::{self, Mirada, Vec3};
 use super::estados::{self, Estado, Golpe, Pose};
 use super::figura::{Animacion, Dibujo, Figura, Medidas};
 use super::forma::Punto;
+use std::f32::consts::FRAC_PI_2;
 use std::sync::Arc;
 
 /// Curva de las transiciones: frena al final sin pasarse (como en bloub).
@@ -223,16 +224,21 @@ impl Cabeza {
     }
 
     /// Un punto de algo que rodea la cabeza (el pelo), pegado a ella en `ancla`: `p` es su
-    /// posición respecto al ancla en reposo. Va sobre un cilindro vertical tan ancho como la
-    /// cabeza, que por delante sale tanto como el ancla, y lo que sobresale por los lados (las
-    /// puntas), en el plano de su centro: al girar, lo de en medio se mueve como el ancla y,
-    /// desde las orejas, lo del lado hacia el que gira se estrecha y lo del otro se ensancha. El
-    /// cilindro cae suave hacia los lados (no en semicírculo), para que al girar su borde no se
-    /// doble sobre sí mismo aunque salga por delante más de lo que la cabeza mide a lo ancho.
+    /// posición respecto al ancla en reposo. Lo que queda delante de la cabeza va sobre un
+    /// cilindro vertical tan ancho y tan hondo como la cara, y lo que sobresale por los lados
+    /// sigue desde el borde de la cabeza: al girar, lo de en medio se mueve como la cara, lo del
+    /// lado hacia el que gira se estrecha hasta esconderse tras el borde (se pliega en él) y lo
+    /// del otro se ensancha. Nada se corta ni se despega de la cabeza.
     pub fn envuelto(&self, ancla: Vec3, (x, y): Punto) -> Punto {
         let (x, y) = (ancla[0] + x, ancla[1] + y);
-        let u = x / self.figura.medidas.ancho.max(1e-3);
-        self.punto([x, y, ancla[2] * (1.0 - u * u).max(0.0).powi(2)])
+        let radio = self.figura.medidas.ancho.max(1e-3);
+        // Lo que se ve del cilindro: los ángulos (desde el frente) cuya cara mira al espectador.
+        let cara::Ejes { frente, derecha, .. } = self.ejes;
+        let mira = derecha[2].atan2(frente[2]);
+        let (desde, hasta) = ((mira - FRAC_PI_2).max(-FRAC_PI_2), (mira + FRAC_PI_2).min(FRAC_PI_2));
+        let angulo = (x / radio).clamp(-1.0, 1.0).asin().clamp(desde, hasta);
+        let fuera = x.signum() * (x.abs() - radio).max(0.0);
+        self.punto([radio * angulo.sin() + fuera, y, radio * angulo.cos()])
     }
 
     /// Un punto del contorno del cuerpo en reposo, en la pantalla: como `cuerpo`, pero con lo que
@@ -734,17 +740,20 @@ mod tests {
         let ancla = [0.0, -0.5, 0.6];
         // En reposo, como un cartel.
         let quieta = cabeza(0.0);
-        for p in [(-1.2, 0.0), (0.0, 0.2), (0.7, -0.3)] {
+        for p in [(-1.4, 0.0), (0.0, 0.2), (0.7, -0.3)] {
             let (a, b) = (quieta.envuelto(ancla, p), quieta.cartel(ancla, p));
             assert!((a.0 - b.0).abs() < 1e-4 && (a.1 - b.1).abs() < 1e-4, "{a:?} {b:?}");
         }
-        // Mirando a la derecha, lo de la derecha (hasta el borde de la cabeza: Nook mide 1 de
-        // radio a lo ancho) se estrecha, sin doblarse, y lo de la izquierda se ensancha.
+        // Mirando a la derecha (Nook mide 1 a cada lado), lo que tiene delante a la derecha se
+        // estrecha, y lo último se esconde plegado en el borde; lo de fuera sigue desde él.
         let girada = cabeza(30.0);
         let x = |px: f32| girada.envuelto(ancla, (px, 0.0)).0;
         let (izquierda, derecha) = (x(0.0) - x(-1.0), x(1.0) - x(0.0));
         assert!(derecha < izquierda * 0.75, "izquierda {izquierda}, derecha {derecha}");
-        assert!((0..=24).map(|k| x(k as f32 * 0.05)).collect::<Vec<_>>().windows(2).all(|w| w[1] > w[0]), "se dobla");
+        assert!((x(0.95) - x(1.0)).abs() < 1e-4, "lo que pasa detrás se pliega en el borde");
+        // De un lado a otro, sin doblarse sobre sí mismo ni despegarse.
+        let xs: Vec<f32> = (-140..=140).map(|i| x(i as f32 / 100.0)).collect();
+        assert!(xs.windows(2).all(|w| w[1] >= w[0] - 1e-5 && w[1] - w[0] < 0.1), "{xs:?}");
     }
 
     #[test]

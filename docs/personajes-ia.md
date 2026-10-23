@@ -52,7 +52,8 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 - **Orejas: la capa `oreja`.** Dibuja la derecha pegada al lado de la cabeza, con el relleno
   entrando un poco en ella y la línea de contorno solo por fuera (no por la base): el motor la funde
   con la cabeza (le tapa el contorno), la engancha por su lado de dentro, la refleja para el otro
-  lado y la esconde detrás al girar. No necesita opciones en el json. En `capas`, ponla después
+  lado y, al girar la cabeza hacia ella, la pasa detrás y la estrecha hacia su base hasta que
+  desaparece tras la cabeza. No necesita opciones en el json. En `capas`, ponla después
   del cuerpo y de las franjas de pelo de los lados: como pasa a ser parte de la silueta, lo que se
   pinte después hasta el borde de la cabeza la tapa.
 - **Lo demás que está a los dos lados** (cuernos, alas) va en **dos capas** de tipo `cabeza`, una
@@ -150,9 +151,10 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
   falta, `"cabeceo": 18` (arriba y abajo). Mira con `personaje__ver` y `guinada` a partir de qué
   ángulo falla. La cabeza se para ahí; las pupilas siguen hasta el borde del ojo.
 - **Pelo que gira con la cabeza:** a un pelo de tipo `cabeza` que la rodea y va delante (en punta,
-  alborotado), ponle `"orientacion": "envolver"` y una `"profundidad"` como la de la cara (unos
-  `0.6`), y ponla en `capas` después del `cuerpo`: al girar, desde las orejas, el lado hacia el que mira se estrecha y el
-  otro se ensancha, en vez de moverse todo el pelo de una pieza.
+  alborotado), ponle `"orientacion": "envolver"`: al girar, el pelo que tiene delante gira con ella
+  como si la envolviera (el lado hacia el que mira se estrecha hasta esconderse tras el borde, y el
+  otro se ensancha) y lo que sobresale por los lados sigue pegado a ellos, en vez de moverse todo el
+  pelo de una pieza.
 - **Barbilla que gira (caras de persona):** pon `"menton": 0.5` en el json (de 0 a 1, cuánto sale
   la barbilla hacia delante). Al girar la cabeza, la barbilla y la mandíbula se van hacia donde mira
   con la boca; sin él, el contorno se queda quieto y la boca se aparta de la barbilla. Para
