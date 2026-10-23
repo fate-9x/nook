@@ -8,6 +8,7 @@ Carpeta de personajes del usuario: `{carpeta}` (cada personaje, una subcarpeta).
 
 ## Cómo trabajar
 
+0. Antes de nada, haz al usuario las preguntas de «Antes de dibujar», más abajo.
 1. Pide el ejemplo más parecido con `personaje__guia` y `tipo`. Cópialo y cambia formas, colores y
    partes; no partas de cero ni cambies la estructura sin motivo.
 2. Guárdalo con `personaje__guardar` (una carpeta nueva por personaje): te devuelve la comprobación

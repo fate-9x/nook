@@ -136,6 +136,8 @@ pub fn llamar(nombre: &str, argumentos: &Value) -> Result<Resultado, String> {
 fn guia(tipo: Option<&str>) -> Result<String, String> {
     let carpeta = crate::config::carpeta().join("personajes");
     let mut texto = include_str!("../../docs/personajes-ia.md").replace("{carpeta}", &carpeta.to_string_lossy());
+    texto.push_str(&format!("
+{}", include_str!("../../docs/preguntas-personaje.md")));
     let Some(tipo) = tipo else { return Ok(texto) };
     let (_, _, notas, svg, json) = EJEMPLOS.iter().find(|e| e.0 == tipo).ok_or_else(|| format!("no hay ningún ejemplo de tipo «{tipo}»"))?;
     texto.push_str(&format!("\n# Ejemplo «{tipo}»\n\n{notas}"));
@@ -505,6 +507,7 @@ mod tests {
         };
         assert!(texto.contains("# Personajes de Nookly: lo esencial") && !texto.contains("{carpeta}"), "{texto}");
         assert!(!texto.contains("# Ejemplo"), "sin tipo no hay ejemplo");
+        assert!(texto.contains("# Antes de dibujar: pregunta esto"), "con las preguntas para el usuario");
         for (tipo, ..) in EJEMPLOS {
             let texto = guia(Some(tipo)).unwrap();
             assert!(texto.contains(&format!("# Ejemplo «{tipo}»")) && texto.contains("```json"), "{tipo}");
