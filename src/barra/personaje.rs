@@ -94,8 +94,10 @@ pub(crate) fn carpeta_accesorios() -> PathBuf {
     config::carpeta().join("accesorios")
 }
 
-/// Cada cuánto se calcula un cuadro del personaje.
+/// Cada cuánto se calcula un cuadro del personaje cuando hace algo rápido (saltar, bailar,
+/// avisar) y cuando solo se mueve despacio (en reposo o siguiendo al cursor), que gasta la mitad.
 pub(crate) const CUADRO_PERSONAJE: Duration = Duration::from_millis(16);
+pub(crate) const CUADRO_TRANQUILO: Duration = Duration::from_millis(33);
 /// Con el cursor quieto este tiempo, el personaje deja de mirarlo y vuelve a su deriva.
 pub(crate) const CURSOR_QUIETO: Duration = Duration::from_secs(4);
 /// Giro máximo de la cabeza hacia el cursor, en grados, y distancia (píxeles lógicos) a la que el
@@ -505,6 +507,11 @@ impl Ctx {
             }
         } else {
             p.dibujado_muestra = None;
+        }
+        let agitado = p.motor.agitado(ahora) || p.segundo.as_ref().is_some_and(|s| s.motor.agitado(ahora_2));
+        let cuadro = if agitado { CUADRO_PERSONAJE } else { CUADRO_TRANQUILO };
+        if self.animador_personaje.interval() != cuadro {
+            self.animador_personaje.set_interval(cuadro);
         }
     }
 

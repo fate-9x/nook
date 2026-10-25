@@ -434,6 +434,14 @@ impl Motor {
         }
     }
 
+    /// Si en el instante `ahora` hace algo rápido (un estado que no es el reposo, el paso de uno
+    /// a otro o un rebote), que pide más cuadros por segundo para verse fluido.
+    pub fn agitado(&self, ahora: f64) -> bool {
+        self.estado != Estado::Reposo
+            || ahora - self.estado_desde < TRANSICION
+            || ((ahora - self.rebote) as f32) < estados::DURACION_REBOTE
+    }
+
     fn pose_en(&self, ahora: f64) -> Pose {
         estados::con_rebote(self.pose_del_estado(ahora), (ahora - self.rebote) as f32)
     }

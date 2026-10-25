@@ -960,15 +960,20 @@ impl Platform for PlataformaBarra {
             // deslizamiento y el arrastre) se espera al siguiente refresco de la pantalla: cada
             // cuadro coincide con uno del monitor y no hay tirones (dormir un tiempo fijo no
             // sirve: el reloj de Windows solo despierta cada ~15,6 ms). Si no, se duerme hasta el
-            // próximo temporizador o hasta que llegue un mensaje (consumo cero en reposo).
+            // próximo temporizador o hasta que llegue un mensaje (consumo cero en reposo). Un
+            // temporizador de animación algo más lento (como el del personaje tranquilo) se
+            // despierta antes de tiempo para alinearse igual con el refresco: si no, el reloj de
+            // Windows lo retrasa hasta 15 ms y sus cuadros salen desiguales.
             let animando = ventanas.iter().any(|v| !v.oculta.get() && v.slint.window().has_active_animations());
             let proximo = slint::platform::duration_until_next_timer_update();
-            let moviendose = animando || proximo.is_some_and(|d| d <= Duration::from_millis(20));
+            let cerca = Duration::from_millis(20);
+            let moviendose = animando || proximo.is_some_and(|d| d <= cerca);
             let espera = if moviendose {
                 // Sin composición de escritorio (no debería pasar) se vuelve a los ~60 por segundo.
                 if unsafe { DwmFlush() }.is_ok() { 0 } else { 16 }
             } else {
                 match proximo {
+                    Some(d) if d < Duration::from_millis(50) => (d - cerca).as_millis() as u32,
                     Some(d) => d.as_millis().min(INFINITE as u128 - 1) as u32,
                     None => INFINITE,
                 }
