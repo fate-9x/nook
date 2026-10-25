@@ -28,7 +28,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 use crate::bandeja::WM_BANDEJA;
 use windows::Win32::Foundation::{
-    COLORREF, CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HWND, LPARAM, LRESULT, POINT, POINTL, SIZE, WPARAM,
+    COLORREF, CloseHandle, ERROR_ALREADY_EXISTS, GetLastError, HWND, LPARAM, LRESULT, POINT, POINTL, RECT, SIZE, WPARAM,
 };
 use windows::System::DispatcherQueueController;
 use windows::UI::Composition::Desktop::DesktopWindowTarget;
@@ -72,7 +72,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     PostMessageW, PostQuitMessage, PostThreadMessageW, QS_ALLINPUT, RegisterClassW,
     RegisterWindowMessageW, SW_HIDE, SW_SHOWNOACTIVATE, SetForegroundWindow, HTTRANSPARENT,
     MA_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOREDRAW, SWP_NOZORDER, SWP_SHOWWINDOW, WM_MOUSEACTIVATE, WM_NCHITTEST, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, SWP_NOACTIVATE, SWP_NOSIZE, SetWindowPos,
-    ShowWindow, TranslateMessage, ULW_ALPHA, UpdateLayeredWindow, WA_INACTIVE, WM_ACTIVATE,
+    ShowWindow, TranslateMessage, ULW_ALPHA, UPDATELAYEREDWINDOWINFO, UpdateLayeredWindowIndirect, WA_INACTIVE, WM_ACTIVATE,
     WM_APP, WM_CHAR, WM_CLOSE, WM_CONTEXTMENU, WM_DPICHANGED, WM_HOTKEY, WM_KEYDOWN, WM_KEYUP,
     WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL,
     WM_QUIT, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SYSKEYDOWN, WM_SYSKEYUP, WNDCLASSW, WS_EX_LAYERED,
@@ -337,6 +337,7 @@ impl Interna {
         let Some(mapa) = mapa.as_mut() else { return };
 
         let dibujado_antes = self.lienzo_presentado.get();
+        let mut repintado = None;
         let dibujado = self.slint.draw_if_needed(|renderizador| {
             // Un cuadro como "búfer nuevo" se pinta entero (y limpio); cambiar de tipo además
             // olvida lo que Slint recordaba del dibujo anterior. Luego se vuelve a repintar solo
@@ -349,7 +350,8 @@ impl Interna {
                 mapa.pixeles().fill(Bgra { b: 0, g: 0, r: 0, a: 0 });
                 renderizador.set_repaint_buffer_type(RepaintBufferType::NewBuffer);
             }
-            renderizador.render(mapa.pixeles(), ancho as usize);
+            let region = renderizador.render(mapa.pixeles(), ancho as usize);
+            repintado = Some((region.bounding_box_origin(), region.bounding_box_size()));
             if completo {
                 renderizador.set_repaint_buffer_type(RepaintBufferType::ReusedBuffer);
             }
@@ -365,18 +367,33 @@ impl Interna {
             SourceConstantAlpha: 255,
             AlphaFormat: AC_SRC_ALPHA as u8,
         };
+        // Si la ventana sigue en su sitio y con su tamaño, Windows solo copia lo que se repintó
+        // (el personaje, por ejemplo), no el lienzo entero, que puede medir varios megas.
+        let quieta = self.visible.get() && dibujado_antes == self.lienzo.get();
+        let sucio = repintado.filter(|_| quieta).map(|(o, t)| RECT {
+            left: o.x,
+            top: o.y,
+            right: o.x + t.width as i32,
+            bottom: o.y + t.height as i32,
+        });
+        if sucio.is_some_and(|r| r.right <= r.left || r.bottom <= r.top) {
+            return;
+        }
+        let (destino, tamano, origen) = (POINT { x, y }, SIZE { cx: ancho, cy: alto }, POINT { x: 0, y: 0 });
+        let info = UPDATELAYEREDWINDOWINFO {
+            cbSize: size_of::<UPDATELAYEREDWINDOWINFO>() as u32,
+            hdcDst: HDC::default(),
+            pptDst: &destino,
+            psize: &tamano,
+            hdcSrc: mapa.dc,
+            pptSrc: &origen,
+            crKey: COLORREF(0),
+            pblend: &mezcla,
+            dwFlags: ULW_ALPHA,
+            prcDirty: sucio.as_ref().map_or(std::ptr::null(), |r| r),
+        };
         unsafe {
-            let _ = UpdateLayeredWindow(
-                self.hwnd,
-                None,
-                Some(&POINT { x, y }),
-                Some(&SIZE { cx: ancho, cy: alto }),
-                Some(mapa.dc),
-                Some(&POINT { x: 0, y: 0 }),
-                COLORREF(0),
-                Some(&mezcla),
-                ULW_ALPHA,
-            );
+            let _ = UpdateLayeredWindowIndirect(self.hwnd, &info);
             if !self.visible.replace(true) {
                 let _ = ShowWindow(self.hwnd, SW_SHOWNOACTIVATE);
                 let _ = SetWindowPos(self.hwnd, Some(HWND_TOPMOST), x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
