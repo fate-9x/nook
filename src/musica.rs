@@ -12,6 +12,7 @@
 //! por un canal.
 
 use crate::reproductor::Reproductor;
+use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
@@ -64,8 +65,25 @@ impl Musica {
         if **actual != nueva {
             *actual = Arc::new(nueva);
             self.cambios.fetch_add(1, Ordering::Relaxed);
+            let _ = slint::invoke_from_event_loop(|| {
+                AL_CAMBIAR.with(|f| {
+                    if let Some(f) = f.borrow_mut().as_mut() {
+                        f();
+                    }
+                })
+            });
         }
     }
+}
+
+thread_local! {
+    static AL_CAMBIAR: RefCell<Option<Box<dyn FnMut()>>> = RefCell::new(None);
+}
+
+/// `f` se llama en el hilo de la interfaz cada vez que cambia lo que muestra el reproductor (así
+/// no hay que preguntarlo cada poco). Hay que llamarla desde el hilo de la interfaz.
+pub fn al_cambiar(f: impl FnMut() + 'static) {
+    AL_CAMBIAR.with(|a| *a.borrow_mut() = Some(Box::new(f)));
 }
 
 /// Lo que muestra el reproductor: la sesión multimedia actual (la que Windows pone en su panel de

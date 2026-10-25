@@ -2,10 +2,8 @@
 
 use crate::*;
 
-/// Cuánto sube o baja el volumen con cada flecha en el reproductor, y cada cuánto se mira si
-/// cambió lo que suena.
+/// Cuánto sube o baja el volumen con cada flecha en el reproductor.
 pub(crate) const PASO_VOLUMEN: f32 = 0.05;
-pub(crate) const CONSULTA_REPRODUCTOR: Duration = Duration::from_millis(100);
 
 impl Ctx {
     /// Abre o cierra el reproductor; se abre solo si hay algo que mostrar.

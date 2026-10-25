@@ -78,7 +78,6 @@ use barra::colocacion::*;
 use barra::configuracion::*;
 use barra::menus::*;
 use barra::personaje::*;
-use barra::reproductor::*;
 use barra::tira::*;
 use chrono::{DateTime, Local};
 use config::{Ajustes, App, COLORES_ACCESORIOS, Config, Elemento, FONDOS, FormatoFecha, Grupo, Posicion, TipoAccesorio};
@@ -364,9 +363,9 @@ impl Ctx {
     }
 
     /// Mira lo que puede cambiar fuera del programa, cada `SONDEO` (lo que corre menos prisa,
-    /// cada `VUELTAS_LENTAS` veces): la ventana activa, si hay algo a pantalla completa, las apps
-    /// abiertas (salvo con algo a pantalla completa, que no se ven), el micrófono, la batería y el
-    /// volumen general (este, cada vez con su panel abierto).
+    /// cada `VUELTAS_LENTAS` veces): la ventana activa, la hora, si hay algo a pantalla completa,
+    /// las apps abiertas (salvo con algo a pantalla completa, que no se ven), el micrófono, la
+    /// batería y el volumen general (este, cada vez con su panel abierto).
     fn sondear(&self) {
         let vuelta = self.vueltas.get().wrapping_add(1);
         self.vueltas.set(vuelta);
@@ -380,6 +379,10 @@ impl Ctx {
             self.estado.borrow_mut().ultima_ajena = Some(ventana::en_primer_plano());
         }
         if lenta {
+            if let Some(ui) = self.ui.upgrade() {
+                let formato = self.estado.borrow().config.ajustes.fecha;
+                actualizar_reloj(&ui, Local::now(), formato);
+            }
             // Windows a veces vuelve a mostrar su barra (al reiniciarse el Explorador, por ejemplo).
             self.aplicar_barra_de_windows();
             self.sondear_pantalla_completa();
@@ -583,22 +586,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tecla_windows::al_pulsar(move || c.alternar_lanzador());
     tecla_windows::activar(ctx.estado.borrow().config.ajustes.tecla_windows_abre_buscador);
 
-    // Reloj: actualiza la hora (y la fecha) cada segundo.
-    let reloj = Timer::default();
-    let c = ctx.clone();
-    reloj.start(TimerMode::Repeated, Duration::from_secs(1), move || {
-        if let Some(ui) = c.ui.upgrade() {
-            let formato = c.estado.borrow().config.ajustes.fecha;
-            actualizar_reloj(&ui, Local::now(), formato);
-        }
-    });
-
     // Reproductor: lo que suena se pasa a la interfaz cuando cambia.
-    let reproductor = Timer::default();
     let c = ctx.clone();
     let mut visto = (None, None);
     c.mostrar_reproduccion(&mut visto);
-    reproductor.start(TimerMode::Repeated, CONSULTA_REPRODUCTOR, move || c.mostrar_reproduccion(&mut visto));
+    musica::al_cambiar(move || c.mostrar_reproduccion(&mut visto));
 
     // --- Eventos de la interfaz ---
 
