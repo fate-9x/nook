@@ -80,6 +80,10 @@ pub fn traducido(textos: &HashMap<String, String>) -> String {
 pub struct Medidas {
     pub ancho: f32,
     pub alto: f32,
+    /// El alto sigue a lo que ocupa el contenido del panel (su alto preferido), con `alto` como
+    /// máximo.
+    #[serde(default)]
+    pub ajustar_alto: bool,
 }
 
 /// Un addon instalado.
@@ -224,6 +228,9 @@ mod tests {
         assert_eq!(m.herramientas[0].nombre, "tirar");
         assert_eq!(m.herramientas[0].parametros["type"], "object");
         assert_eq!(m.nook_minimo, None);
+        assert!(!m.panel.ajustar_alto);
+        let m: Manifiesto = serde_json::from_str(&json.replace(r#""alto":132"#, r#""alto":132,"ajustar_alto":true"#)).unwrap();
+        assert!(m.panel.ajustar_alto);
     }
 
     #[test]

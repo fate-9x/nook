@@ -117,6 +117,7 @@ impl Ctx {
         let id = addon.manifiesto.id.clone();
         ui.set_ancho_addon(addon.manifiesto.panel.ancho);
         ui.set_alto_addon(addon.manifiesto.panel.alto);
+        ui.set_ajustar_alto_addon(addon.manifiesto.panel.ajustar_alto);
         let cargado = !self.addons.cargados.borrow().contains_key(&id);
         if cargado {
             match self.cargar_addon(addon) {

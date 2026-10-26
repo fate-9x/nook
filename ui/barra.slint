@@ -153,6 +153,7 @@ export component Barra inherits Window {
     in property <component-factory> panel-addon;
     in property <length> ancho-addon;
     in property <length> alto-addon;
+    in property <bool> ajustar-alto-addon;  // el panel mide lo que ocupa su contenido, hasta alto-addon
     in property <string> error-addon;
     in property <string> nombre-salida;
     in property <bool> silencio;
@@ -493,7 +494,9 @@ export component Barra inherits Window {
         : root.modo == 7 ? root.ancho-sonido : root.modo == 8 ? root.ancho-addon : 0px;
     property <length> alto-contenido: root.modo == 2 ? root.alto-grupo : root.modo == 3 ? root.alto-config
         : root.modo == 4 ? root.alto-buscar : root.modo == 5 ? root.alto-boveda : root.modo == 6 ? root.alto-musica
-        : root.modo == 7 ? root.alto-sonido : root.modo == 8 ? root.alto-addon : 0px;
+        : root.modo == 7 ? root.alto-sonido : root.modo == 8 ? root.alto-panel-addon : 0px;
+    property <length> alto-panel-addon: root.ajustar-alto-addon && root.error-addon == ""
+        ? min(root.alto-addon, contenedor-addon.preferred-height) : root.alto-addon;
 
     out property <length> ancho: root.modo == 0 ? (root.vertical ? root.asomo : root.zona + root.separacion-personajes)
         : root.vertical ? root.grosor-total + (root.abierto ? 1px + root.ancho-contenido : 0px)
@@ -1728,12 +1731,12 @@ export component Barra inherits Window {
         wrap: word-wrap;
         overflow: elide;
     }
-    ComponentContainer {
+    contenedor-addon := ComponentContainer {
         visible: root.modo == 8 && root.error-addon == "";
         x: root.contenido-x;
         y: root.contenido-y;
         width: root.ancho-addon;
-        height: root.alto-addon;
+        height: root.alto-panel-addon;
         component-factory: root.panel-addon;
     }
 
