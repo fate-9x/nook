@@ -489,6 +489,7 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
         c.refrescar();
     });
     ui.on_salir(|| {
+        sistema::cerrar_otras_copias();
         let _ = slint::quit_event_loop();
     });
     ui.on_actualizar({

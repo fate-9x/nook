@@ -23,7 +23,7 @@ use windows::Win32::UI::Shell::{
     ShellExecuteW,
 };
 use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO, SW_SHOWNORMAL};
-use windows::core::{HSTRING, Interface, PCWSTR, w};
+use windows::core::{HSTRING, Interface, PCWSTR, PWSTR, w};
 
 /// Las apps instaladas se guardan como una ruta dentro de la carpeta virtual "Aplicaciones"
 /// del menú Inicio (así se abren igual las de escritorio y las de la Tienda).
@@ -330,6 +330,43 @@ pub fn iniciar_con_windows(activar: bool) -> Result<(), String> {
     resultado.ok().map_err(|e| e.to_string())
 }
 
+/// Cierra las demás copias de este mismo programa (los `nook.exe --mcp` que abre la IA del
+/// usuario…), para que al cerrar la aplicación no quede ningún proceso suyo abierto.
+pub fn cerrar_otras_copias() {
+    use windows::Win32::Foundation::CloseHandle;
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
+    };
+    use windows::Win32::System::Threading::{
+        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE,
+        QueryFullProcessImageNameW, TerminateProcess,
+    };
+    let Ok(propio) = std::env::current_exe() else { return };
+    let propio = propio.to_string_lossy().to_lowercase();
+    let yo = std::process::id();
+    unsafe {
+        let Ok(foto) = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) else { return };
+        let mut proceso = PROCESSENTRY32W { dwSize: size_of::<PROCESSENTRY32W>() as u32, ..Default::default() };
+        let mut hay = Process32FirstW(foto, &mut proceso).is_ok();
+        while hay {
+            let id = proceso.th32ProcessID;
+            if id != yo {
+                if let Ok(manejador) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE, false, id) {
+                    let mut ruta = [0u16; 1024];
+                    let mut largo = ruta.len() as u32;
+                    let ok = QueryFullProcessImageNameW(manejador, PROCESS_NAME_WIN32, PWSTR(ruta.as_mut_ptr()), &mut largo).is_ok();
+                    if ok && String::from_utf16_lossy(&ruta[..largo as usize]).to_lowercase() == propio {
+                        let _ = TerminateProcess(manejador, 0);
+                    }
+                    let _ = CloseHandle(manejador);
+                }
+            }
+            hay = Process32NextW(foto, &mut proceso).is_ok();
+        }
+        let _ = CloseHandle(foto);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,5 +378,27 @@ mod tests {
         assert!(!es_direccion(r"C:\Program Files\app.exe"));
         assert!(!es_direccion(r"\servidor\carpeta"));
         assert!(!es_direccion("notas.txt"));
+    }
+
+    /// La copia que cierra `cierra_las_otras_copias_del_programa`.
+    #[test]
+    #[ignore]
+    fn esperar() {
+        std::thread::sleep(std::time::Duration::from_secs(60));
+    }
+
+    #[test]
+    fn cierra_las_otras_copias_del_programa() {
+        let mut copia = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "sistema::tests::esperar", "--ignored"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        cerrar_otras_copias();
+        let limite = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while copia.try_wait().unwrap().is_none() {
+            assert!(std::time::Instant::now() < limite, "la otra copia sigue abierta");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
     }
 }

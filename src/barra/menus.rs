@@ -145,6 +145,7 @@ impl Ctx {
             GRUPO => c.nuevo_grupo(),
             CONFIGURACION => c.poner_modo(Modo::Config),
             SALIR => {
+                crate::sistema::cerrar_otras_copias();
                 let _ = slint::quit_event_loop();
             }
             _ => {}
