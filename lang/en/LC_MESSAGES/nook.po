@@ -703,3 +703,45 @@ msgstr "Couldn't add the add-on: {}"
 
 msgid "Para conectarlo, abre en Claude Desktop Configuración → Desarrollador → Editar configuración y vuelve a pulsar este botón."
 msgstr "To connect it, open Settings → Developer → Edit Config in Claude Desktop and press this button again."
+
+msgid "Carpeta…"
+msgstr "Folder…"
+
+msgid "Nueva"
+msgstr "New"
+
+msgid "Enviar"
+msgstr "Send"
+
+msgid "Parar"
+msgstr "Stop"
+
+msgid "Claude está trabajando…"
+msgstr "Claude is working…"
+
+msgid "Escribe a Claude…"
+msgstr "Write to Claude…"
+
+msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
+msgstr "Write to Claude Code below: it works in the folder above and only uses what you've allowed in its settings."
+
+msgid "Conversación con Claude Code"
+msgstr "Claude Code chat"
+
+msgid "Necesita Claude Code instalado"
+msgstr "Requires Claude Code to be installed"
+
+msgid "No se encuentra Claude Code: instálalo y vuelve a intentarlo."
+msgstr "Claude Code wasn't found: install it and try again."
+
+msgid "No se pudo abrir Claude Code: {}"
+msgstr "Couldn't open Claude Code: {}"
+
+msgid "Claude no tuvo permiso para usar: {}"
+msgstr "Claude wasn't allowed to use: {}"
+
+msgid "Claude Code falló: {}"
+msgstr "Claude Code failed: {}"
+
+msgid "Respuesta parada."
+msgstr "Response stopped."

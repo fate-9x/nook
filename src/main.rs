@@ -31,6 +31,9 @@ mod ventana;
 #[cfg_attr(pro, path = "pro/abiertas.rs")]
 #[cfg_attr(not(pro), path = "gratis/abiertas.rs")]
 mod abiertas;
+#[cfg_attr(pro, path = "pro/claude.rs")]
+#[cfg_attr(not(pro), path = "gratis/claude.rs")]
+mod claude;
 #[cfg_attr(pro, path = "pro/energia.rs")]
 #[cfg_attr(not(pro), path = "gratis/energia.rs")]
 mod energia;
@@ -56,6 +59,7 @@ mod barra {
     pub mod abiertas;
     pub mod addons;
     pub mod atajos;
+    pub mod claude;
     pub mod boveda;
     pub mod buscador;
     pub mod colocacion;
@@ -120,6 +124,8 @@ enum Modo {
     Sonido,
     /// Panel de un addon (ver src/addons/).
     Addon,
+    /// Conversación con Claude Code (botón de la tira, solo en nook Pro).
+    Claude,
 }
 
 impl Modo {
@@ -134,11 +140,12 @@ impl Modo {
             Modo::Musica => 6,
             Modo::Sonido => 7,
             Modo::Addon => 8,
+            Modo::Claude => 9,
         }
     }
 
     fn desplegado(self) -> bool {
-        matches!(self, Modo::Grupo | Modo::Config | Modo::Buscar | Modo::Boveda | Modo::Musica | Modo::Sonido | Modo::Addon)
+        matches!(self, Modo::Grupo | Modo::Config | Modo::Buscar | Modo::Boveda | Modo::Musica | Modo::Sonido | Modo::Addon | Modo::Claude)
     }
 }
 
@@ -211,6 +218,8 @@ struct Estado {
     /// sección de la configuración.
     addons: Vec<addons::Addon>,
     config_addons: barra::addons::ConfigAddons,
+    /// Conversación con Claude Code.
+    claude: barra::claude::Conversacion,
 }
 
 /// Lo que necesitan los eventos: la ventana, el estado y los temporizadores.
@@ -549,6 +558,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             error_cuenta: String::new(),
             addons: Vec::new(),
             config_addons: Default::default(),
+            claude: Default::default(),
         })),
         vigia: Rc::new(Timer::default()),
         lienzo: Rc::new(Cell::new(None)),
@@ -596,6 +606,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     barra::abiertas::conectar(&ui, &ctx);
     barra::addons::conectar(&ui, &ctx);
+    barra::claude::conectar(&ui, &ctx);
     barra::atajos::conectar(&ui, &ctx);
     barra::boveda::conectar(&ui, &ctx);
     barra::buscador::conectar(&ui, &ctx);

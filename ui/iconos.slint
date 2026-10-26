@@ -219,6 +219,19 @@ export component IconoVolumen inherits Rectangle {
     }
 }
 
+// Conversación con Claude Code: un destello de ocho puntas.
+export component IconoClaude inherits Path {
+    in property <color> tono;
+    width: 16px;
+    height: 16px;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    commands: "M 8 1.5 L 8 14.5 M 1.5 8 L 14.5 8 M 3.4 3.4 L 12.6 12.6 M 12.6 3.4 L 3.4 12.6";
+    stroke: root.tono;
+    stroke-width: 1.8px;
+    fill: transparent;
+}
+
 // Altavoz del volumen general: una onda con poco volumen, dos con más y una cruz en silencio.
 export component IconoSonido inherits Rectangle {
     in property <color> tono;

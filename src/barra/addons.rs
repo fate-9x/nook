@@ -663,7 +663,7 @@ thread_local! {
 }
 
 /// Hace algo en el hilo de la interfaz desde otro hilo.
-fn en_la_interfaz(f: impl FnOnce(&Ctx) + Send + 'static) {
+pub(crate) fn en_la_interfaz(f: impl FnOnce(&Ctx) + Send + 'static) {
     let _ = slint::invoke_from_event_loop(move || {
         ATENDER.with(|a| {
             if let Some(ctx) = a.borrow().as_ref() {

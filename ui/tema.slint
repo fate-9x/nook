@@ -148,6 +148,12 @@ export struct AddonFila {
     error: string,
 }
 
+// Mensaje de la conversación con Claude Code.
+export struct MensajeClaude {
+    tipo: int,          // 0 del usuario, 1 de Claude, 2 nota (una herramienta que usa, un error…)
+    texto: string,
+}
+
 // Icono del área de notificación de otro programa.
 export struct IconoBandejaItem {
     icono: image,

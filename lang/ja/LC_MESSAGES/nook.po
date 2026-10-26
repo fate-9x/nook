@@ -703,3 +703,45 @@ msgstr "アドオンを追加できませんでした: {}"
 
 msgid "Para conectarlo, abre en Claude Desktop Configuración → Desarrollador → Editar configuración y vuelve a pulsar este botón."
 msgstr "接続するには、Claude Desktop で [設定] → [開発者] → [構成を編集] を開いてから、もう一度このボタンを押してください。"
+
+msgid "Carpeta…"
+msgstr "フォルダー…"
+
+msgid "Nueva"
+msgstr "新規"
+
+msgid "Enviar"
+msgstr "送信"
+
+msgid "Parar"
+msgstr "停止"
+
+msgid "Claude está trabajando…"
+msgstr "Claude が作業中…"
+
+msgid "Escribe a Claude…"
+msgstr "Claude にメッセージ…"
+
+msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
+msgstr "下の欄から Claude Code に話しかけましょう。上のフォルダーで作業し、設定で許可したものだけを使います。"
+
+msgid "Conversación con Claude Code"
+msgstr "Claude Code との会話"
+
+msgid "Necesita Claude Code instalado"
+msgstr "Claude Code のインストールが必要です"
+
+msgid "No se encuentra Claude Code: instálalo y vuelve a intentarlo."
+msgstr "Claude Code が見つかりません。インストールしてからもう一度お試しください。"
+
+msgid "No se pudo abrir Claude Code: {}"
+msgstr "Claude Code を開けませんでした: {}"
+
+msgid "Claude no tuvo permiso para usar: {}"
+msgstr "Claude に使用が許可されていなかったもの: {}"
+
+msgid "Claude Code falló: {}"
+msgstr "Claude Code でエラーが発生しました: {}"
+
+msgid "Respuesta parada."
+msgstr "応答を停止しました。"

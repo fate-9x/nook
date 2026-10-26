@@ -112,6 +112,10 @@ export component CampoTexto inherits Rectangle {
     callback edited(string);
     callback accepted();
 
+    public function enfocar() {
+        entrada.focus();
+    }
+
     height: 30px;
     border-radius: 11px;
     background: Tema.capa;

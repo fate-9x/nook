@@ -2,9 +2,9 @@
 // que toca (cada uno en su archivo de ui/). Aquí se personaliza lo visual: colores, tamaños, qué
 // elementos aparecen y en qué orden. Cada vez que guardes y hagas `cargo run` verás los cambios.
 
-import { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme } from "tema.slint";
+import { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme, MensajeClaude } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
-import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria } from "iconos.slint";
+import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria, IconoClaude } from "iconos.slint";
 import { Boton } from "controles.slint";
 import { PanelGrupo } from "grupo.slint";
 import { PanelConfiguracion } from "configuracion.slint";
@@ -12,15 +12,16 @@ import { PanelBoveda } from "boveda.slint";
 import { PanelReproductor } from "reproductor.slint";
 import { PanelBuscador } from "buscador.slint";
 import { PanelSonido } from "sonido.slint";
+import { PanelClaude } from "claude.slint";
 
 // Lo que usa Rust (src/main.rs y src/barra/): los colores, los datos de las listas y las dos ventanas.
-export { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza }
+export { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza, MensajeClaude }
 export { Emergente } from "emergente.slint";
 
 export component Barra inherits Window {
     // ---- Estado que llega desde Rust (src/main.rs y src/barra/) ----
     in property <int> posicion;          // 0 arriba, 1 izquierda, 2 derecha, 3 abajo
-    in property <int> modo;              // 0 oculta, 1 reposo, 2 grupo abierto, 3 configuración, 4 buscador, 5 bóveda, 6 reproductor, 7 sonido, 8 addon
+    in property <int> modo;              // 0 oculta, 1 reposo, 2 grupo abierto, 3 configuración, 4 buscador, 5 bóveda, 6 reproductor, 7 sonido, 8 addon, 9 Claude
     in property <[ElementoItem]> elementos;    // los de la barra (para la lista de atajos)
     // Lo que se ve en la tira: primero las apps abiertas (las de la barra que lo están, también) y
     // luego los demás elementos de la barra. Los callbacks de la tira dan la posición en ella.
@@ -145,6 +146,12 @@ export component Barra inherits Window {
     in property <bool> reproductor-en-barra;    // en la tira (si no, se abre con el personaje)
     // Volumen general de Windows: si su botón va en la tira, y cómo está la salida de audio.
     in property <bool> boton-sonido: true;
+    // Conversación con Claude Code (ver ui/claude.slint): su botón, los mensajes, si está
+    // respondiendo y la carpeta en la que trabaja.
+    in property <bool> boton-claude;
+    in property <[MensajeClaude]> mensajes-claude;
+    in property <bool> claude-ocupado;
+    in property <string> carpeta-claude;
     in property <bool> hay-sonido;
     // Addons (ver src/addons/): sus botones en la tira; y del abierto, cuál es, su panel (que nook
     // compila al abrirlo), su tamaño y, si no se pudo cargar, por qué.
@@ -272,6 +279,12 @@ export component Barra inherits Window {
     callback alternar-silencio();
     callback rueda-sonido(float);           // giro de la rueda sobre el botón o el panel del volumen
     callback alternar-boton-sonido();
+    callback alternar-claude();             // abrir o cerrar la conversación con Claude
+    callback enviar-claude(string);
+    callback parar-claude();
+    callback nueva-conversacion-claude();
+    callback elegir-carpeta-claude();
+    callback alternar-boton-claude();
     callback alternar-microfono();          // silenciar o activar el micrófono
     // Clic en un icono del área de notificación de la tira: su índice y si es con el botón derecho.
     callback pulsar-bandeja(int, bool);
@@ -296,6 +309,9 @@ export component Barra inherits Window {
             buscador.enfocar();
         } else if (root.modo == 5) {
             panel-boveda.enfocar();
+        } else if (root.modo == 9) {
+            teclado.focus();
+            panel-claude.enfocar();
         } else {
             teclado.focus();
         }
@@ -411,8 +427,11 @@ export component Barra inherits Window {
     property <int> n-addons: root.botones-addon.length;
     property <length> eje-addons: root.fin-con-boveda + (root.usar-boveda ? 2px : root.hueco-mas);
     property <length> paso-addon: root.boton + 2px;
-    property <length> fin-sin-musica: root.n-addons == 0 ? root.fin-con-boveda
+    property <length> fin-addons: root.n-addons == 0 ? root.fin-con-boveda
         : root.eje-addons + root.n-addons * root.paso-addon - 2px;
+    // Tras ellos, el botón de la conversación con Claude (donde iría otro addon).
+    property <length> eje-claude: root.eje-addons + root.n-addons * root.paso-addon;
+    property <length> fin-sin-musica: root.boton-claude ? root.eje-claude + root.boton : root.fin-addons;
     // Luego, si el reproductor va en la barra y hay algo sonando o en pausa, tras una línea: la
     // portada (abre el reproductor) y los botones de anterior, pausa y siguiente.
     property <bool> musica-en-tira: root.reproductor-en-barra && root.hay-musica;
@@ -488,13 +507,16 @@ export component Barra inherits Window {
     // Volumen general: el nombre de la salida y, debajo, el volumen.
     property <length> ancho-sonido: 300px;
     property <length> alto-sonido: 14px + 16px + 8px + 30px + 14px;
+    // Conversación con Claude: la cabecera, los mensajes y el campo para escribir.
+    property <length> ancho-claude: 440px;
+    property <length> alto-claude: 440px;
     property <bool> abierto: root.modo >= 2;
     property <length> ancho-contenido: root.modo == 2 ? root.ancho-grupo : root.modo == 3 ? root.ancho-config
         : root.modo == 4 || root.modo == 5 ? root.ancho-buscar : root.modo == 6 ? root.ancho-musica
-        : root.modo == 7 ? root.ancho-sonido : root.modo == 8 ? root.ancho-addon : 0px;
+        : root.modo == 7 ? root.ancho-sonido : root.modo == 8 ? root.ancho-addon : root.modo == 9 ? root.ancho-claude : 0px;
     property <length> alto-contenido: root.modo == 2 ? root.alto-grupo : root.modo == 3 ? root.alto-config
         : root.modo == 4 ? root.alto-buscar : root.modo == 5 ? root.alto-boveda : root.modo == 6 ? root.alto-musica
-        : root.modo == 7 ? root.alto-sonido : root.modo == 8 ? root.alto-panel-addon : 0px;
+        : root.modo == 7 ? root.alto-sonido : root.modo == 8 ? root.alto-panel-addon : root.modo == 9 ? root.alto-claude : 0px;
     property <length> alto-panel-addon: root.ajustar-alto-addon && root.error-addon == ""
         ? min(root.alto-addon, contenedor-addon.preferred-height) : root.alto-addon;
 
@@ -542,6 +564,7 @@ export component Barra inherits Window {
         : root.modo == 6 && root.musica-en-tira ? root.a-lo-largo(root.eje-musica)
         : root.modo == 7 && root.boton-sonido ? root.a-lo-largo(root.eje-sonido)
         : root.modo == 8 && root.addon-abierto >= 0 ? root.a-lo-largo(root.eje-addons + root.addon-abierto * root.paso-addon)
+        : root.modo == 9 && root.boton-claude ? root.a-lo-largo(root.eje-claude)
         : root.inicio-tira + (root.largo-tira - root.boton) / 2);
     property <length> largo-panel: root.vertical ? root.alto-contenido : root.ancho-contenido;
     property <length> desde-panel: root.largo-tira < root.largo-panel ? (root.vertical ? 0px : (root.ancho - root.largo-panel) / 2)
@@ -1265,6 +1288,21 @@ export component Barra inherits Window {
             }
         }
 
+        // Claude: abre o cierra la conversación.
+        if root.boton-claude : Boton {
+            x: root.px(root.eje-claude);
+            y: root.py(root.eje-claude);
+            activo: root.modo == 9;
+            fondo-activo: Tema.acento;
+            clicked => { root.alternar-claude(); }
+            arrastrar => { root.mover-barra(); }
+            IconoClaude {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                tono: root.modo == 9 ? Tema.sobre-acento : Tema.texto-suave;
+            }
+        }
+
         // Reproductor.
         if root.musica-en-tira : Rectangle {
             x: root.vertical ? root.tira-x + (root.grosor - 18px) / 2 : root.desfase-tira + root.linea-musica - root.exceso;
@@ -1540,6 +1578,7 @@ export component Barra inherits Window {
         boton-microfono: root.boton-microfono;
         boton-energia: root.boton-energia;
         boton-bateria: root.boton-bateria;
+        boton-claude: root.boton-claude;
         boton-buscar: root.boton-buscar;
         tecla-windows-abre-buscador: root.tecla-windows-abre-buscador;
         animaciones: root.animaciones;
@@ -1594,6 +1633,7 @@ export component Barra inherits Window {
         alternar-boton-microfono => { root.alternar-boton-microfono(); }
         alternar-boton-energia => { root.alternar-boton-energia(); }
         alternar-boton-bateria => { root.alternar-boton-bateria(); }
+        alternar-boton-claude => { root.alternar-boton-claude(); }
         alternar-boton-buscar => { root.alternar-boton-buscar(); }
         alternar-tecla-windows => { root.alternar-tecla-windows(); }
         alternar-usar-boveda => { root.alternar-usar-boveda(); }
@@ -1738,6 +1778,22 @@ export component Barra inherits Window {
         width: root.ancho-addon;
         height: root.alto-panel-addon;
         component-factory: root.panel-addon;
+    }
+
+    // ---- Conversación con Claude ----
+    panel-claude := PanelClaude {
+        visible: root.modo == 9;
+        x: root.contenido-x;
+        y: root.contenido-y;
+        width: root.ancho-claude;
+        height: root.alto-claude;
+        mensajes: root.mensajes-claude;
+        ocupado: root.claude-ocupado;
+        carpeta: root.carpeta-claude;
+        enviar(texto) => { root.enviar-claude(texto); }
+        parar => { root.parar-claude(); }
+        nueva-conversacion => { root.nueva-conversacion-claude(); }
+        elegir-carpeta => { root.elegir-carpeta-claude(); }
     }
 
     } // fin de las coordenadas de la caja

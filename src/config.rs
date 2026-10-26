@@ -116,6 +116,10 @@ pub struct Ajustes {
     pub reproductor_en_barra: bool,
     /// Botón del volumen general de Windows en la tira.
     pub boton_sonido: bool,
+    /// Botón de la conversación con Claude Code en la tira, y la carpeta en la que trabaja
+    /// ("" = la del usuario).
+    pub boton_claude: bool,
+    pub carpeta_claude: String,
     /// Botón para silenciar el micrófono en la tira.
     pub boton_microfono: bool,
     /// Botón para apagar, reiniciar o suspender el equipo en la tira.
@@ -440,6 +444,8 @@ impl Default for Ajustes {
             idioma: Idioma::Sistema,
             reproductor_en_barra: false,
             boton_sonido: true,
+            boton_claude: true,
+            carpeta_claude: String::new(),
             boton_microfono: true,
             boton_energia: true,
             boton_bateria: true,
@@ -568,6 +574,7 @@ impl Ajustes {
         self.atajo_buscar = None;
         self.reproductor_en_barra = false;
         self.boton_sonido = false;
+        self.boton_claude = false;
         self.boton_microfono = false;
         self.boton_energia = false;
         self.boton_bateria = false;
@@ -884,7 +891,7 @@ mod tests {
         assert!(!ajustes.boton_buscar && !ajustes.tecla_windows_abre_buscador && ajustes.atajo_buscar.is_none());
         assert!(!ajustes.reproductor_en_barra);
         assert!(!ajustes.boton_sonido && !ajustes.boton_microfono && ajustes.atajo_microfono.is_none());
-        assert!(!ajustes.boton_energia && !ajustes.boton_bateria);
+        assert!(!ajustes.boton_energia && !ajustes.boton_bateria && !ajustes.boton_claude);
         // Sin la barra de Windows sustituida, la barra no puede ir abajo.
         assert_eq!(ajustes.borde(), Posicion::Arriba);
         // Lo demás no cambia.

@@ -89,6 +89,7 @@ impl Ctx {
         ui.set_ejemplos_fecha(modelo(ejemplos.to_vec()));
         actualizar_reloj(ui, hoy, ajustes.fecha);
         ui.set_boton_sonido(ajustes.boton_sonido);
+        ui.set_boton_claude(ajustes.boton_claude);
         ui.set_boton_microfono(ajustes.boton_microfono);
         ui.set_boton_energia(ajustes.boton_energia);
         ui.set_boton_bateria(ajustes.boton_bateria);
