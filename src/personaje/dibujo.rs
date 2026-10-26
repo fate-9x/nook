@@ -59,11 +59,53 @@ pub fn capsula(ancho: f32, alto: f32, p: impl Fn(f32, f32) -> [f32; 2]) -> Vec<C
     trazo
 }
 
-/// Cobertura de cada píxel (0–1).
-type Mascara = Vec<f32>;
+/// Cobertura de cada píxel (0–1), guardada solo en el tramo de píxeles (en orden de lectura) en
+/// el que hay algo: fuera de él, nada. Casi todas las formas cubren poco de la imagen, y así no
+/// se guardan ni se recorren imágenes enteras por cada una.
+#[derive(Clone, Default)]
+struct Mascara {
+    desde: usize,
+    valores: Vec<f32>,
+}
+
+impl Mascara {
+    /// Toda la imagen de `n` píxeles, sin nada.
+    fn vacia(n: usize) -> Mascara {
+        Mascara { desde: 0, valores: vec![0.0; n] }
+    }
+
+    /// La cobertura del píxel `i`.
+    fn en(&self, i: usize) -> f32 {
+        i.checked_sub(self.desde).and_then(|j| self.valores.get(j)).copied().unwrap_or(0.0)
+    }
+
+    /// Cada píxel del tramo guardado con su cobertura.
+    fn pixeles(&self) -> impl Iterator<Item = (usize, f32)> + '_ {
+        self.valores.iter().enumerate().map(|(j, &v)| (self.desde + j, v))
+    }
+
+    /// Junta `otra` en esta (que tiene que guardar toda la imagen) con `f(esta, otra)`, en lo
+    /// que cubre `otra` (`f(v, 0)` tiene que dar `v`).
+    fn juntar(&mut self, otra: &Mascara, f: impl Fn(f32, f32) -> f32) {
+        for (i, v) in otra.pixeles() {
+            let t = &mut self.valores[i - self.desde];
+            *t = f(*t, v);
+        }
+    }
+
+    /// Cambia esta con `f(esta, otra)` en lo que cubre (`f(0, v)` tiene que dar 0).
+    fn recortar(&mut self, otra: &Mascara, f: impl Fn(f32, f32) -> f32) {
+        let desde = self.desde;
+        for (j, v) in self.valores.iter_mut().enumerate() {
+            *v = f(*v, otra.en(desde + j));
+        }
+    }
+}
 
 fn a_mascara(cobertura: Vec<u8>, alfa: f32) -> Mascara {
-    cobertura.into_iter().map(|v| v as f32 / 255.0 * alfa).collect()
+    let Some(desde) = cobertura.iter().position(|&v| v != 0) else { return Mascara::default() };
+    let hasta = cobertura.iter().rposition(|&v| v != 0).map_or(desde, |h| h + 1);
+    Mascara { desde, valores: cobertura[desde..hasta].iter().map(|&v| v as f32 / 255.0 * alfa).collect() }
 }
 
 /// Cobertura de un trazo ya en píxeles pintado de una manera; los grosores, en unidades de radio.
@@ -327,12 +369,10 @@ impl Pintor<'_> {
             let q = (cx + (x - cx) * agrandar, cy + (y - cy) * agrandar);
             if muelle { self.con_muelle(q) } else { q }
         };
-        let mut total: Mascara = vec![0.0; (self.lado * self.lado) as usize];
+        let mut total = Mascara::vacia((self.lado * self.lado) as usize);
         for capa in self.figura.capas().iter().filter(|c| c.tipo == TipoCapa::Cuerpo) {
             for forma in &capa.formas {
-                for (t, v) in total.iter_mut().zip(self.forma(forma, 1.0, &mover)) {
-                    *t = (*t).max(v);
-                }
+                total.juntar(&self.forma(forma, 1.0, &mover), f32::max);
             }
         }
         total
@@ -346,9 +386,7 @@ impl Pintor<'_> {
             TipoCapa::Cuerpo => {
                 for (i, forma) in capa.formas.iter().enumerate() {
                     let cubre = self.forma(forma, 1.0, &|p| muelle(cabeza.contorno(p)));
-                    for (t, &v) in capas.cuerpo.iter_mut().zip(&cubre) {
-                        *t = t.max(v);
-                    }
+                    capas.cuerpo.juntar(&cubre, f32::max);
                     // La primera da el color de base; las demás se pintan encima.
                     if i == 0 && matches!(capas.base, Base::Color(_)) && capas.pinturas.is_empty() {
                         capas.base = Base::Color(self.color(forma.color));
@@ -390,7 +428,7 @@ impl Pintor<'_> {
                         let color = self.color(forma.color);
                         match (&recorte, encima) {
                             (Some(recorte), _) => {
-                                cubre.iter_mut().zip(recorte).for_each(|(v, &r)| *v = v.min(r));
+                                cubre.recortar(recorte, f32::min);
                                 capas.delante.push((color, cubre, false));
                             }
                             (None, true) => capas.delante.push((color, cubre, true)),
@@ -468,7 +506,7 @@ impl Pintor<'_> {
                 // baja: queda solo la parte de arriba, «∩».
                 if alegre.is_none() && arco > 0.01 && matches!(forma.pintura, Pintura::Relleno { .. }) {
                     let corte = self.subtrazos(&forma.subtrazos, forma.pintura, 1.0, &colocar(1.3, alto * (1.0 - 0.5 * arco), reflejo, forma));
-                    cubre.iter_mut().zip(corte).for_each(|(v, q)| *v *= 1.0 - q.min(1.0));
+                    cubre.recortar(&corte, |v, q| v * (1.0 - q.min(1.0)));
                 }
                 capas.pinturas.push((self.color(forma.color), cubre));
             }
@@ -529,19 +567,17 @@ impl Pintor<'_> {
         let quita_contorno = estilo != EstiloParpado::Cerrado;
         let rellenas: Vec<&&Forma> = fijas.iter().filter(|f| matches!(f.pintura, Pintura::Relleno { .. })).collect();
         let dentro: Vec<&&Forma> = if rellenas.is_empty() || quita_contorno { fijas.iter().collect() } else { rellenas };
-        let mut ojo_entero: Mascara = vec![0.0; (self.lado * self.lado) as usize];
+        let mut ojo_entero = Mascara::vacia((self.lado * self.lado) as usize);
         // El borde suavizado del ojo, tapado entero: si no, asoma como un arco tenue.
         for f in &dentro {
-            for (t, v) in ojo_entero.iter_mut().zip(self.subtrazos(&f.subtrazos, f.pintura, 1.0, colocar)) {
-                *t = t.max((v * 4.0).min(1.0));
-            }
+            ojo_entero.juntar(&self.subtrazos(&f.subtrazos, f.pintura, 1.0, colocar), |t, v| t.max((v * 4.0).min(1.0)));
         }
         let borde = y0 + (y1 - y0) * cierre;
         let margen = (x1 - x0) * 0.1;
         let rectangulo = |arriba: f32, abajo: f32| Subtrazo { puntos: vec![(x0 - margen, arriba), (x1 + margen, arriba), (x1 + margen, abajo), (x0 - margen, abajo)], cerrado: true };
         let relleno = Pintura::Relleno { par_impar: false };
         let mut cubre = self.subtrazos(&[rectangulo(y0 - margen, borde)], relleno, alfa, colocar);
-        cubre.iter_mut().zip(&ojo_entero).for_each(|(v, &o)| *v = v.min(o));
+        cubre.recortar(&ojo_entero, f32::min);
         let piel = self.figura.capas().iter().find(|c| c.tipo == TipoCapa::Cuerpo).and_then(|c| c.formas.first()).map_or([255; 3], |f| f.color);
         capas.pinturas.push((self.color(piel), cubre));
         // Su línea, del color y el grosor del contorno del ojo, y el contorno otra vez encima
@@ -551,7 +587,7 @@ impl Pintor<'_> {
         if let Some(contorno) = lineas.first() {
             let linea = Subtrazo { puntos: vec![(x0 - margen, borde), (x1 + margen, borde)], cerrado: false };
             let mut cubre = self.subtrazos(&[linea], contorno.pintura, alfa, colocar);
-            cubre.iter_mut().zip(&ojo_entero).for_each(|(v, &o)| *v = v.min(o));
+            cubre.recortar(&ojo_entero, f32::min);
             capas.pinturas.push((self.color(contorno.color), cubre));
         }
         let corte = match estilo {
@@ -563,7 +599,7 @@ impl Pintor<'_> {
         for f in lineas {
             let mut cubre = self.subtrazos(&f.subtrazos, f.pintura, alfa * f.alfa, colocar);
             if let Some(debajo) = &debajo {
-                cubre.iter_mut().zip(debajo).for_each(|(v, &d)| *v = v.min(d));
+                cubre.recortar(debajo, f32::min);
             }
             capas.pinturas.push((self.color(f.color), cubre));
         }
@@ -613,9 +649,7 @@ impl Pintor<'_> {
                 }
                 if delante > 0.0 {
                     let cubre = self.forma(forma, delante, &colocar);
-                    for (t, &v) in capas.cuerpo.iter_mut().zip(&cubre) {
-                        *t = t.max(v);
-                    }
+                    capas.cuerpo.juntar(&cubre, f32::max);
                     capas.pinturas.push((self.color(forma.color), cubre));
                 }
             }
@@ -660,7 +694,7 @@ impl Pintor<'_> {
         }
         let mitad = self.lado as f32 / 2.0;
         let mut colores = vec![[0.0; 3]; (self.lado * self.lado) as usize];
-        for (i, (cubre, color)) in capas.cuerpo.iter_mut().zip(colores.iter_mut()).enumerate() {
+        for (i, (cubre, color)) in capas.cuerpo.valores.iter_mut().zip(colores.iter_mut()).enumerate() {
             let (px, py) = ((i as u32 % self.lado) as f32 + 0.5, (i as u32 / self.lado) as f32 + 0.5);
             let reposo = self.cuadro.cabeza.desde_cuerpo(((px - mitad) / self.escala, (py - mitad) / self.escala - BAJADA));
             let (x, y) = (centro.0 + reposo.0 * unidad, centro.1 + reposo.1 * unidad);
@@ -720,7 +754,7 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
     let pantalla = |(x, y): Punto| [centro + x * escala, centro + (y + BAJADA) * escala];
     let pintor = Pintor { cuadro, figura, aspecto, lado, escala, pantalla: &pantalla };
     let n = (lado * lado) as usize;
-    let mut capas = Capas { detras: Vec::new(), cuerpo: vec![0.0; n], base: Base::Color(aspecto.cuerpo), pinturas: Vec::new(), delante: Vec::new() };
+    let mut capas = Capas { detras: Vec::new(), cuerpo: Mascara::vacia(n), base: Base::Color(aspecto.cuerpo), pinturas: Vec::new(), delante: Vec::new() };
     let tapado = Tapado {
         cabeza: aspecto.accesorios.iter().any(Puesto::tapa_la_cabeza),
         ojos: aspecto.accesorios.iter().any(Puesto::tapa_los_ojos),
@@ -763,33 +797,38 @@ pub fn dibujar(cuadro: &Cuadro, lado: u32, aspecto: &Aspecto) -> Image {
         (x, y, p.radio * escala, p.muesca * escala)
     });
 
+    // El color de lo pintado en el cuerpo, capa a capa, solo donde cubre cada una.
+    let mut bases = match capas.base {
+        Base::Color(c) => vec![c.map(f32::from); n],
+        Base::Imagen(colores) => colores,
+    };
+    for (tono, cubre) in &capas.pinturas {
+        for (i, k) in cubre.pixeles().filter(|&(_, k)| k != 0.0) {
+            let k = k.min(1.0);
+            for c in 0..3 {
+                bases[i][c] += (tono[c] as f32 - bases[i][c]) * k;
+            }
+        }
+    }
+
     let mut buffer = SharedPixelBuffer::<Rgba8Pixel>::new(lado, lado);
     for (i, pixel) in buffer.make_mut_slice().iter_mut().enumerate() {
         // Premultiplicado: cada canal ya va multiplicado por la opacidad. De abajo arriba: lo de
         // detrás, el cuerpo con lo pintado en él, lo de delante y la pastilla.
         let mut color: Pixel = [0.0; 4];
         for (tono, cubre) in &capas.detras {
-            encima(&mut color, *tono, cubre[i]);
+            encima(&mut color, *tono, cubre.en(i));
         }
-        let b = capas.cuerpo[i];
+        let b = capas.cuerpo.valores[i];
         if b > 0.0 {
-            let mut base = match &capas.base {
-                Base::Color(c) => c.map(f32::from),
-                Base::Imagen(colores) => colores[i],
-            };
-            for (tono, cubre) in &capas.pinturas {
-                let k = cubre[i].min(1.0);
-                for c in 0..3 {
-                    base[c] += (tono[c] as f32 - base[c]) * k;
-                }
-            }
+            let base = bases[i];
             for c in 0..3 {
                 color[c] = base[c] * b + color[c] * (1.0 - b);
             }
             color[3] = 255.0 * b + color[3] * (1.0 - b);
         }
         for (tono, cubre, recortar) in &capas.delante {
-            encima(&mut color, *tono, if *recortar { cubre[i].min(b) } else { cubre[i] });
+            encima(&mut color, *tono, if *recortar { cubre.en(i).min(b) } else { cubre.en(i) });
         }
         if let Some((x, y, radio, muesca)) = pastilla {
             let distancia = ((i as u32 % lado) as f32 + 0.5 - x).hypot((i as u32 / lado) as f32 + 0.5 - y);
