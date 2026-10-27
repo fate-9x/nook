@@ -775,3 +775,12 @@ msgstr "Model: {}"
 
 msgid "Esfuerzo: {}"
 msgstr "Effort: {}"
+
+msgid "5 horas"
+msgstr "5 hours"
+
+msgid "Semana"
+msgstr "Week"
+
+msgid "hasta"
+msgstr "until"

@@ -775,3 +775,12 @@ msgstr "モデル: {}"
 
 msgid "Esfuerzo: {}"
 msgstr "推論量: {}"
+
+msgid "5 horas"
+msgstr "5時間"
+
+msgid "Semana"
+msgstr "週"
+
+msgid "hasta"
+msgstr "リセット"

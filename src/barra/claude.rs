@@ -13,6 +13,8 @@ pub(crate) struct Conversacion {
     respuesta: Option<claude::Respuesta>,
     /// Cuenta las preguntas: lo que llegue de una que se paró se descarta.
     turno: u64,
+    /// Lo último que se sabe del uso de los límites de 5 horas y semanal (ver `claude::Suceso::Uso`).
+    uso: (Option<(f32, i64)>, Option<(f32, i64)>),
 }
 
 /// Modelos y esfuerzos que se pueden elegir: lo que se le pasa a `claude` y cómo se llama ("" =
@@ -35,6 +37,16 @@ fn esfuerzos() -> Vec<(&'static str, &'static str)> {
 /// Cómo se llama la opción `valor` de una lista.
 fn nombre_de(lista: &[(&str, &'static str)], valor: &str) -> &'static str {
     lista.iter().find(|(v, _)| *v == valor).map_or(lista[0].1, |(_, nombre)| nombre)
+}
+
+/// Uso de un límite, como "5 h: 17 % · hasta 14:20" (o "—" si aún no se sabe).
+fn texto_uso(nombre: &str, uso: Option<(f32, i64)>) -> String {
+    let Some((parte, reinicio)) = uso else { return format!("{nombre}: —") };
+    let hasta = chrono::DateTime::from_timestamp(reinicio, 0).map(|d| d.with_timezone(&Local)).map_or(String::new(), |d| {
+        let formato = if d.date_naive() == Local::now().date_naive() { "%H:%M" } else { "%d/%m %H:%M" };
+        format!(" · {} {}", tr("hasta"), d.format(formato))
+    });
+    format!("{nombre}: {:.0} %{hasta}", parte * 100.0)
 }
 
 /// Tipos de mensaje del panel (ver ui/claude.slint).
@@ -62,6 +74,7 @@ impl Ctx {
         ui.set_carpeta_claude(carpeta_claude(&e.config.ajustes).display().to_string().into());
         ui.set_modelo_claude(tr_con("Modelo: {}", &[nombre_de(&modelos(), &e.config.ajustes.modelo_claude)]).into());
         ui.set_esfuerzo_claude(tr_con("Esfuerzo: {}", &[nombre_de(&esfuerzos(), &e.config.ajustes.esfuerzo_claude)]).into());
+        ui.set_uso_claude(format!("{}\n{}", texto_uso(tr("5 horas"), e.claude.uso.0), texto_uso(tr("Semana"), e.claude.uso.1)).into());
     }
 
     /// Menú para elegir el modelo (`esfuerzo` false) o el esfuerzo con que responde Claude.
@@ -115,6 +128,7 @@ impl Ctx {
             claude::Suceso::Sesion(id) => self.estado.borrow_mut().claude.sesion = Some(id),
             claude::Suceso::Texto(texto) => self.anotar_claude(DE_CLAUDE, texto),
             claude::Suceso::Herramienta(uso) => self.anotar_claude(NOTA, format!("→ {uso}")),
+            claude::Suceso::Uso { cinco_horas, semana } => self.estado.borrow_mut().claude.uso = (cinco_horas, semana),
             claude::Suceso::Fin { denegadas, error } => {
                 self.estado.borrow_mut().claude.respuesta = None;
                 if !denegadas.is_empty() {

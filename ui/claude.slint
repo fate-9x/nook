@@ -222,6 +222,7 @@ export component PanelClaude inherits Rectangle {
     in property <string> carpeta;
     in property <string> modelo;            // "Modelo: Opus"
     in property <string> esfuerzo;          // "Esfuerzo: Alto"
+    in property <string> uso;               // el de 5 horas y, debajo, el semanal
     in-out property <string> texto;         // lo que se está escribiendo
     callback enviar(string);
     callback elegir-modelo();
@@ -275,7 +276,7 @@ export component PanelClaude inherits Rectangle {
         }
     }
 
-    // Modelo y esfuerzo.
+    // Modelo, esfuerzo y cuánto se ha usado de los límites.
     HorizontalLayout {
         x: 16px;
         y: 50px;
@@ -295,6 +296,14 @@ export component PanelClaude inherits Rectangle {
                 texto: root.esfuerzo;
                 clicked => { root.elegir-esfuerzo(); }
             }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.uso;
+            color: Tema.texto-tenue;
+            font-size: 10px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
         }
     }
 

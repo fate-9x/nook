@@ -15,6 +15,9 @@ pub enum Suceso {
     Herramienta(String),
     /// Ha terminado: las herramientas que no le dejaron usar y, si falló, por qué.
     Fin { denegadas: Vec<String>, error: Option<String> },
+    /// Cuánto se ha usado del límite de 5 horas y del semanal: la parte usada (0–1) y cuándo se
+    /// reinicia (segundos desde 1970).
+    Uso { cinco_horas: Option<(f32, i64)>, semana: Option<(f32, i64)> },
 }
 
 /// Una respuesta en marcha.

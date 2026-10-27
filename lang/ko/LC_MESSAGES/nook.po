@@ -775,3 +775,12 @@ msgstr "모델: {}"
 
 msgid "Esfuerzo: {}"
 msgstr "추론 수준: {}"
+
+msgid "5 horas"
+msgstr "5시간"
+
+msgid "Semana"
+msgstr "주간"
+
+msgid "hasta"
+msgstr "초기화"

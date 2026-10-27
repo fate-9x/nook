@@ -157,6 +157,7 @@ export component Barra inherits Window {
     in property <string> carpeta-claude;
     in property <string> modelo-claude;
     in property <string> esfuerzo-claude;
+    in property <string> uso-claude;
     in property <bool> hay-sonido;
     // Addons (ver src/addons/): sus botones en la tira; y del abierto, cuál es, su panel (que nook
     // compila al abrirlo), su tamaño y, si no se pudo cargar, por qué.
@@ -1804,6 +1805,7 @@ export component Barra inherits Window {
         carpeta: root.carpeta-claude;
         modelo: root.modelo-claude;
         esfuerzo: root.esfuerzo-claude;
+        uso: root.uso-claude;
         elegir-modelo => { root.elegir-modelo-claude(); }
         elegir-esfuerzo => { root.elegir-esfuerzo-claude(); }
         enviar(texto) => { root.enviar-claude(texto); }
