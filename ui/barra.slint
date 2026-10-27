@@ -690,8 +690,10 @@ export component Barra inherits Window {
     property <length> empalme-final: max(0px, min(min(root.radio-empalme, abs(root.sobra-final) / 2), root.b-grosor));
     // Esquinas que dan a la juntura, en cada extremo: la de la pieza que sobresale es redonda (y deja
     // sitio al empalme); la otra, recta. Mientras el panel sale, la tira va perdiendo las suyas.
+    // Si el panel sobresale, la de la tira es recta en cuanto el panel tiene un píxel de grosor:
+    // redondeándose poco a poco, entre su curva y el panel, aún fino, quedaba un hueco al plegarlo.
     pure function radio-tira-juntura(sobra: length, empalme: length) -> length {
-        return sobra >= 0px ? max(0px, root.radio - root.b-grosor)
+        return sobra >= 0px ? root.radio * max(0, 1 - root.b-grosor * root.escala / 1px)
             : min(root.radio, max(-sobra - empalme, root.radio - root.b-grosor));
     }
     pure function radio-panel-juntura(sobra: length, empalme: length) -> length {
