@@ -593,14 +593,28 @@ export component Barra inherits Window {
     // desenfoque de lo de detrás, para que solo se vea dentro de la barra.
     // Con la barra oculta solo se asoma el personaje, sin fondo ni desenfoque.
     // Son las dos piezas de la barra (ver "Forma de la barra", más abajo).
-    out property <Pieza> forma-tira: root.modo == 0 || root.moviendo ? {} : {
-        x: root.sa-x0, y: root.sa-y0, ancho: root.sa-x1 - root.sa-x0, alto: root.sa-y1 - root.sa-y0,
-        arriba-izquierda: root.ra-ai, arriba-derecha: root.ra-ad, abajo-derecha: root.ra-bd, abajo-izquierda: root.ra-bi,
-    };
-    out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : {
-        x: root.sb-x0, y: root.sb-y0, ancho: max(0px, root.sb-x1 - root.sb-x0), alto: max(0px, root.sb-y1 - root.sb-y0),
-        arriba-izquierda: root.rb-ai, arriba-derecha: root.rb-ad, abajo-derecha: root.rb-bd, abajo-izquierda: root.rb-bi,
-    };
+    out property <Pieza> forma-tira: root.modo == 0 || root.moviendo ? {} : root.visible-de(
+        root.sa-x0, root.sa-y0, root.sa-x1, root.sa-y1, root.ra-ai, root.ra-ad, root.ra-bd, root.ra-bi);
+    out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : root.visible-de(
+        root.sb-x0, root.sb-y0, root.sb-x1, root.sb-y1, root.rb-ai, root.rb-ad, root.rb-bd, root.rb-bi);
+    // Lo que se ve de una pieza: el contorno, que se anima aparte, la recorta mientras la barra se
+    // despliega o se recoge (el panel, por ejemplo, ya tiene su largo final cuando el contorno aún
+    // está creciendo). Sin esto, el desenfoque asomaba fuera de la barra. Por donde se recorta, la
+    // esquina queda recta, como la dibuja el contorno.
+    pure function visible-de(x0: length, y0: length, x1: length, y1: length,
+        ai: length, ad: length, bd: length, bi: length) -> Pieza {
+        let vx0 = max(x0, contorno.x);
+        let vy0 = max(y0, contorno.y);
+        let vx1 = min(x1, contorno.x + contorno.width);
+        let vy1 = min(y1, contorno.y + contorno.height);
+        return {
+            x: vx0, y: vy0, ancho: max(0px, vx1 - vx0), alto: max(0px, vy1 - vy0),
+            arriba-izquierda: vx0 > x0 || vy0 > y0 ? 0px : ai,
+            arriba-derecha: vx1 < x1 || vy0 > y0 ? 0px : ad,
+            abajo-derecha: vx1 < x1 || vy1 < y1 ? 0px : bd,
+            abajo-izquierda: vx0 > x0 || vy1 < y1 ? 0px : bi,
+        };
+    }
 
     // ---- Forma de la barra ----
     // No es un solo rectángulo: es la tira (con la zona del personaje) y, pegado a ella, el panel
