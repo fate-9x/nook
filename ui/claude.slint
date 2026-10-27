@@ -19,14 +19,14 @@ component TextoSeleccionable inherits TextInput {
 // Parte de un mensaje de Claude con su formato.
 component Bloque inherits VerticalLayout {
     in property <BloqueClaude> bloque;
-    callback abrir-enlace(string);
 
-    if root.bloque.tipo <= 1 : StyledText {
+    if root.bloque.tipo == 0 : TextoSeleccionable {
         text: root.bloque.texto;
-        default-color: Tema.texto;
-        default-font-size: root.bloque.tipo == 1 ? 14px : 12px;
-        link-color: Tema.acento;
-        link-clicked(enlace) => { root.abrir-enlace(enlace); }
+    }
+    if root.bloque.tipo == 1 : TextoSeleccionable {
+        text: root.bloque.texto;
+        font-size: 14px;
+        font-weight: 700;
     }
     if root.bloque.tipo == 2 : HorizontalLayout {
         spacing: 8px;
@@ -35,13 +35,10 @@ component Bloque inherits VerticalLayout {
             border-radius: 1.5px;
             background: Tema.linea;
         }
-        StyledText {
+        TextoSeleccionable {
             horizontal-stretch: 1;
             text: root.bloque.texto;
-            default-color: Tema.texto-suave;
-            default-font-size: 12px;
-            link-color: Tema.acento;
-            link-clicked(enlace) => { root.abrir-enlace(enlace); }
+            color: Tema.texto-suave;
         }
     }
     if root.bloque.tipo == 3 : Rectangle {
@@ -50,7 +47,7 @@ component Bloque inherits VerticalLayout {
         VerticalLayout {
             padding: 8px;
             TextoSeleccionable {
-                text: root.bloque.crudo;
+                text: root.bloque.texto;
                 font-family: "Consolas";
                 font-size: 11px;
             }
@@ -159,13 +156,11 @@ component Accion inherits Text {
     }
 }
 
-// Un mensaje: los del usuario en un globo, los de Claude con formato (o, para seleccionar una
-// parte, tal cual) y las notas en pequeño.
+// Un mensaje: los del usuario en un globo, los de Claude con formato y las notas en pequeño. El
+// texto se puede seleccionar y copiar con Ctrl+C.
 component Mensaje inherits Rectangle {
     in property <MensajeClaude> mensaje;
     callback copiar(string);
-    callback abrir-enlace(string);
-    property <bool> seleccionando;
     background: root.mensaje.tipo == 0 ? Tema.capa : transparent;
     border-radius: 10px;
 
@@ -175,14 +170,13 @@ component Mensaje inherits Rectangle {
         padding-top: root.mensaje.tipo == 0 ? 7px : 0px;
         padding-bottom: self.padding-top;
         spacing: 6px;
-        if root.mensaje.tipo == 0 || (root.mensaje.tipo == 1 && root.seleccionando) : TextoSeleccionable {
+        if root.mensaje.tipo == 0 : TextoSeleccionable {
             text: root.mensaje.texto;
         }
-        if root.mensaje.tipo == 1 && !root.seleccionando : VerticalLayout {
+        if root.mensaje.tipo == 1 : VerticalLayout {
             spacing: 8px;
             for bloque in root.mensaje.bloques : Bloque {
                 bloque: bloque;
-                abrir-enlace(enlace) => { root.abrir-enlace(enlace); }
             }
         }
         if root.mensaje.tipo == 2 : Text {
@@ -198,10 +192,6 @@ component Mensaje inherits Rectangle {
             Accion {
                 text: @tr("Copiar");
                 clicked => { root.copiar(root.mensaje.texto); }
-            }
-            Accion {
-                text: root.seleccionando ? @tr("Ver con formato") : @tr("Seleccionar texto");
-                clicked => { root.seleccionando = !root.seleccionando; }
             }
         }
     }
@@ -293,7 +283,6 @@ export component PanelClaude inherits Rectangle {
     callback nueva-conversacion();
     callback elegir-carpeta();
     callback copiar(string);
-    callback abrir-enlace(string);
 
     public function enfocar() {
         campo.enfocar();
@@ -390,7 +379,6 @@ export component PanelClaude inherits Rectangle {
             for mensaje in root.mensajes : Mensaje {
                 mensaje: mensaje;
                 copiar(texto) => { root.copiar(texto); }
-                abrir-enlace(enlace) => { root.abrir-enlace(enlace); }
             }
             if root.ocupado : Text {
                 text: @tr("Claude está trabajando…");

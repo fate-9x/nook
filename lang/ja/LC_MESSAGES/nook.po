@@ -740,12 +740,6 @@ msgstr "Claude Code でエラーが発生しました: {}"
 msgid "Respuesta parada."
 msgstr "応答を停止しました。"
 
-msgid "Ver con formato"
-msgstr "書式付きで表示"
-
-msgid "Seleccionar texto"
-msgstr "テキストを選択"
-
 msgid "Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."
 msgstr "Claude Code にサインインしていません。ターミナルを開いて claude と入力し、/login でサインインしてから、もう一度メッセージを送信してください。"
 

@@ -296,7 +296,6 @@ export component Barra inherits Window {
     callback copiar-claude(string);
     callback elegir-modelo-claude();
     callback elegir-esfuerzo-claude();
-    callback abrir-enlace-claude(string);
     callback alternar-boton-claude();
     callback alternar-microfono();          // silenciar o activar el micrófono
     // Clic en un icono del área de notificación de la tira: su índice y si es con el botón derecho.
@@ -1819,7 +1818,6 @@ export component Barra inherits Window {
         nueva-conversacion => { root.nueva-conversacion-claude(); }
         elegir-carpeta => { root.elegir-carpeta-claude(); }
         copiar(texto) => { root.copiar-claude(texto); }
-        abrir-enlace(enlace) => { root.abrir-enlace-claude(enlace); }
     }
 
     } // fin de las coordenadas de la caja

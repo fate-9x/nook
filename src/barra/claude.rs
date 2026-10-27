@@ -212,20 +212,43 @@ const LINEA: i32 = 4;
 fn bloques_con_formato(texto: &str) -> Vec<BloqueClaude> {
     partes_markdown(texto)
         .into_iter()
-        .map(|(tipo, crudo)| {
-            let texto = if tipo == CODIGO || tipo == LINEA {
-                slint::StyledText::default()
-            } else {
-                slint::StyledText::from_markdown(&crudo).unwrap_or_else(|_| slint::StyledText::from_plain_text(&crudo))
-            };
-            BloqueClaude { tipo, texto, crudo: crudo.into() }
+        .map(|(tipo, texto)| {
+            let texto = if matches!(tipo, PARRAFOS | CITA) { sin_marcas(&texto) } else { texto };
+            BloqueClaude { tipo, texto: texto.into() }
         })
         .collect()
 }
 
-/// Las partes de un texto en markdown. `StyledText` solo entiende párrafos, listas y el formato
-/// dentro de las líneas (y con algo más no muestra nada): los títulos, citas, bloques de código,
-/// tablas y líneas se separan aquí.
+/// Un texto en markdown sin las marcas de formato de dentro de las líneas (negritas, código,
+/// enlaces) y con viñetas en las listas, para leerlo como texto que se puede seleccionar.
+fn sin_marcas(texto: &str) -> String {
+    let linea_sin_marcas = |linea: &str| {
+        let resto = linea.trim_start();
+        let sangria = &linea[..linea.len() - resto.len()];
+        let resto = match resto.strip_prefix("- ").or_else(|| resto.strip_prefix("* ")).or_else(|| resto.strip_prefix("+ ")) {
+            Some(elemento) => format!("• {elemento}"),
+            None => resto.to_string(),
+        };
+        format!("{sangria}{}", enlaces_en_texto(&resto).replace("**", "").replace('`', ""))
+    };
+    texto.lines().map(linea_sin_marcas).collect::<Vec<_>>().join("\n")
+}
+
+/// "[texto](dirección)" pasa a "texto (dirección)".
+fn enlaces_en_texto(linea: &str) -> String {
+    let mut resultado = String::new();
+    let mut resto = linea;
+    while let Some(i) = resto.find('[') {
+        let Some(j) = resto[i..].find("](").map(|j| i + j) else { break };
+        let Some(k) = resto[j..].find(')').map(|k| j + k) else { break };
+        resultado.push_str(&format!("{}{} ({})", &resto[..i], &resto[i + 1..j], &resto[j + 2..k]));
+        resto = &resto[k + 1..];
+    }
+    resultado + resto
+}
+
+/// Las partes de un texto en markdown: los párrafos (con sus listas), títulos, citas, bloques de
+/// código, tablas y líneas, que se muestran cada uno a su manera.
 fn partes_markdown(texto: &str) -> Vec<(i32, String)> {
     let mut partes: Vec<(i32, String)> = Vec::new();
     let mut en_codigo = false;
@@ -256,7 +279,7 @@ fn partes_markdown(texto: &str) -> Vec<(i32, String)> {
         }
         let almohadillas = recortada.chars().take_while(|&c| c == '#').count();
         let (tipo, contenido) = if (1..=6).contains(&almohadillas) && recortada[almohadillas..].starts_with(' ') {
-            (TITULO, format!("**{}**", recortada[almohadillas..].trim().replace("**", "")))
+            (TITULO, recortada[almohadillas..].trim().replace("**", ""))
         } else if let Some(cita) = recortada.strip_prefix('>') {
             (CITA, cita.trim().to_string())
         } else if recortada.len() >= 3 && recortada.chars().all(|c| c == '-' || c == '*' || c == '_' || c == ' ') {
@@ -271,7 +294,7 @@ fn partes_markdown(texto: &str) -> Vec<(i32, String)> {
             (PARRAFOS, linea.to_string())
         };
         // Las líneas seguidas de párrafos, citas y tablas van juntas (los párrafos, también
-        // separados por líneas vacías: StyledText los separa).
+        // separados por líneas vacías).
         match partes.last_mut() {
             Some((anterior, junto)) if *anterior == tipo && tipo != TITULO && tipo != LINEA && (!tras_vacia || tipo == PARRAFOS) => {
                 junto.push_str(if tras_vacia { "\n\n" } else { "\n" });
@@ -312,12 +335,6 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_copiar_claude(|texto| {
         portapapeles::poner(&texto);
     });
-    // Solo las direcciones web: lo que escribe Claude no puede abrir archivos ni programas.
-    ui.on_abrir_enlace_claude(|enlace| {
-        if enlace.starts_with("https://") || enlace.starts_with("http://") {
-            let _ = sistema::lanzar(&enlace);
-        }
-    });
     let c = ctx.clone();
     ui.on_alternar_boton_claude(move || c.modificar_ajustes(|a| a.boton_claude = !a.boton_claude));
 }
@@ -333,7 +350,7 @@ mod tests {
         assert_eq!(
             partes_markdown(texto),
             [
-                (TITULO, "**Título uno**".to_string()),
+                (TITULO, "Título uno".to_string()),
                 (PARRAFOS, "Un párrafo\nque sigue.\n\n- lista\n- más".to_string()),
                 (CITA, "cita\nlarga".to_string()),
                 (CODIGO, "fn main() {}\n".to_string()),
@@ -344,6 +361,15 @@ mod tests {
         );
         // Un bloque de código sin cerrar llega hasta el final.
         assert_eq!(partes_markdown("```\nx"), [(CODIGO, "x".to_string())]);
+    }
+
+    #[test]
+    fn quita_las_marcas_de_formato_de_las_lineas() {
+        assert_eq!(
+            sin_marcas("Usa **`cargo test`** y mira [la guía](https://x.y/z).\n- uno\n  * dos"),
+            "Usa cargo test y mira la guía (https://x.y/z).\n• uno\n  • dos"
+        );
+        assert_eq!(sin_marcas("[a] sin enlace"), "[a] sin enlace");
     }
 
     #[test]
