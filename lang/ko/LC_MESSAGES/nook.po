@@ -751,3 +751,6 @@ msgstr "텍스트 선택"
 
 msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
 msgstr "Claude에게 쓰기… (Shift+Enter로 줄 바꿈)"
+
+msgid "Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."
+msgstr "Claude Code에 로그인되어 있지 않습니다. 터미널을 열고 claude를 입력한 다음 /login으로 로그인하세요. 그런 다음 메시지를 다시 보내세요."

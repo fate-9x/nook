@@ -91,7 +91,11 @@ impl Ctx {
                         e.claude.mensajes.pop();
                     }
                     drop(e);
-                    self.anotar_claude(NOTA, tr_con("Claude Code falló: {}", &[&error]));
+                    if falta_iniciar_sesion(&error) {
+                        self.anotar_claude(NOTA, tr("Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."));
+                    } else {
+                        self.anotar_claude(NOTA, tr_con("Claude Code falló: {}", &[&error]));
+                    }
                 }
                 // Con el panel cerrado, el personaje avisa de que ya respondió.
                 if self.estado.borrow().modo != Modo::Claude {
@@ -133,6 +137,12 @@ impl Ctx {
             self.nueva_conversacion_claude();
         }
     }
+}
+
+/// Si el error de Claude Code es porque no tiene la sesión iniciada (o caducó).
+fn falta_iniciar_sesion(error: &str) -> bool {
+    let error = error.to_lowercase();
+    ["authenticat", "oauth", "/login", "not logged in", "log in"].iter().any(|p| error.contains(p))
 }
 
 /// Tipos de bloque de un mensaje de Claude (ver ui/claude.slint).
@@ -274,5 +284,12 @@ mod tests {
         );
         // Un bloque de código sin cerrar llega hasta el final.
         assert_eq!(partes_markdown("```\nx"), [(CODIGO, "x".to_string())]);
+    }
+
+    #[test]
+    fn reconoce_los_errores_de_sesion() {
+        assert!(falta_iniciar_sesion("Failed to authenticate: OAuth session expired and could not be refreshed"));
+        assert!(falta_iniciar_sesion("Not logged in · Please run /login"));
+        assert!(!falta_iniciar_sesion("exit code: 1"));
     }
 }

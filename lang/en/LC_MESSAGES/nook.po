@@ -751,3 +751,6 @@ msgstr "Select text"
 
 msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
 msgstr "Write to Claude… (Shift+Enter for a new line)"
+
+msgid "Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."
+msgstr "Claude Code isn't signed in: open a terminal, type claude and sign in with /login. Then send your message again."
