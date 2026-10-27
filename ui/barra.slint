@@ -600,13 +600,19 @@ export component Barra inherits Window {
     // Lo que se ve de una pieza: el contorno, que se anima aparte, la recorta mientras la barra se
     // despliega o se recoge (el panel, por ejemplo, ya tiene su largo final cuando el contorno aún
     // está creciendo). Sin esto, el desenfoque asomaba fuera de la barra. Por donde se recorta, la
-    // esquina queda recta, como la dibuja el contorno.
+    // esquina queda recta, como la dibuja el contorno. Lo que el contorno solo recorta por menos
+    // de un píxel (sus bordes no caen en píxeles enteros) no cuenta: si no, el desenfoque perdía
+    // las esquinas redondas y se quedaba un píxel por dentro del borde de la barra.
     pure function visible-de(x0: length, y0: length, x1: length, y1: length,
         ai: length, ad: length, bd: length, bi: length) -> Pieza {
-        let vx0 = max(x0, contorno.x);
-        let vy0 = max(y0, contorno.y);
-        let vx1 = min(x1, contorno.x + contorno.width);
-        let vy1 = min(y1, contorno.y + contorno.height);
+        let cx0 = root.ajustar(contorno.x);
+        let cy0 = root.ajustar(contorno.y);
+        let cx1 = root.ajustar(contorno.x + contorno.width);
+        let cy1 = root.ajustar(contorno.y + contorno.height);
+        let vx0 = cx0 > x0 + 1px ? cx0 : x0;
+        let vy0 = cy0 > y0 + 1px ? cy0 : y0;
+        let vx1 = cx1 < x1 - 1px ? cx1 : x1;
+        let vy1 = cy1 < y1 - 1px ? cy1 : y1;
         return {
             x: vx0, y: vy0, ancho: max(0px, vx1 - vx0), alto: max(0px, vy1 - vy0),
             arriba-izquierda: vx0 > x0 || vy0 > y0 ? 0px : ai,
