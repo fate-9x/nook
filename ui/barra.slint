@@ -113,6 +113,9 @@ export component Barra inherits Window {
     in property <string> atajo-buscar;
     in property <bool> atajo-buscar-ok: true;
     in property <bool> atajo-buscar-definido;
+    in property <string> atajo-claude;
+    in property <bool> atajo-claude-ok: true;
+    in property <bool> atajo-claude-definido;
     // Sección de la configuración que se ve: 0 atajos, 1 comportamiento, 2 colores,
     // 3 apariencia, 4 personaje, 5 acerca de.
     in-out property <int> seccion;
@@ -1566,6 +1569,9 @@ export component Barra inherits Window {
         atajo-buscar: root.atajo-buscar;
         atajo-buscar-ok: root.atajo-buscar-ok;
         atajo-buscar-definido: root.atajo-buscar-definido;
+        atajo-claude: root.atajo-claude;
+        atajo-claude-ok: root.atajo-claude-ok;
+        atajo-claude-definido: root.atajo-claude-definido;
         ocultar-en-reposo: root.ocultar-en-reposo;
         ocultar-en-pantalla-completa: root.ocultar-en-pantalla-completa;
         apps-abiertas: root.apps-abiertas;

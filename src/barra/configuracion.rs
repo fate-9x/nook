@@ -115,6 +115,9 @@ impl Ctx {
         ui.set_atajo_buscar(texto_atajo(ajustes.atajo_buscar.as_ref()).into());
         ui.set_atajo_buscar_ok(e.buscar_ok);
         ui.set_atajo_buscar_definido(ajustes.atajo_buscar.is_some());
+        ui.set_atajo_claude(texto_atajo(ajustes.atajo_claude.as_ref()).into());
+        ui.set_atajo_claude_ok(e.claude_ok);
+        ui.set_atajo_claude_definido(ajustes.atajo_claude.is_some());
         ui.set_grabando_atajo(e.grabando.unwrap_or(-2));
         ui.set_fondos(modelo(ajustes.paleta(false).iter().map(|c| color(c)).collect()));
         ui.set_acentos(modelo(ajustes.paleta(true).iter().map(|c| color(c)).collect()));

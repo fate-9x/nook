@@ -107,6 +107,8 @@ pub struct Ajustes {
     pub atajo_microfono: Option<Atajo>,
     /// Abre (o cierra) el buscador para abrir una app (None = sin atajo).
     pub atajo_buscar: Option<Atajo>,
+    /// Abre (o cierra) la conversación con Claude Code (None = sin atajo).
+    pub atajo_claude: Option<Atajo>,
     /// Cómo se personalizó el personaje (sus accesorios).
     pub personaje: Personaje,
     /// Idioma de la interfaz.
@@ -440,6 +442,7 @@ impl Default for Ajustes {
             atajo_boveda: Some(Atajo::alt_shift("V")),
             atajo_microfono: Some(Atajo::alt_shift("M")),
             atajo_buscar: Some(Atajo::alt_shift("B")),
+            atajo_claude: Some(Atajo::alt_shift("C")),
             personaje: Personaje::default(),
             idioma: Idioma::Sistema,
             reproductor_en_barra: false,
@@ -572,6 +575,7 @@ impl Ajustes {
         self.boton_buscar = false;
         self.tecla_windows_abre_buscador = false;
         self.atajo_buscar = None;
+        self.atajo_claude = None;
         self.reproductor_en_barra = false;
         self.boton_sonido = false;
         self.boton_claude = false;
@@ -800,6 +804,7 @@ impl Config {
                     && !usado(&self.ajustes.atajo_boveda)
                     && !usado(&self.ajustes.atajo_microfono)
                     && !usado(&self.ajustes.atajo_buscar)
+                    && !usado(&self.ajustes.atajo_claude)
                     && self.elementos.iter().all(|e| e.atajo() != Some(a))
             });
             *self.elementos[i].atajo_mut() = libre;
@@ -891,7 +896,7 @@ mod tests {
         assert!(!ajustes.boton_buscar && !ajustes.tecla_windows_abre_buscador && ajustes.atajo_buscar.is_none());
         assert!(!ajustes.reproductor_en_barra);
         assert!(!ajustes.boton_sonido && !ajustes.boton_microfono && ajustes.atajo_microfono.is_none());
-        assert!(!ajustes.boton_energia && !ajustes.boton_bateria && !ajustes.boton_claude);
+        assert!(!ajustes.boton_energia && !ajustes.boton_bateria && !ajustes.boton_claude && ajustes.atajo_claude.is_none());
         // Sin la barra de Windows sustituida, la barra no puede ir abajo.
         assert_eq!(ajustes.borde(), Posicion::Arriba);
         // Lo demás no cambia.

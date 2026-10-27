@@ -168,6 +168,7 @@ struct Estado {
     boveda_ok: bool,
     microfono_ok: bool,
     buscar_ok: bool,
+    claude_ok: bool,
     /// Cuántos atajos de grupo hay registrados (para quitarlos antes de volver a registrar).
     registrados: usize,
     inicia_con_windows: bool,
@@ -531,6 +532,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             boveda_ok: false,
             microfono_ok: false,
             buscar_ok: false,
+            claude_ok: false,
             registrados: 0,
             inicia_con_windows: sistema::inicia_con_windows(),
             fuera: 0,

@@ -15,6 +15,9 @@ pub(crate) const ID_MICROFONO: i32 = 102;
 /// Identificador del atajo que abre el buscador para abrir una app.
 pub(crate) const ID_BUSCAR: i32 = 103;
 
+/// Identificador del atajo de la conversación con Claude Code.
+pub(crate) const ID_CLAUDE: i32 = 104;
+
 /// Texto con que se muestra un atajo en la configuración.
 pub(crate) fn texto_atajo(atajo: Option<&Atajo>) -> String {
     atajo.map_or(tr("Sin atajo").into(), Atajo::texto)
@@ -31,6 +34,7 @@ impl Ctx {
         atajos::quitar(ID_BOVEDA);
         atajos::quitar(ID_MICROFONO);
         atajos::quitar(ID_BUSCAR);
+        atajos::quitar(ID_CLAUDE);
         let ok: Vec<bool> = e
             .config
             .elementos
@@ -47,10 +51,11 @@ impl Ctx {
         // Los del micrófono y el buscador funcionan aunque su botón no esté en la tira.
         e.microfono_ok = e.config.ajustes.atajo_microfono.as_ref().is_none_or(|a| atajos::registrar(ID_MICROFONO, a));
         e.buscar_ok = e.config.ajustes.atajo_buscar.as_ref().is_none_or(|a| atajos::registrar(ID_BUSCAR, a));
+        e.claude_ok = e.config.ajustes.atajo_claude.as_ref().is_none_or(|a| atajos::registrar(ID_CLAUDE, a));
     }
 
     /// Cambia (o quita, con `None`) el atajo de `objetivo`: -1 mostrar u ocultar, -3 la bóveda, -4
-    /// el micrófono, -5 el buscador para abrir apps y 0, 1, 2… el elemento de la barra con ese
+    /// el micrófono, -5 el buscador para abrir apps, -6 la conversación con Claude y 0, 1, 2… el elemento de la barra con ese
     /// índice. Deja de grabar.
     pub(crate) fn poner_atajo(&self, objetivo: i32, atajo: Option<Atajo>) {
         {
@@ -60,6 +65,7 @@ impl Ctx {
                 -3 => e.config.ajustes.atajo_boveda = atajo,
                 -4 => e.config.ajustes.atajo_microfono = atajo,
                 -5 => e.config.ajustes.atajo_buscar = atajo,
+                -6 => e.config.ajustes.atajo_claude = atajo,
                 i => {
                     if let Some(el) = e.config.elementos.get_mut(i as usize) {
                         *el.atajo_mut() = atajo;
@@ -99,6 +105,10 @@ impl Ctx {
             self.alternar_microfono();
         } else if id == ID_BUSCAR {
             self.alternar_lanzador();
+        } else if id == ID_CLAUDE {
+            if PRO {
+                self.alternar_claude();
+            }
         } else if id == tecla_windows::ID_PULSADA {
             // Aviso del ayudante de la tecla Windows.
             if self.estado.borrow().config.ajustes.tecla_windows_abre_buscador {
