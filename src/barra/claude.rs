@@ -39,14 +39,14 @@ fn nombre_de(lista: &[(&str, &'static str)], valor: &str) -> &'static str {
     lista.iter().find(|(v, _)| *v == valor).map_or(lista[0].1, |(_, nombre)| nombre)
 }
 
-/// Uso de un límite, como "5 h: 17 % · hasta 14:20" (o "—" si aún no se sabe).
-fn texto_uso(nombre: &str, uso: Option<(f32, i64)>) -> String {
-    let Some((parte, reinicio)) = uso else { return format!("{nombre}: —") };
+/// Parte usada de un límite (-1 si aún no se sabe) y cuándo se reinicia ("hasta 14:20").
+fn uso_y_reinicio(uso: Option<(f32, i64)>) -> (f32, String) {
+    let Some((parte, reinicio)) = uso else { return (-1.0, String::new()) };
     let hasta = chrono::DateTime::from_timestamp(reinicio, 0).map(|d| d.with_timezone(&Local)).map_or(String::new(), |d| {
         let formato = if d.date_naive() == Local::now().date_naive() { "%H:%M" } else { "%d/%m %H:%M" };
-        format!(" · {} {}", tr("hasta"), d.format(formato))
+        format!("{} {}", tr("hasta"), d.format(formato))
     });
-    format!("{nombre}: {:.0} %{hasta}", parte * 100.0)
+    (parte, hasta)
 }
 
 /// Tipos de mensaje del panel (ver ui/claude.slint).
@@ -74,7 +74,12 @@ impl Ctx {
         ui.set_carpeta_claude(carpeta_claude(&e.config.ajustes).display().to_string().into());
         ui.set_modelo_claude(tr_con("Modelo: {}", &[nombre_de(&modelos(), &e.config.ajustes.modelo_claude)]).into());
         ui.set_esfuerzo_claude(tr_con("Esfuerzo: {}", &[nombre_de(&esfuerzos(), &e.config.ajustes.esfuerzo_claude)]).into());
-        ui.set_uso_claude(format!("{}\n{}", texto_uso(tr("5 horas"), e.claude.uso.0), texto_uso(tr("Semana"), e.claude.uso.1)).into());
+        let (cinco_horas, hasta) = uso_y_reinicio(e.claude.uso.0);
+        ui.set_uso_cinco_horas_claude(cinco_horas);
+        ui.set_reinicio_cinco_horas_claude(hasta.into());
+        let (semana, hasta) = uso_y_reinicio(e.claude.uso.1);
+        ui.set_uso_semana_claude(semana);
+        ui.set_reinicio_semana_claude(hasta.into());
     }
 
     /// Menú para elegir el modelo (`esfuerzo` false) o el esfuerzo con que responde Claude.

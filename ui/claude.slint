@@ -62,6 +62,64 @@ component Bloque inherits VerticalLayout {
     }
 }
 
+// Cuánto se ha usado de un límite: un anillo que se llena (del color de acento, en rojo al pasar
+// del 90 %) con el porcentaje dentro, y a su lado su nombre y cuándo se reinicia.
+component AnilloUso inherits HorizontalLayout {
+    in property <string> nombre;
+    in property <float> parte: -1;      // 0–1 usado; -1 si aún no se sabe
+    in property <string> reinicio;      // "hasta 14:20"
+    spacing: 6px;
+
+    Rectangle {
+        width: 30px;
+        height: 30px;
+        Path {
+            width: 30px;
+            height: 30px;
+            viewbox-width: 30;
+            viewbox-height: 30;
+            commands: "M 15 3 A 12 12 0 1 1 14.99 3";
+            stroke: Tema.capa-fuerte;
+            stroke-width: 3.5px;
+            fill: transparent;
+        }
+        if root.parte > 0 : Path {
+            property <angle> giro: min(root.parte, 0.999) * 360deg;
+            width: 30px;
+            height: 30px;
+            viewbox-width: 30;
+            viewbox-height: 30;
+            commands: "M 15 3 A 12 12 0 " + (root.parte > 0.5 ? "1" : "0") + " 1 "
+                + (15 + 12 * sin(self.giro)) + " " + (15 - 12 * cos(self.giro));
+            stroke: root.parte >= 0.9 ? #E5484D : Tema.acento;
+            stroke-width: 3.5px;
+            fill: transparent;
+        }
+        Text {
+            text: root.parte < 0 ? "—" : round(root.parte * 100) + "%";
+            color: Tema.texto;
+            font-size: 8px;
+            font-weight: 700;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Text {
+            text: root.nombre;
+            color: Tema.texto;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        if root.reinicio != "" : Text {
+            text: root.reinicio;
+            color: Tema.texto-tenue;
+            font-size: 9px;
+        }
+    }
+}
+
 // Botón para elegir una opción (el modelo o el esfuerzo): abre un menú.
 component Selector inherits Rectangle {
     in property <string> texto;
@@ -222,7 +280,11 @@ export component PanelClaude inherits Rectangle {
     in property <string> carpeta;
     in property <string> modelo;            // "Modelo: Opus"
     in property <string> esfuerzo;          // "Esfuerzo: Alto"
-    in property <string> uso;               // el de 5 horas y, debajo, el semanal
+    // Parte usada de los límites de 5 horas y semanal (-1 si aún no se sabe) y cuándo se reinician.
+    in property <float> uso-cinco-horas: -1;
+    in property <string> reinicio-cinco-horas;
+    in property <float> uso-semana: -1;
+    in property <string> reinicio-semana;
     in-out property <string> texto;         // lo que se está escribiendo
     callback enviar(string);
     callback elegir-modelo();
@@ -281,7 +343,7 @@ export component PanelClaude inherits Rectangle {
         x: 16px;
         y: 50px;
         width: parent.width - 32px;
-        height: 26px;
+        height: 32px;
         spacing: 6px;
         VerticalLayout {
             alignment: center;
@@ -297,21 +359,26 @@ export component PanelClaude inherits Rectangle {
                 clicked => { root.elegir-esfuerzo(); }
             }
         }
-        Text {
+        Rectangle {
             horizontal-stretch: 1;
-            text: root.uso;
-            color: Tema.texto-tenue;
-            font-size: 10px;
-            horizontal-alignment: right;
-            vertical-alignment: center;
+        }
+        AnilloUso {
+            nombre: @tr("5 horas");
+            parte: root.uso-cinco-horas;
+            reinicio: root.reinicio-cinco-horas;
+        }
+        AnilloUso {
+            nombre: @tr("Semana");
+            parte: root.uso-semana;
+            reinicio: root.reinicio-semana;
         }
     }
 
     lista := Flickable {
         x: 16px;
-        y: 86px;
+        y: 92px;
         width: parent.width - 32px;
-        height: parent.height - 86px - 12px - abajo.height - 12px;
+        height: parent.height - 92px - 12px - abajo.height - 12px;
         content-height: max(self.height, contenido.preferred-height);
         // Al llegar algo nuevo, se baja hasta el final.
         changed content-height => { self.content-y = min(0px, self.height - self.content-height); }
