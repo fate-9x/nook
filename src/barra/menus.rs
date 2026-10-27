@@ -174,6 +174,14 @@ impl Ctx {
                 });
             }
             Aviso::Notificacion => self.notificar(),
+            // Windows tarda un poco en dejar las pantallas como estaban: la barra se reajusta
+            // ahora y otra vez un rato después.
+            Aviso::Reanudado | Aviso::PantallasCambiadas => {
+                for espera in [Duration::ZERO, REAJUSTE_TARDIO] {
+                    let ctx = self.clone();
+                    Timer::single_shot(espera, move || ctx.reajustar());
+                }
+            }
         }
     }
 }

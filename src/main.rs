@@ -264,6 +264,8 @@ struct Ctx {
     vueltas: Rc<Cell<u32>>,
     /// Addons cargados y lo que esperan de ellos (ver barra/addons.rs).
     addons: Rc<barra::addons::Addons>,
+    /// Hasta cuándo los cambios de forma de la barra se aplican sin animación (ver `saltar`).
+    saltar_hasta: Rc<Cell<Instant>>,
 }
 
 impl Ctx {
@@ -586,7 +588,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sondeo: Rc::new(Timer::default()),
         vueltas: Rc::new(Cell::new(0)),
         addons: Rc::default(),
+        saltar_hasta: Rc::new(Cell::new(Instant::now())),
     };
+    // Al arrancar, la barra cambia de forma varias veces mientras llegan los datos (los addons,
+    // las apps abiertas, los iconos): sin animarlo, se ve ya en su sitio y no a medio camino.
+    ctx.saltar_durante(SIN_ANIMAR_AL_ARRANCAR);
     ctx.leer_addons();
     ctx.refrescar();
     ctx.recolocar();

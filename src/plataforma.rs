@@ -71,7 +71,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     MSG, MWMO_INPUTAVAILABLE, MsgWaitForMultipleObjectsEx, PM_NOREMOVE, PM_REMOVE, PeekMessageW,
     PostMessageW, PostQuitMessage, PostThreadMessageW, QS_ALLINPUT, RegisterClassW,
     RegisterWindowMessageW, SW_HIDE, SW_SHOWNOACTIVATE, SetForegroundWindow, HTTRANSPARENT,
-    MA_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOREDRAW, SWP_NOZORDER, SWP_SHOWWINDOW, WM_MOUSEACTIVATE, WM_NCHITTEST, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, SWP_NOACTIVATE, SWP_NOSIZE, SetWindowPos,
+    MA_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOREDRAW, SWP_NOZORDER, SWP_SHOWWINDOW, WM_MOUSEACTIVATE, WM_NCHITTEST, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SetWindowPos,
     ShowWindow, TranslateMessage, ULW_ALPHA, UPDATELAYEREDWINDOWINFO, UpdateLayeredWindowIndirect, WA_INACTIVE, WM_ACTIVATE,
     WM_APP, WM_CHAR, WM_CLOSE, WM_CONTEXTMENU, WM_DPICHANGED, WM_HOTKEY, WM_KEYDOWN, WM_KEYUP,
     WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL,
@@ -105,6 +105,12 @@ pub type Forma = [Pieza; 2];
 
 /// El ratón salió de la ventana (lo pide `TrackMouseEvent`).
 const WM_MOUSELEAVE: u32 = 0x02A3;
+const WM_DISPLAYCHANGE: u32 = 0x007E;
+const WM_POWERBROADCAST: u32 = 0x0218;
+/// Avisos de WM_POWERBROADCAST de que el equipo volvió de la suspensión (el primero llega
+/// siempre; el segundo, si fue el usuario quien lo despertó).
+const PBT_APMRESUMESUSPEND: usize = 0x0007;
+const PBT_APMRESUMEAUTOMATIC: usize = 0x0012;
 
 /// Mensaje para despertar el bucle cuando otro hilo pide ejecutar algo en él.
 const WM_DESPERTAR: u32 = WM_APP + 1;
@@ -181,6 +187,10 @@ pub enum Aviso {
     EscalaCambiada,
     /// Llegó una notificación o un programa pide atención (ver `avisos.rs`).
     Notificacion,
+    /// El equipo volvió de la suspensión.
+    Reanudado,
+    /// Cambió la resolución o la disposición de las pantallas.
+    PantallasCambiadas,
 }
 
 struct Interna {
@@ -700,6 +710,24 @@ pub fn colocar(lienzo: Rect) {
             }
             i.slint.request_redraw();
         }
+    });
+}
+
+/// Vuelve a dibujar la barra entera, a entregársela entera a Windows y a ponerla encima de todo,
+/// con su cristal: al volver de la suspensión o cambiar las pantallas, Windows puede haber perdido
+/// lo que tenía de ella, y repintar solo lo que cambia la dejaba a trozos.
+pub fn repintar() {
+    con_interna(|i| {
+        i.repintar_todo.set(true);
+        i.lienzo_presentado.set((0, 0, 0, 0));
+        i.cristal_puesto.set(None);
+        i.cristal_ventana.set(None);
+        if i.visible.get() {
+            unsafe {
+                let _ = SetWindowPos(i.hwnd, Some(HWND_TOPMOST), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+        }
+        i.slint.request_redraw();
     });
 }
 
@@ -1299,6 +1327,19 @@ unsafe extern "system" fn procedimiento(hwnd: HWND, mensaje: u32, wparam: WPARAM
             interna.cambiar_zoom((wparam.0 & 0xFFFF) as f32 / 96.0);
             if barra().is_some_and(|b| b.hwnd == hwnd) {
                 avisar(Aviso::EscalaCambiada);
+            }
+            LRESULT(0)
+        }
+        // Llegan a todas las ventanas; los atiende solo la barra.
+        WM_POWERBROADCAST => {
+            if barra().is_some_and(|b| b.hwnd == hwnd) && matches!(wparam.0, PBT_APMRESUMESUSPEND | PBT_APMRESUMEAUTOMATIC) {
+                avisar(Aviso::Reanudado);
+            }
+            LRESULT(1)
+        }
+        WM_DISPLAYCHANGE => {
+            if barra().is_some_and(|b| b.hwnd == hwnd) {
+                avisar(Aviso::PantallasCambiadas);
             }
             LRESULT(0)
         }

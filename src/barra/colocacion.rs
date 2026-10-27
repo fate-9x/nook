@@ -21,6 +21,15 @@ pub(crate) struct Deslizamiento {
 /// Duración del deslizamiento al cambiar de borde.
 pub(crate) const DURACION_DESLIZAMIENTO: Duration = Duration::from_millis(420);
 
+/// Cuánto rato tras arrancar, o tras volver de la suspensión o cambiar las pantallas, los cambios
+/// de forma de la barra se aplican sin animación (ver `reajustar`).
+pub(crate) const SIN_ANIMAR_AL_ARRANCAR: Duration = Duration::from_secs(3);
+pub(crate) const SIN_ANIMAR_AL_REAJUSTAR: Duration = Duration::from_millis(1500);
+
+/// Al volver de la suspensión o cambiar las pantallas, cuándo se vuelve a reajustar la barra, por
+/// si Windows aún no las había dejado como estaban la primera vez.
+pub(crate) const REAJUSTE_TARDIO: Duration = Duration::from_secs(2);
+
 /// Margen del lienzo, en píxeles lógicos, para el pequeño rebote de la animación al abrir.
 pub(crate) const MARGEN_REBOTE: f32 = 24.0;
 
@@ -226,15 +235,41 @@ impl Ctx {
 
     /// Hace que los cambios de forma de la barra de este instante se apliquen sin animación.
     pub(crate) fn saltar(&self) {
+        self.saltar_durante(Duration::from_millis(80));
+    }
+
+    /// Hace que los cambios de forma de la barra se apliquen sin animación durante un rato (o
+    /// hasta que acabe el que ya se pidió, si dura más).
+    pub(crate) fn saltar_durante(&self, rato: Duration) {
+        let hasta = Instant::now() + rato;
+        if hasta > self.saltar_hasta.get() {
+            self.saltar_hasta.set(hasta);
+        }
         if let Some(ui) = self.ui.upgrade() {
             ui.set_saltar(true);
         }
-        let ui = self.ui.clone();
-        Timer::single_shot(Duration::from_millis(80), move || {
-            if let Some(ui) = ui.upgrade() {
+        let (ui, saltar_hasta) = (self.ui.clone(), self.saltar_hasta.clone());
+        Timer::single_shot(rato, move || {
+            if let Some(ui) = ui.upgrade().filter(|_| Instant::now() >= saltar_hasta.get()) {
                 ui.set_saltar(false);
             }
         });
+    }
+
+    /// Vuelve a colocar la barra y a dibujarla entera, sin animaciones, al volver de la suspensión
+    /// o al cambiar las pantallas. Mientras tanto Windows puede haber cambiado el tamaño de la
+    /// pantalla o perdido lo que tenía dibujado de la barra, y lo que se veía era la barra a medio
+    /// camino o a trozos: descolocada.
+    pub(crate) fn reajustar(&self) {
+        if self.movimiento.get().is_some() || self.deslizamiento.get().is_some() {
+            return;
+        }
+        self.saltar_durante(SIN_ANIMAR_AL_REAJUSTAR);
+        // El lienzo se calcula de nuevo, aunque encoja (normalmente solo crece).
+        self.lienzo.set(None);
+        self.refrescar();
+        self.recolocar();
+        plataforma::repintar();
     }
 
     /// Centro de la barra tal como se ve ahora en la pantalla (la ventana puede estar fuera de
