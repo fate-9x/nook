@@ -749,5 +749,5 @@ msgstr "書式付きで表示"
 msgid "Seleccionar texto"
 msgstr "テキストを選択"
 
-msgid "Escribe a Claude…"
-msgstr "Claude にメッセージ…"
+msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
+msgstr "Claude にメッセージ…（Shift+Enter で改行）"

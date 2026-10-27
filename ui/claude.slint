@@ -3,7 +3,7 @@
 // se desplaza sola hasta lo último; y abajo el campo para escribirle.
 
 import { Tema, MensajeClaude, BloqueClaude } from "tema.slint";
-import { BotonTexto, CampoTexto } from "controles.slint";
+import { BotonTexto } from "controles.slint";
 
 // Texto que se puede seleccionar y copiar (con Ctrl+C), pero no cambiar.
 component TextoSeleccionable inherits TextInput {
@@ -121,6 +121,73 @@ component Mensaje inherits Rectangle {
     }
 }
 
+// Campo para escribirle: crece con el texto (hasta unas 7 líneas; luego se desplaza). Intro lo
+// envía y Mayús+Intro pasa a la línea siguiente.
+component CampoMensaje inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    callback accepted();
+
+    public function enfocar() {
+        entrada.focus();
+    }
+
+    property <length> margen: 7px;
+    height: clamp(entrada.preferred-height + 2 * self.margen, 30px, 120px);
+    border-radius: 11px;
+    background: Tema.capa;
+    border-width: 1px;
+    border-color: entrada.has-focus ? Tema.acento : Tema.linea;
+
+    Text {
+        visible: root.text == "";
+        x: 10px;
+        y: root.margen;
+        text: root.placeholder;
+        color: Tema.texto-tenue;
+        font-size: 12px;
+    }
+
+    Rectangle {
+        x: 10px;
+        y: root.margen;
+        width: parent.width - 20px;
+        height: parent.height - 2 * root.margen;
+        clip: true;
+
+        FocusScope {
+            capture-key-pressed(evento) => {
+                if (evento.text == Key.Return && !evento.modifiers.shift) {
+                    root.accepted();
+                    return accept;
+                }
+                return reject;
+            }
+            entrada := TextInput {
+                // Cuánto se ha subido el texto para seguir al cursor.
+                property <length> corrido;
+                y: min(0px, max(parent.height - self.height, self.corrido));
+                width: parent.width;
+                height: max(parent.height, self.preferred-height);
+                text <=> root.text;
+                color: Tema.texto;
+                font-size: 12px;
+                single-line: false;
+                wrap: word-wrap;
+                selection-background-color: Tema.acento;
+                selection-foreground-color: Tema.sobre-acento;
+                cursor-position-changed(cursor) => {
+                    if (cursor.y + self.corrido < 0px) {
+                        self.corrido = -cursor.y;
+                    } else if (cursor.y + 16px + self.corrido > parent.height) {
+                        self.corrido = parent.height - cursor.y - 16px;
+                    }
+                }
+            }
+        }
+    }
+}
+
 export component PanelClaude inherits Rectangle {
     in property <[MensajeClaude]> mensajes;
     in property <bool> ocupado;             // Claude está respondiendo
@@ -213,13 +280,13 @@ export component PanelClaude inherits Rectangle {
         x: 16px;
         y: parent.height - 12px - self.height;
         width: parent.width - 32px;
-        height: 30px;
+        height: campo.height;
         spacing: 8px;
         alignment: stretch;
-        campo := CampoTexto {
+        campo := CampoMensaje {
             horizontal-stretch: 1;
             text <=> root.texto;
-            placeholder: @tr("Escribe a Claude…");
+            placeholder: @tr("Escribe a Claude… (Mayús+Intro para otra línea)");
             accepted => { root.enviar-texto(); }
         }
         VerticalLayout {

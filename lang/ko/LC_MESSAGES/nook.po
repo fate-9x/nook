@@ -749,5 +749,5 @@ msgstr "서식 있게 보기"
 msgid "Seleccionar texto"
 msgstr "텍스트 선택"
 
-msgid "Escribe a Claude…"
-msgstr "Claude에게 쓰기…"
+msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
+msgstr "Claude에게 쓰기… (Shift+Enter로 줄 바꿈)"

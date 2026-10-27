@@ -749,5 +749,5 @@ msgstr "Show formatted"
 msgid "Seleccionar texto"
 msgstr "Select text"
 
-msgid "Escribe a Claude…"
-msgstr "Write to Claude…"
+msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
+msgstr "Write to Claude… (Shift+Enter for a new line)"
