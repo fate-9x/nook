@@ -778,3 +778,9 @@ msgstr "주간"
 
 msgid "hasta"
 msgstr "초기화"
+
+msgid "Otro…"
+msgstr "기타…"
+
+msgid "Escribe tu respuesta…"
+msgstr "답변 입력…"

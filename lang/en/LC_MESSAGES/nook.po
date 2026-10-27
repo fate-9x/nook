@@ -778,3 +778,9 @@ msgstr "Week"
 
 msgid "hasta"
 msgstr "until"
+
+msgid "Otro…"
+msgstr "Other…"
+
+msgid "Escribe tu respuesta…"
+msgstr "Write your answer…"

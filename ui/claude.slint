@@ -3,7 +3,7 @@
 // se desplaza sola hasta lo último; y abajo el campo para escribirle.
 
 import { Tema, MensajeClaude, BloqueClaude } from "tema.slint";
-import { BotonTexto } from "controles.slint";
+import { BotonTexto, CampoTexto } from "controles.slint";
 
 // Texto que se puede seleccionar y copiar (con Ctrl+C), pero no cambiar.
 component TextoSeleccionable inherits TextInput {
@@ -16,12 +16,40 @@ component TextoSeleccionable inherits TextInput {
     selection-foreground-color: Tema.sobre-acento;
 }
 
+// Una alternativa que propone Claude.
+component BotonOpcion inherits Rectangle {
+    in property <string> texto;
+    in property <bool> activo;
+    callback clicked();
+    height: max(30px, etiqueta.preferred-height + 14px);
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: root.activo ? Tema.acento : Tema.linea;
+    background: root.activo && area.has-hover ? Tema.acento : Tema.capa;
+    opacity: root.activo ? 1 : 0.6;
+    etiqueta := Text {
+        x: 12px;
+        width: parent.width - 24px;
+        text: root.texto;
+        color: root.activo && area.has-hover ? Tema.sobre-acento : Tema.texto;
+        font-size: 12px;
+        wrap: word-wrap;
+        vertical-alignment: center;
+    }
+    area := TouchArea {
+        enabled: root.activo;
+        mouse-cursor: self.enabled ? pointer : default;
+        clicked => { root.clicked(); }
+    }
+}
+
 // Parte de un mensaje de Claude con su formato. Las alternativas son botones, que solo se pueden
-// pulsar en su último mensaje mientras no está respondiendo.
+// pulsar en su último mensaje mientras no está respondiendo; con "Otro…" se escribe otra respuesta.
 component Bloque inherits VerticalLayout {
     in property <BloqueClaude> bloque;
     in property <bool> se-puede-elegir;
     callback elegir(string);
+    property <bool> escribiendo-otra;
 
     if root.bloque.tipo == 0 : TextoSeleccionable {
         text: root.bloque.texto;
@@ -62,26 +90,36 @@ component Bloque inherits VerticalLayout {
     }
     if root.bloque.tipo == 5 : VerticalLayout {
         spacing: 6px;
-        for opcion in root.bloque.opciones : Rectangle {
-            height: max(30px, etiqueta.preferred-height + 14px);
-            border-radius: 10px;
-            border-width: 1px;
-            border-color: root.se-puede-elegir ? Tema.acento : Tema.linea;
-            background: root.se-puede-elegir && area.has-hover ? Tema.acento : Tema.capa;
-            opacity: root.se-puede-elegir ? 1 : 0.6;
-            etiqueta := Text {
-                x: 12px;
-                width: parent.width - 24px;
-                text: opcion;
-                color: root.se-puede-elegir && area.has-hover ? Tema.sobre-acento : Tema.texto;
-                font-size: 12px;
-                wrap: word-wrap;
-                vertical-alignment: center;
+        for opcion in root.bloque.opciones : BotonOpcion {
+            texto: opcion;
+            activo: root.se-puede-elegir;
+            clicked => { root.elegir(opcion); }
+        }
+        if !root.escribiendo-otra : BotonOpcion {
+            texto: @tr("Otro…");
+            activo: root.se-puede-elegir;
+            clicked => { root.escribiendo-otra = true; }
+        }
+        if root.escribiendo-otra && root.se-puede-elegir : HorizontalLayout {
+            spacing: 6px;
+            otra := CampoTexto {
+                horizontal-stretch: 1;
+                placeholder: @tr("Escribe tu respuesta…");
+                init => { self.enfocar(); }
+                accepted => {
+                    if (otra.text != "") {
+                        root.elegir(otra.text);
+                    }
+                }
             }
-            area := TouchArea {
-                enabled: root.se-puede-elegir;
-                mouse-cursor: self.enabled ? pointer : default;
-                clicked => { root.elegir(opcion); }
+            BotonTexto {
+                texto: @tr("Enviar");
+                peligro: true;
+                clicked => {
+                    if (otra.text != "") {
+                        root.elegir(otra.text);
+                    }
+                }
             }
         }
     }

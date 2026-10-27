@@ -778,3 +778,9 @@ msgstr "週"
 
 msgid "hasta"
 msgstr "リセット"
+
+msgid "Otro…"
+msgstr "その他…"
+
+msgid "Escribe tu respuesta…"
+msgstr "回答を入力…"
