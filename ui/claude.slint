@@ -400,12 +400,15 @@ export component PanelClaude inherits Rectangle {
         y: 92px;
         width: parent.width - 32px;
         height: parent.height - 92px - 12px - abajo.height - 12px;
-        content-height: max(self.height, contenido.preferred-height);
+        // Hasta donde acaba de verdad lo último: el alto que calcula la lista para el texto de
+        // los mensajes de Claude se queda corto (y lo de abajo no se podía ver).
+        content-height: max(self.height, fin.y);
         // Al llegar algo nuevo, se baja hasta el final.
         changed content-height => { self.content-y = min(0px, self.height - self.content-height); }
 
         contenido := VerticalLayout {
             width: lista.width;
+            height: self.preferred-height;
             spacing: 10px;
             alignment: start;
             for mensaje[i] in root.mensajes : Mensaje {
@@ -420,6 +423,8 @@ export component PanelClaude inherits Rectangle {
                 font-size: 11px;
                 font-italic: true;
             }
+            // Marca dónde acaba la lista (ver content-height).
+            fin := Rectangle { height: 0px; }
         }
     }
 
