@@ -593,47 +593,17 @@ export component Barra inherits Window {
     // desenfoque de lo de detrás, para que solo se vea dentro de la barra.
     // Con la barra oculta solo se asoma el personaje, sin fondo ni desenfoque.
     // Son las dos piezas de la barra (ver "Forma de la barra", más abajo).
-    out property <Pieza> forma-tira: root.modo == 0 || root.moviendo ? {} : root.visible-de(
-        root.sa-x0, root.sa-y0, root.sa-x1, root.sa-y1, root.ra-ai, root.ra-ad, root.ra-bd, root.ra-bi);
-    out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : root.visible-de(
-        root.sb-x0, root.sb-y0, root.sb-x1, root.sb-y1, root.rb-ai, root.rb-ad, root.rb-bd, root.rb-bi);
+    out property <Pieza> forma-tira: root.modo == 0 || root.moviendo ? {} : {
+        x: root.sa-x0, y: root.sa-y0, ancho: root.sa-x1 - root.sa-x0, alto: root.sa-y1 - root.sa-y0,
+        arriba-izquierda: root.ra-ai, arriba-derecha: root.ra-ad, abajo-derecha: root.ra-bd, abajo-izquierda: root.ra-bi,
+    };
+    out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : {
+        x: root.sb-x0, y: root.sb-y0, ancho: max(0px, root.sb-x1 - root.sb-x0), alto: max(0px, root.sb-y1 - root.sb-y0),
+        arriba-izquierda: root.rb-ai, arriba-derecha: root.rb-ad, abajo-derecha: root.rb-bd, abajo-izquierda: root.rb-bi,
+    };
     // Los empalmes también llevan el desenfoque: sin él, se veía nítido lo que hay detrás.
-    out property <Pieza> forma-empalme-inicio: root.modo == 0 || root.moviendo ? {} : root.empalme-visible(root.empalme(0));
-    out property <Pieza> forma-empalme-final: root.modo == 0 || root.moviendo ? {} : root.empalme-visible(root.empalme(1));
-    // Lo que se ve de una pieza: el contorno, que se anima aparte, la recorta mientras la barra se
-    // despliega o se recoge (el panel, por ejemplo, ya tiene su largo final cuando el contorno aún
-    // está creciendo). Sin esto, el desenfoque asomaba fuera de la barra. Por donde se recorta, la
-    // esquina queda recta, como la dibuja el contorno. Lo que el contorno solo recorta por menos
-    // de un píxel (sus bordes no caen en píxeles enteros) no cuenta: si no, el desenfoque perdía
-    // las esquinas redondas y se quedaba un píxel por dentro del borde de la barra.
-    pure function visible-de(x0: length, y0: length, x1: length, y1: length,
-        ai: length, ad: length, bd: length, bi: length) -> Pieza {
-        let cx0 = root.ajustar(contorno.x);
-        let cy0 = root.ajustar(contorno.y);
-        let cx1 = root.ajustar(contorno.x + contorno.width);
-        let cy1 = root.ajustar(contorno.y + contorno.height);
-        let vx0 = cx0 > x0 + 1px ? cx0 : x0;
-        let vy0 = cy0 > y0 + 1px ? cy0 : y0;
-        let vx1 = cx1 < x1 - 1px ? cx1 : x1;
-        let vy1 = cy1 < y1 - 1px ? cy1 : y1;
-        return {
-            x: vx0, y: vy0, ancho: max(0px, vx1 - vx0), alto: max(0px, vy1 - vy0),
-            arriba-izquierda: vx0 > x0 || vy0 > y0 ? 0px : ai,
-            arriba-derecha: vx1 < x1 || vy0 > y0 ? 0px : ad,
-            abajo-derecha: vx1 < x1 || vy1 < y1 ? 0px : bd,
-            abajo-izquierda: vx0 > x0 || vy1 < y1 ? 0px : bi,
-            hueco: 0,
-        };
-    }
-    // El empalme, si el contorno no lo recorta (mientras lo hace, sin desenfoque: es pequeño).
-    pure function empalme-visible(p: Pieza) -> Pieza {
-        if (p.x < root.ajustar(contorno.x) - 1px || p.y < root.ajustar(contorno.y) - 1px
-            || p.x + p.ancho > root.ajustar(contorno.x + contorno.width) + 1px
-            || p.y + p.alto > root.ajustar(contorno.y + contorno.height) + 1px) {
-            return {};
-        }
-        return p;
-    }
+    out property <Pieza> forma-empalme-inicio: root.modo == 0 || root.moviendo ? {} : root.empalme(0);
+    out property <Pieza> forma-empalme-final: root.modo == 0 || root.moviendo ? {} : root.empalme(1);
 
     // ---- Forma de la barra ----
     // No es un solo rectángulo: es la tira (con la zona del personaje) y, pegado a ella, el panel
@@ -989,18 +959,32 @@ export component Barra inherits Window {
 
     // Contorno visible: crece y encoge con una animación; su contenido (la caja) queda fijo en
     // la posición final y el contorno lo va descubriendo o tapando.
-    contorno := Rectangle {
-    x: root.caja-x;
-    y: root.y-caja;
-    width: root.ancho;
-    height: root.alto;
+    // La caja, animada: lo que el contorno va descubriendo o tapando.
+    property <length> caja-animada-x: root.caja-x;
+    property <length> caja-animada-y: root.y-caja;
+    property <length> caja-animada-ancho: root.ancho;
+    property <length> caja-animada-alto: root.alto;
     // Como en Coucou: al abrir, una curva que se pasa un poco y vuelve (imita un muelle);
     // al cerrar, una curva de 340 ms que arranca suave y frena al final, sin rebote.
-    animate x, y, width, height {
-        duration: !root.animaciones || root.saltar || (root.siguiendo-mas && root.modo == 1 && !root.cambiando-modo) ? 0ms
-            : root.abierto ? 420ms : 340ms;
+    animate caja-animada-x, caja-animada-y, caja-animada-ancho, caja-animada-alto {
+        duration: root.duracion-forma;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
+    // Lo que abarcan las piezas del fondo (el panel, solo si tiene grosor).
+    property <bool> con-panel: root.sb-x1 > root.sb-x0 && root.sb-y1 > root.sb-y0;
+    property <length> piezas-x0: root.con-panel ? min(root.sa-x0, root.sb-x0) : root.sa-x0;
+    property <length> piezas-y0: root.con-panel ? min(root.sa-y0, root.sb-y0) : root.sa-y0;
+    property <length> piezas-x1: root.con-panel ? max(root.sa-x1, root.sb-x1) : root.sa-x1;
+    property <length> piezas-y1: root.con-panel ? max(root.sa-y1, root.sb-y1) : root.sa-y1;
+
+    // El contorno recorta lo de dentro, pero nunca las piezas del fondo: al recoger un panel, por
+    // ejemplo, el panel guarda su largo mientras pierde grosor (se pliega como un menú) y la caja
+    // ya va encogiendo; recortado por ella, el panel perdía las esquinas redondas por los lados.
+    contorno := Rectangle {
+    x: min(root.caja-animada-x, root.piezas-x0);
+    y: min(root.caja-animada-y, root.piezas-y0);
+    width: max(root.caja-animada-x + root.caja-animada-ancho, root.piezas-x1) - self.x;
+    height: max(root.caja-animada-y + root.caja-animada-alto, root.piezas-y1) - self.y;
     // Las esquinas las ponen las piezas; con la barra oculta, recorta lo que se asoma.
     border-radius: root.modo == 0 ? 3px : 0px;
     background: transparent;
