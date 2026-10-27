@@ -1150,9 +1150,11 @@ fn crear_vidrio(cristal: HWND) -> Option<Vidrio> {
 
 /// Añade a `region` el rectángulo `(x, y, ancho, alto)` sin el cuarto de círculo del radio de su
 /// lado centrado en la esquina `esquina` (0 la de arriba a la izquierda, y en el sentido de las
-/// agujas del reloj).
+/// agujas del reloj). El cuarto de círculo es un píxel más grande que el del empalme: la región no
+/// suaviza su borde y, si llegaba hasta el borde suavizado del empalme, ahí se veía una línea de
+/// desenfoque.
 unsafe fn unir_empalme(region: HRGN, (x, y, ancho, alto): Rect, esquina: usize) {
-    let r = ancho.max(alto);
+    let r = ancho.max(alto) + 1;
     let cx = if esquina == 1 || esquina == 2 { x + ancho } else { x };
     let cy = if esquina >= 2 { y + alto } else { y };
     unsafe {
