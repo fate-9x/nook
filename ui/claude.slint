@@ -62,6 +62,34 @@ component Bloque inherits VerticalLayout {
     }
 }
 
+// Botón para elegir una opción (el modelo o el esfuerzo): abre un menú.
+component Selector inherits Rectangle {
+    in property <string> texto;
+    callback clicked();
+    width: etiqueta.preferred-width + 30px;
+    height: 24px;
+    border-radius: 9px;
+    background: area.has-hover ? Tema.capa-fuerte : Tema.capa;
+    etiqueta := Text {
+        x: 10px;
+        text: root.texto;
+        color: Tema.texto;
+        font-size: 11px;
+        vertical-alignment: center;
+    }
+    Text {
+        x: parent.width - 16px;
+        text: "▾";
+        color: Tema.texto-tenue;
+        font-size: 10px;
+        vertical-alignment: center;
+    }
+    area := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
 // Botón pequeño de texto, bajo los mensajes de Claude.
 component Accion inherits Text {
     callback clicked();
@@ -192,8 +220,12 @@ export component PanelClaude inherits Rectangle {
     in property <[MensajeClaude]> mensajes;
     in property <bool> ocupado;             // Claude está respondiendo
     in property <string> carpeta;
+    in property <string> modelo;            // "Modelo: Opus"
+    in property <string> esfuerzo;          // "Esfuerzo: Alto"
     in-out property <string> texto;         // lo que se está escribiendo
     callback enviar(string);
+    callback elegir-modelo();
+    callback elegir-esfuerzo();
     callback parar();
     callback nueva-conversacion();
     callback elegir-carpeta();
@@ -243,11 +275,34 @@ export component PanelClaude inherits Rectangle {
         }
     }
 
+    // Modelo y esfuerzo.
+    HorizontalLayout {
+        x: 16px;
+        y: 50px;
+        width: parent.width - 32px;
+        height: 26px;
+        spacing: 6px;
+        VerticalLayout {
+            alignment: center;
+            Selector {
+                texto: root.modelo;
+                clicked => { root.elegir-modelo(); }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Selector {
+                texto: root.esfuerzo;
+                clicked => { root.elegir-esfuerzo(); }
+            }
+        }
+    }
+
     lista := Flickable {
         x: 16px;
-        y: 52px;
+        y: 86px;
         width: parent.width - 32px;
-        height: parent.height - 52px - 12px - abajo.height - 12px;
+        height: parent.height - 86px - 12px - abajo.height - 12px;
         content-height: max(self.height, contenido.preferred-height);
         // Al llegar algo nuevo, se baja hasta el final.
         changed content-height => { self.content-y = min(0px, self.height - self.content-height); }
@@ -256,12 +311,6 @@ export component PanelClaude inherits Rectangle {
             width: lista.width;
             spacing: 10px;
             alignment: start;
-            if root.mensajes.length == 0 : Text {
-                text: @tr("Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración.");
-                color: Tema.texto-tenue;
-                font-size: 12px;
-                wrap: word-wrap;
-            }
             for mensaje in root.mensajes : Mensaje {
                 mensaje: mensaje;
                 copiar(texto) => { root.copiar(texto); }
@@ -286,7 +335,7 @@ export component PanelClaude inherits Rectangle {
         campo := CampoMensaje {
             horizontal-stretch: 1;
             text <=> root.texto;
-            placeholder: @tr("Escribe a Claude… (Mayús+Intro para otra línea)");
+            placeholder: @tr("Escribe a Claude…");
             accepted => { root.enviar-texto(); }
         }
         VerticalLayout {

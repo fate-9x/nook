@@ -719,9 +719,6 @@ msgstr "중지"
 msgid "Claude está trabajando…"
 msgstr "Claude가 작업 중…"
 
-msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
-msgstr "아래에서 Claude Code에게 말을 걸어 보세요. 위의 폴더에서 작업하며 설정에서 허용한 것만 사용합니다."
-
 msgid "Conversación con Claude Code"
 msgstr "Claude Code 대화"
 
@@ -749,8 +746,32 @@ msgstr "서식 있게 보기"
 msgid "Seleccionar texto"
 msgstr "텍스트 선택"
 
-msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
-msgstr "Claude에게 쓰기… (Shift+Enter로 줄 바꿈)"
-
 msgid "Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."
 msgstr "Claude Code에 로그인되어 있지 않습니다. 터미널을 열고 claude를 입력한 다음 /login으로 로그인하세요. 그런 다음 메시지를 다시 보내세요."
+
+msgid "Escribe a Claude…"
+msgstr "Claude에게 쓰기…"
+
+msgid "Predeterminado"
+msgstr "기본값"
+
+msgid "Bajo"
+msgstr "낮음"
+
+msgid "Medio"
+msgstr "보통"
+
+msgid "Alto"
+msgstr "높음"
+
+msgid "Muy alto"
+msgstr "매우 높음"
+
+msgid "Máximo"
+msgstr "최대"
+
+msgid "Modelo: {}"
+msgstr "모델: {}"
+
+msgid "Esfuerzo: {}"
+msgstr "추론 수준: {}"

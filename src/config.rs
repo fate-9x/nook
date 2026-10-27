@@ -122,6 +122,9 @@ pub struct Ajustes {
     /// ("" = la del usuario).
     pub boton_claude: bool,
     pub carpeta_claude: String,
+    /// Modelo y esfuerzo con que responde Claude ("" = los de su configuración).
+    pub modelo_claude: String,
+    pub esfuerzo_claude: String,
     /// Botón para silenciar el micrófono en la tira.
     pub boton_microfono: bool,
     /// Botón para apagar, reiniciar o suspender el equipo en la tira.
@@ -449,6 +452,8 @@ impl Default for Ajustes {
             boton_sonido: true,
             boton_claude: true,
             carpeta_claude: String::new(),
+            modelo_claude: String::new(),
+            esfuerzo_claude: String::new(),
             boton_microfono: true,
             boton_energia: true,
             boton_bateria: true,

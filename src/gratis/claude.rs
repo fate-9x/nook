@@ -25,12 +25,15 @@ impl Respuesta {
     pub fn parar(&self) {}
 }
 
-/// Le pregunta `mensaje` a Claude Code en `carpeta` (siguiendo la conversación `sesion`, si hay)
-/// y llama a `al_llegar`, desde otro hilo, con lo que va respondiendo.
+/// Le pregunta `mensaje` a Claude Code en `carpeta` (siguiendo la conversación `sesion`, si hay,
+/// y con el modelo y el esfuerzo dados, si no los de su configuración) y llama a `al_llegar`,
+/// desde otro hilo, con lo que va respondiendo.
 pub fn preguntar(
     _mensaje: &str,
     _carpeta: &Path,
     _sesion: Option<&str>,
+    _modelo: Option<&str>,
+    _esfuerzo: Option<&str>,
     _al_llegar: impl Fn(Suceso) + Send + 'static,
 ) -> std::io::Result<Respuesta> {
     Err(std::io::ErrorKind::Unsupported.into())

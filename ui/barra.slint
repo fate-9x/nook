@@ -155,6 +155,8 @@ export component Barra inherits Window {
     in property <[MensajeClaude]> mensajes-claude;
     in property <bool> claude-ocupado;
     in property <string> carpeta-claude;
+    in property <string> modelo-claude;
+    in property <string> esfuerzo-claude;
     in property <bool> hay-sonido;
     // Addons (ver src/addons/): sus botones en la tira; y del abierto, cuál es, su panel (que nook
     // compila al abrirlo), su tamaño y, si no se pudo cargar, por qué.
@@ -288,6 +290,8 @@ export component Barra inherits Window {
     callback nueva-conversacion-claude();
     callback elegir-carpeta-claude();
     callback copiar-claude(string);
+    callback elegir-modelo-claude();
+    callback elegir-esfuerzo-claude();
     callback abrir-enlace-claude(string);
     callback alternar-boton-claude();
     callback alternar-microfono();          // silenciar o activar el micrófono
@@ -514,7 +518,7 @@ export component Barra inherits Window {
     property <length> alto-sonido: 14px + 16px + 8px + 30px + 14px;
     // Conversación con Claude: la cabecera, los mensajes y el campo para escribir.
     property <length> ancho-claude: 440px;
-    property <length> alto-claude: 440px;
+    property <length> alto-claude: 480px;
     property <bool> abierto: root.modo >= 2;
     property <length> ancho-contenido: root.modo == 2 ? root.ancho-grupo : root.modo == 3 ? root.ancho-config
         : root.modo == 4 || root.modo == 5 ? root.ancho-buscar : root.modo == 6 ? root.ancho-musica
@@ -1798,6 +1802,10 @@ export component Barra inherits Window {
         mensajes: root.mensajes-claude;
         ocupado: root.claude-ocupado;
         carpeta: root.carpeta-claude;
+        modelo: root.modelo-claude;
+        esfuerzo: root.esfuerzo-claude;
+        elegir-modelo => { root.elegir-modelo-claude(); }
+        elegir-esfuerzo => { root.elegir-esfuerzo-claude(); }
         enviar(texto) => { root.enviar-claude(texto); }
         parar => { root.parar-claude(); }
         nueva-conversacion => { root.nueva-conversacion-claude(); }

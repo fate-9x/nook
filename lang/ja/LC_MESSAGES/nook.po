@@ -719,9 +719,6 @@ msgstr "停止"
 msgid "Claude está trabajando…"
 msgstr "Claude が作業中…"
 
-msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
-msgstr "下の欄から Claude Code に話しかけましょう。上のフォルダーで作業し、設定で許可したものだけを使います。"
-
 msgid "Conversación con Claude Code"
 msgstr "Claude Code との会話"
 
@@ -749,8 +746,32 @@ msgstr "書式付きで表示"
 msgid "Seleccionar texto"
 msgstr "テキストを選択"
 
-msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
-msgstr "Claude にメッセージ…（Shift+Enter で改行）"
-
 msgid "Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."
 msgstr "Claude Code にサインインしていません。ターミナルを開いて claude と入力し、/login でサインインしてから、もう一度メッセージを送信してください。"
+
+msgid "Escribe a Claude…"
+msgstr "Claude にメッセージ…"
+
+msgid "Predeterminado"
+msgstr "既定"
+
+msgid "Bajo"
+msgstr "低"
+
+msgid "Medio"
+msgstr "中"
+
+msgid "Alto"
+msgstr "高"
+
+msgid "Muy alto"
+msgstr "非常に高い"
+
+msgid "Máximo"
+msgstr "最大"
+
+msgid "Modelo: {}"
+msgstr "モデル: {}"
+
+msgid "Esfuerzo: {}"
+msgstr "推論量: {}"

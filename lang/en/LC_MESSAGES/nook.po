@@ -719,9 +719,6 @@ msgstr "Stop"
 msgid "Claude está trabajando…"
 msgstr "Claude is working…"
 
-msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
-msgstr "Write to Claude Code below: it works in the folder above and only uses what you've allowed in its settings."
-
 msgid "Conversación con Claude Code"
 msgstr "Claude Code chat"
 
@@ -749,8 +746,32 @@ msgstr "Show formatted"
 msgid "Seleccionar texto"
 msgstr "Select text"
 
-msgid "Escribe a Claude… (Mayús+Intro para otra línea)"
-msgstr "Write to Claude… (Shift+Enter for a new line)"
-
 msgid "Claude Code no tiene la sesión iniciada: abre una terminal, escribe claude y entra con /login. Luego vuelve a enviar el mensaje."
 msgstr "Claude Code isn't signed in: open a terminal, type claude and sign in with /login. Then send your message again."
+
+msgid "Escribe a Claude…"
+msgstr "Write to Claude…"
+
+msgid "Predeterminado"
+msgstr "Default"
+
+msgid "Bajo"
+msgstr "Low"
+
+msgid "Medio"
+msgstr "Medium"
+
+msgid "Alto"
+msgstr "High"
+
+msgid "Muy alto"
+msgstr "Very high"
+
+msgid "Máximo"
+msgstr "Max"
+
+msgid "Modelo: {}"
+msgstr "Model: {}"
+
+msgid "Esfuerzo: {}"
+msgstr "Effort: {}"

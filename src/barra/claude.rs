@@ -15,6 +15,28 @@ pub(crate) struct Conversacion {
     turno: u64,
 }
 
+/// Modelos y esfuerzos que se pueden elegir: lo que se le pasa a `claude` y cómo se llama ("" =
+/// los de su configuración).
+fn modelos() -> Vec<(&'static str, &'static str)> {
+    vec![("", tr("Predeterminado")), ("fable", "Fable"), ("opus", "Opus"), ("sonnet", "Sonnet"), ("haiku", "Haiku")]
+}
+
+fn esfuerzos() -> Vec<(&'static str, &'static str)> {
+    vec![
+        ("", tr("Predeterminado")),
+        ("low", tr("Bajo")),
+        ("medium", tr("Medio")),
+        ("high", tr("Alto")),
+        ("xhigh", tr("Muy alto")),
+        ("max", tr("Máximo")),
+    ]
+}
+
+/// Cómo se llama la opción `valor` de una lista.
+fn nombre_de(lista: &[(&str, &'static str)], valor: &str) -> &'static str {
+    lista.iter().find(|(v, _)| *v == valor).map_or(lista[0].1, |(_, nombre)| nombre)
+}
+
 /// Tipos de mensaje del panel (ver ui/claude.slint).
 const DEL_USUARIO: i32 = 0;
 const DE_CLAUDE: i32 = 1;
@@ -38,6 +60,19 @@ impl Ctx {
         ui.set_mensajes_claude(modelo(e.claude.mensajes.clone()));
         ui.set_claude_ocupado(e.claude.respuesta.is_some());
         ui.set_carpeta_claude(carpeta_claude(&e.config.ajustes).display().to_string().into());
+        ui.set_modelo_claude(tr_con("Modelo: {}", &[nombre_de(&modelos(), &e.config.ajustes.modelo_claude)]).into());
+        ui.set_esfuerzo_claude(tr_con("Esfuerzo: {}", &[nombre_de(&esfuerzos(), &e.config.ajustes.esfuerzo_claude)]).into());
+    }
+
+    /// Menú para elegir el modelo (`esfuerzo` false) o el esfuerzo con que responde Claude.
+    fn elegir_opcion_claude(&self, esfuerzo: bool) {
+        let lista = if esfuerzo { esfuerzos() } else { modelos() };
+        let opciones: Vec<Opcion> = lista.iter().enumerate().map(|(i, (_, nombre))| Opcion::Normal(i as u32, nombre)).collect();
+        self.mostrar_menu(&opciones, move |ctx, i| {
+            let Some((valor, _)) = lista.get(i as usize) else { return };
+            ctx.modificar_ajustes(|a| *if esfuerzo { &mut a.esfuerzo_claude } else { &mut a.modelo_claude } = valor.to_string());
+            ctx.mostrar_claude();
+        });
     }
 
     fn anotar_claude(&self, tipo: i32, texto: impl Into<SharedString>) {
@@ -53,13 +88,15 @@ impl Ctx {
             return;
         }
         self.anotar_claude(DEL_USUARIO, texto);
-        let (carpeta, sesion, turno) = {
+        let (carpeta, sesion, turno, modelo, esfuerzo) = {
             let mut e = self.estado.borrow_mut();
             e.claude.turno += 1;
-            (carpeta_claude(&e.config.ajustes), e.claude.sesion.clone(), e.claude.turno)
+            let a = &e.config.ajustes;
+            let opcion = |valor: &String| Some(valor.clone()).filter(|v| !v.is_empty());
+            (carpeta_claude(a), e.claude.sesion.clone(), e.claude.turno, opcion(&a.modelo_claude), opcion(&a.esfuerzo_claude))
         };
         let al_llegar = move |suceso| barra::addons::en_la_interfaz(move |ctx| ctx.llega_de_claude(turno, suceso));
-        match claude::preguntar(texto, &carpeta, sesion.as_deref(), al_llegar) {
+        match claude::preguntar(texto, &carpeta, sesion.as_deref(), modelo.as_deref(), esfuerzo.as_deref(), al_llegar) {
             Ok(respuesta) => self.estado.borrow_mut().claude.respuesta = Some(respuesta),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 self.anotar_claude(NOTA, tr("No se encuentra Claude Code: instálalo y vuelve a intentarlo."))
@@ -249,6 +286,10 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_nueva_conversacion_claude(move || c.nueva_conversacion_claude());
     let c = ctx.clone();
     ui.on_elegir_carpeta_claude(move || c.elegir_carpeta_claude());
+    let c = ctx.clone();
+    ui.on_elegir_modelo_claude(move || c.elegir_opcion_claude(false));
+    let c = ctx.clone();
+    ui.on_elegir_esfuerzo_claude(move || c.elegir_opcion_claude(true));
     ui.on_copiar_claude(|texto| {
         portapapeles::poner(&texto);
     });
