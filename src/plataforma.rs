@@ -43,7 +43,7 @@ use windows_core::Interface;
 use windows_numerics::{Vector2, Vector3};
 use windows::Win32::Graphics::Gdi::{
     AC_SRC_ALPHA, AC_SRC_OVER, BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BLENDFUNCTION,
-    CombineRgn, CreateCompatibleDC, CreateDIBSection, CreateRectRgn, HRGN, RGN_OR, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetMonitorInfoW, HBITMAP, HDC,
+    CombineRgn, CreateCompatibleDC, CreateDIBSection, CreateEllipticRgn, CreateRectRgn, HRGN, RGN_DIFF, RGN_OR, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetMonitorInfoW, HBITMAP, HDC,
     HGDIOBJ, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint, ScreenToClient, SelectObject, SetWindowRgn,
 
 };
@@ -86,11 +86,13 @@ pub type Rect = (i32, i32, i32, i32);
 
 /// Parte de la forma visible de una ventana: un rectángulo (relativo a la ventana, en píxeles
 /// físicos) y el radio de cada esquina, desde la de arriba a la izquierda en el sentido de las
-/// agujas del reloj.
+/// agujas del reloj. A los empalmes entre la tira y el panel les falta un cuarto de círculo (del
+/// radio del lado) centrado en la esquina `hueco`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Pieza {
     pub rect: Rect,
     pub radios: [i32; 4],
+    pub hueco: Option<usize>,
 }
 
 impl Pieza {
@@ -100,8 +102,9 @@ impl Pieza {
 }
 
 /// Forma visible de una ventana: en la barra, la tira y el panel abierto (cada uno de su largo,
-/// ver ui/barra.slint); en las emergentes, una sola pieza. Las piezas sin tamaño no cuentan.
-pub type Forma = [Pieza; 2];
+/// ver ui/barra.slint) y los empalmes entre ellos; en las emergentes, una sola pieza. Las piezas
+/// sin tamaño no cuentan.
+pub type Forma = [Pieza; 4];
 
 /// El ratón salió de la ventana (lo pide `TrackMouseEvent`).
 const WM_MOUSELEAVE: u32 = 0x02A3;
@@ -157,7 +160,7 @@ struct Escena {
 struct Vidrio {
     _destino: DesktopWindowTarget,
     /// Uno por pieza de la forma, cada uno con su recorte.
-    piezas: [(SpriteVisual, RectangleClip); 2],
+    piezas: [(SpriteVisual, RectangleClip); 4],
 }
 
 /// Cuánto se mete el cristal hacia dentro de la forma visible con el desenfoque antiguo, en
@@ -456,9 +459,13 @@ impl Interna {
             .get()
             .filter(|_| visible)
             .map(|forma| {
-                forma.map(|Pieza { rect: (rx, ry, ancho, alto), radios }| {
+                forma.map(|Pieza { rect: (rx, ry, ancho, alto), radios, hueco }| {
+                    // Los empalmes, solo con la composición: el desenfoque antiguo no llega a ellos.
+                    if hueco.is_some() && self.vidrio.is_none() {
+                        return Pieza::default();
+                    }
                     let rect = (x + rx + margen, y + ry + margen, ancho - 2 * margen, alto - 2 * margen);
-                    if rect.2 >= minimo && rect.3 >= minimo { Pieza { rect, radios } } else { Pieza::default() }
+                    if rect.2 >= minimo && rect.3 >= minimo { Pieza { rect, radios, hueco } } else { Pieza::default() }
                 })
             })
             .filter(|forma| forma.iter().any(|p| !p.vacia()));
@@ -496,7 +503,12 @@ impl Interna {
                     let _ = recorte.SetBottomRightRadius(esquina(pieza.radios[2]));
                     let _ = recorte.SetBottomLeftRadius(esquina(pieza.radios[3]));
                     let _ = visual.SetIsVisible(true);
-                    unir_rectangulo(region, (rx, ry, ancho, alto));
+                    match pieza.hueco {
+                        // El cuarto de círculo que le falta al empalme lo quita la región (con el
+                        // borde sin suavizar, pero el empalme es pequeño y el fondo lo cubre).
+                        Some(esquina) => unir_empalme(region, (rx, ry, ancho, alto), esquina),
+                        None => unir_rectangulo(region, (rx, ry, ancho, alto)),
+                    }
                 }
                 let _ = SetWindowRgn(self.cristal, Some(region), false);
                 if self.cristal_ventana.replace(Some(lienzo)) != Some(lienzo) {
@@ -1130,10 +1142,27 @@ fn crear_vidrio(cristal: HWND) -> Option<Vidrio> {
             raiz.Children().ok()?.InsertAtTop(&visual).ok()?;
             Some((visual, recorte))
         };
-        let piezas = [pieza()?, pieza()?];
+        let piezas = [pieza()?, pieza()?, pieza()?, pieza()?];
         destino.SetRoot(&raiz).ok()?;
         Some(Vidrio { _destino: destino, piezas })
     })
+}
+
+/// Añade a `region` el rectángulo `(x, y, ancho, alto)` sin el cuarto de círculo del radio de su
+/// lado centrado en la esquina `esquina` (0 la de arriba a la izquierda, y en el sentido de las
+/// agujas del reloj).
+unsafe fn unir_empalme(region: HRGN, (x, y, ancho, alto): Rect, esquina: usize) {
+    let r = ancho.max(alto);
+    let cx = if esquina == 1 || esquina == 2 { x + ancho } else { x };
+    let cy = if esquina >= 2 { y + alto } else { y };
+    unsafe {
+        let parte = CreateRectRgn(x, y, x + ancho, y + alto);
+        let circulo = CreateEllipticRgn(cx - r, cy - r, cx + r, cy + r);
+        CombineRgn(Some(parte), Some(parte), Some(circulo), RGN_DIFF);
+        CombineRgn(Some(region), Some(region), Some(parte), RGN_OR);
+        let _ = DeleteObject(circulo.into());
+        let _ = DeleteObject(parte.into());
+    }
 }
 
 /// Añade a `region` el rectángulo `(x, y, ancho, alto)`.

@@ -670,7 +670,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // y los iconos midan un número entero de píxeles (ver `IconoApp` en ui/iconos.slint).
         ui.set_escala(ui.window().scale_factor());
         ui.global::<Tema>().set_escala(ui.window().scale_factor());
-        let forma = [ui.get_forma_tira(), ui.get_forma_panel()];
+        let forma = [ui.get_forma_tira(), ui.get_forma_panel(), ui.get_forma_empalme_inicio(), ui.get_forma_empalme_final()];
         plataforma::recortar(ui.window(), Some(recorte(ui.window(), forma)));
     });
 
@@ -778,7 +778,7 @@ fn modelo<T: Clone + 'static>(datos: Vec<T>) -> ModelRc<T> {
 const RADIO_EMERGENTE: f32 = 18.0;
 
 /// Forma visible de una ventana (para el desenfoque de detrás), de píxeles lógicos a físicos.
-fn recorte(ventana: &slint::Window, piezas: [Pieza; 2]) -> plataforma::Forma {
+fn recorte(ventana: &slint::Window, piezas: [Pieza; 4]) -> plataforma::Forma {
     let escala = ventana.scale_factor();
     let px = |v: f32| (v * escala).round() as i32;
     piezas.map(|p| {
@@ -788,6 +788,7 @@ fn recorte(ventana: &slint::Window, piezas: [Pieza; 2]) -> plataforma::Forma {
             // dejan un hueco entre ellas.
             rect: (x, y, px(p.x + p.ancho) - x, px(p.y + p.alto) - y),
             radios: [px(p.arriba_izquierda), px(p.arriba_derecha), px(p.abajo_derecha), px(p.abajo_izquierda)],
+            hueco: (1..=4).contains(&p.hueco).then(|| p.hueco as usize - 1),
         }
     })
 }
@@ -803,6 +804,7 @@ fn pieza_redondeada(ancho: f32, alto: f32, radio: f32) -> Pieza {
         arriba_derecha: radio,
         abajo_derecha: radio,
         abajo_izquierda: radio,
+        hueco: 0,
     }
 }
 

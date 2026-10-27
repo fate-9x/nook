@@ -597,6 +597,9 @@ export component Barra inherits Window {
         root.sa-x0, root.sa-y0, root.sa-x1, root.sa-y1, root.ra-ai, root.ra-ad, root.ra-bd, root.ra-bi);
     out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : root.visible-de(
         root.sb-x0, root.sb-y0, root.sb-x1, root.sb-y1, root.rb-ai, root.rb-ad, root.rb-bd, root.rb-bi);
+    // Los empalmes también llevan el desenfoque: sin él, se veía nítido lo que hay detrás.
+    out property <Pieza> forma-empalme-inicio: root.modo == 0 || root.moviendo ? {} : root.empalme-visible(root.empalme(0));
+    out property <Pieza> forma-empalme-final: root.modo == 0 || root.moviendo ? {} : root.empalme-visible(root.empalme(1));
     // Lo que se ve de una pieza: el contorno, que se anima aparte, la recorta mientras la barra se
     // despliega o se recoge (el panel, por ejemplo, ya tiene su largo final cuando el contorno aún
     // está creciendo). Sin esto, el desenfoque asomaba fuera de la barra. Por donde se recorta, la
@@ -619,7 +622,17 @@ export component Barra inherits Window {
             arriba-derecha: vx1 < x1 || vy0 > y0 ? 0px : ad,
             abajo-derecha: vx1 < x1 || vy1 < y1 ? 0px : bd,
             abajo-izquierda: vx0 > x0 || vy1 < y1 ? 0px : bi,
+            hueco: 0,
         };
+    }
+    // El empalme, si el contorno no lo recorta (mientras lo hace, sin desenfoque: es pequeño).
+    pure function empalme-visible(p: Pieza) -> Pieza {
+        if (p.x < root.ajustar(contorno.x) - 1px || p.y < root.ajustar(contorno.y) - 1px
+            || p.x + p.ancho > root.ajustar(contorno.x + contorno.width) + 1px
+            || p.y + p.alto > root.ajustar(contorno.y + contorno.height) + 1px) {
+            return {};
+        }
+        return p;
     }
 
     // ---- Forma de la barra ----
@@ -744,6 +757,37 @@ export component Barra inherits Window {
         return round(v * root.escala / 1px) * 1px / root.escala;
     }
     property <length> j: root.ajustar(root.juntura);
+    // Empalme de un extremo (0 el del principio, 1 el del final), en el lienzo: un cuadrado junto a
+    // la pieza que no sobresale y contra la otra, al que le falta un cuarto de círculo en la
+    // esquina que no toca ninguna de las dos. Sin tamaño si no hace falta.
+    pure function empalme(extremo: int) -> Pieza {
+        let sobra = extremo == 0 ? root.sobra-inicio : root.sobra-final;
+        let lado = extremo == 0 ? root.empalme-inicio : root.empalme-final;
+        if (lado <= 0.5px) {
+            return {};
+        }
+        // La pieza que no sobresale: dónde empieza y acaba a lo largo (con sus bordes ajustados),
+        // y si va antes de la juntura.
+        let de-la-tira = sobra >= 0px;
+        let desde = root.vertical ? (de-la-tira ? root.sa-y0 : root.sb-y0) : (de-la-tira ? root.sa-x0 : root.sb-x0);
+        let hasta = root.vertical ? (de-la-tira ? root.sa-y1 : root.sb-y1) : (de-la-tira ? root.sa-x1 : root.sb-x1);
+        let antes = root.tira-antes == de-la-tira;
+        // Sus bordes a lo largo y de través.
+        let largo-0 = extremo == 0 ? root.ajustar(desde - lado) : hasta;
+        let largo-1 = extremo == 0 ? desde : root.ajustar(hasta + lado);
+        let traves-0 = antes ? root.ajustar(root.j - lado) : root.j;
+        let traves-1 = antes ? root.j : root.ajustar(root.j + lado);
+        // Esquina con lo lleno (la que toca las dos piezas); el hueco va en la contraria.
+        let derecha = root.vertical ? antes : extremo == 0;
+        let abajo = root.vertical ? extremo == 0 : antes;
+        return {
+            x: root.vertical ? traves-0 : largo-0,
+            y: root.vertical ? largo-0 : traves-0,
+            ancho: root.vertical ? traves-1 - traves-0 : largo-1 - largo-0,
+            alto: root.vertical ? largo-1 - largo-0 : traves-1 - traves-0,
+            hueco: derecha ? (abajo ? 1 : 4) : (abajo ? 2 : 3),
+        };
+    }
     property <length> sa-x0: root.posicion == 2 ? root.j : root.ajustar(root.pa-x);
     property <length> sa-x1: root.posicion == 1 ? root.j : root.ajustar(root.pa-x + root.pa-ancho);
     property <length> sa-y0: root.posicion == 3 ? root.j : root.ajustar(root.pa-y);
@@ -994,27 +1038,16 @@ export component Barra inherits Window {
         }
         // Empalmes: en cada extremo, junto a la pieza que no sobresale, contra la otra.
         for extremo in 2 : Empalme {
-            property <length> sobra: extremo == 0 ? root.sobra-inicio : root.sobra-final;
-            property <length> lado: extremo == 0 ? root.empalme-inicio : root.empalme-final;
-            // La pieza que no sobresale: dónde empieza y acaba a lo largo (con sus bordes
-            // ajustados), y si va antes de la juntura.
-            property <bool> de-la-tira: self.sobra >= 0px;
-            property <length> desde: root.vertical ? (self.de-la-tira ? root.sa-y0 : root.sb-y0) : (self.de-la-tira ? root.sa-x0 : root.sb-x0);
-            property <length> hasta: root.vertical ? (self.de-la-tira ? root.sa-y1 : root.sb-y1) : (self.de-la-tira ? root.sa-x1 : root.sb-x1);
-            property <bool> antes: root.tira-antes == self.de-la-tira;
-            // Sus bordes a lo largo y de través.
-            property <length> largo-0: extremo == 0 ? root.ajustar(self.desde - self.lado) : self.hasta;
-            property <length> largo-1: extremo == 0 ? self.desde : root.ajustar(self.hasta + self.lado);
-            property <length> traves-0: self.antes ? root.ajustar(root.j - self.lado) : root.j;
-            property <length> traves-1: self.antes ? root.j : root.ajustar(root.j + self.lado);
-            visible: self.lado > 0.5px;
-            x: (root.vertical ? self.traves-0 : self.largo-0) - contorno.x;
-            y: (root.vertical ? self.largo-0 : self.traves-0) - contorno.y;
-            width: root.vertical ? self.traves-1 - self.traves-0 : self.largo-1 - self.largo-0;
-            height: root.vertical ? self.largo-1 - self.largo-0 : self.traves-1 - self.traves-0;
+            property <Pieza> forma: root.empalme(extremo);
+            visible: self.forma.ancho > 0px;
+            x: self.forma.x - contorno.x;
+            y: self.forma.y - contorno.y;
+            width: self.forma.ancho;
+            height: self.forma.alto;
             fill: parent.tono;
-            derecha: root.vertical ? self.antes : extremo == 0;
-            abajo: root.vertical ? extremo == 0 : self.antes;
+            // Lo lleno va en la esquina contraria al hueco.
+            derecha: self.forma.hueco == 1 || self.forma.hueco == 4;
+            abajo: self.forma.hueco == 1 || self.forma.hueco == 2;
         }
     }
 

@@ -102,8 +102,11 @@ export component Fondo inherits Rectangle {
     background: Tema.fondo.with-alpha(Tema.opacidad);
 }
 
-// Pieza de la forma visible de la barra (la tira o el panel): dónde está en la ventana y el
-// radio de cada esquina. Rust pone debajo el desenfoque (ver `recorte` en src/main.rs).
+// Pieza de la forma visible de la barra (la tira, el panel o un empalme entre ellos): dónde está
+// en la ventana y el radio de cada esquina. Rust pone debajo el desenfoque (ver `recorte` en
+// src/main.rs). En los empalmes, `hueco` es la esquina a la que le falta el cuarto de círculo (del
+// radio del lado): 1 arriba a la izquierda, 2 arriba a la derecha, 3 abajo a la derecha, 4 abajo a
+// la izquierda; 0 en las demás piezas.
 export struct Pieza {
     x: length,
     y: length,
@@ -113,6 +116,7 @@ export struct Pieza {
     arriba-derecha: length,
     abajo-derecha: length,
     abajo-izquierda: length,
+    hueco: int,
 }
 
 // Esquina hacia dentro donde se juntan la tira y el panel: un cuadrado al que le falta un cuarto

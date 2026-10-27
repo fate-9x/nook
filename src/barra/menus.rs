@@ -236,7 +236,7 @@ pub(crate) fn conectar_emergente(emergente: &Emergente, ctx: &Ctx) {
     plataforma::al_presentar(emergente.window(), move || {
         let Some(em) = em.upgrade() else { return };
         let tamano = em.window().size().to_logical(em.window().scale_factor());
-        let forma = [pieza_redondeada(tamano.width, tamano.height, RADIO_EMERGENTE), Pieza::default()];
+        let forma = [pieza_redondeada(tamano.width, tamano.height, RADIO_EMERGENTE), Pieza::default(), Pieza::default(), Pieza::default()];
         plataforma::recortar(em.window(), Some(recorte(em.window(), forma)));
     });
     let c = ctx.clone();
