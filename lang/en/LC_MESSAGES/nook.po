@@ -719,9 +719,6 @@ msgstr "Stop"
 msgid "Claude está trabajando…"
 msgstr "Claude is working…"
 
-msgid "Escribe a Claude…"
-msgstr "Write to Claude…"
-
 msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
 msgstr "Write to Claude Code below: it works in the folder above and only uses what you've allowed in its settings."
 
@@ -745,3 +742,12 @@ msgstr "Claude Code failed: {}"
 
 msgid "Respuesta parada."
 msgstr "Response stopped."
+
+msgid "Ver con formato"
+msgstr "Show formatted"
+
+msgid "Seleccionar texto"
+msgstr "Select text"
+
+msgid "Escribe a Claude…"
+msgstr "Write to Claude…"

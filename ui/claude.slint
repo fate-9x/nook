@@ -2,26 +2,121 @@
 // trabaja y los botones para cambiarla y empezar otra conversación; en medio la conversación, que
 // se desplaza sola hasta lo último; y abajo el campo para escribirle.
 
-import { Tema, MensajeClaude } from "tema.slint";
+import { Tema, MensajeClaude, BloqueClaude } from "tema.slint";
 import { BotonTexto, CampoTexto } from "controles.slint";
 
-// Un mensaje: los del usuario en un globo, los de Claude tal cual y las notas en pequeño.
+// Texto que se puede seleccionar y copiar (con Ctrl+C), pero no cambiar.
+component TextoSeleccionable inherits TextInput {
+    read-only: true;
+    single-line: false;
+    wrap: word-wrap;
+    color: Tema.texto;
+    font-size: 12px;
+    selection-background-color: Tema.acento;
+    selection-foreground-color: Tema.sobre-acento;
+}
+
+// Parte de un mensaje de Claude con su formato.
+component Bloque inherits VerticalLayout {
+    in property <BloqueClaude> bloque;
+    callback abrir-enlace(string);
+
+    if root.bloque.tipo <= 1 : StyledText {
+        text: root.bloque.texto;
+        default-color: Tema.texto;
+        default-font-size: root.bloque.tipo == 1 ? 14px : 12px;
+        link-color: Tema.acento;
+        link-clicked(enlace) => { root.abrir-enlace(enlace); }
+    }
+    if root.bloque.tipo == 2 : HorizontalLayout {
+        spacing: 8px;
+        Rectangle {
+            width: 3px;
+            border-radius: 1.5px;
+            background: Tema.linea;
+        }
+        StyledText {
+            horizontal-stretch: 1;
+            text: root.bloque.texto;
+            default-color: Tema.texto-suave;
+            default-font-size: 12px;
+            link-color: Tema.acento;
+            link-clicked(enlace) => { root.abrir-enlace(enlace); }
+        }
+    }
+    if root.bloque.tipo == 3 : Rectangle {
+        background: Tema.capa;
+        border-radius: 8px;
+        VerticalLayout {
+            padding: 8px;
+            TextoSeleccionable {
+                text: root.bloque.crudo;
+                font-family: "Consolas";
+                font-size: 11px;
+            }
+        }
+    }
+    if root.bloque.tipo == 4 : Rectangle {
+        height: 1px;
+        background: Tema.linea;
+    }
+}
+
+// Botón pequeño de texto, bajo los mensajes de Claude.
+component Accion inherits Text {
+    callback clicked();
+    color: area.has-hover ? Tema.texto : Tema.texto-tenue;
+    font-size: 11px;
+    area := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Un mensaje: los del usuario en un globo, los de Claude con formato (o, para seleccionar una
+// parte, tal cual) y las notas en pequeño.
 component Mensaje inherits Rectangle {
-    in property <int> tipo;
-    in property <string> texto;
-    background: root.tipo == 0 ? Tema.capa : transparent;
+    in property <MensajeClaude> mensaje;
+    callback copiar(string);
+    callback abrir-enlace(string);
+    property <bool> seleccionando;
+    background: root.mensaje.tipo == 0 ? Tema.capa : transparent;
     border-radius: 10px;
+
     VerticalLayout {
-        padding-left: root.tipo == 0 ? 10px : 2px;
+        padding-left: root.mensaje.tipo == 0 ? 10px : 2px;
         padding-right: self.padding-left;
-        padding-top: root.tipo == 0 ? 7px : 0px;
+        padding-top: root.mensaje.tipo == 0 ? 7px : 0px;
         padding-bottom: self.padding-top;
-        Text {
-            text: root.texto;
-            color: root.tipo == 2 ? Tema.texto-tenue : Tema.texto;
-            font-size: root.tipo == 2 ? 11px : 12px;
-            font-italic: root.tipo == 2;
+        spacing: 6px;
+        if root.mensaje.tipo == 0 || (root.mensaje.tipo == 1 && root.seleccionando) : TextoSeleccionable {
+            text: root.mensaje.texto;
+        }
+        if root.mensaje.tipo == 1 && !root.seleccionando : VerticalLayout {
+            spacing: 8px;
+            for bloque in root.mensaje.bloques : Bloque {
+                bloque: bloque;
+                abrir-enlace(enlace) => { root.abrir-enlace(enlace); }
+            }
+        }
+        if root.mensaje.tipo == 2 : Text {
+            text: root.mensaje.texto;
+            color: Tema.texto-tenue;
+            font-size: 11px;
+            font-italic: true;
             wrap: word-wrap;
+        }
+        if root.mensaje.tipo == 1 : HorizontalLayout {
+            alignment: end;
+            spacing: 12px;
+            Accion {
+                text: @tr("Copiar");
+                clicked => { root.copiar(root.mensaje.texto); }
+            }
+            Accion {
+                text: root.seleccionando ? @tr("Ver con formato") : @tr("Seleccionar texto");
+                clicked => { root.seleccionando = !root.seleccionando; }
+            }
         }
     }
 }
@@ -35,9 +130,18 @@ export component PanelClaude inherits Rectangle {
     callback parar();
     callback nueva-conversacion();
     callback elegir-carpeta();
+    callback copiar(string);
+    callback abrir-enlace(string);
 
     public function enfocar() {
         campo.enfocar();
+    }
+
+    function enviar-texto() {
+        if (!root.ocupado && root.texto != "") {
+            root.enviar(root.texto);
+            root.texto = "";
+        }
     }
 
     HorizontalLayout {
@@ -76,14 +180,14 @@ export component PanelClaude inherits Rectangle {
         x: 16px;
         y: 52px;
         width: parent.width - 32px;
-        height: parent.height - 52px - 54px;
+        height: parent.height - 52px - 12px - abajo.height - 12px;
         content-height: max(self.height, contenido.preferred-height);
         // Al llegar algo nuevo, se baja hasta el final.
         changed content-height => { self.content-y = min(0px, self.height - self.content-height); }
 
         contenido := VerticalLayout {
             width: lista.width;
-            spacing: 8px;
+            spacing: 10px;
             alignment: start;
             if root.mensajes.length == 0 : Text {
                 text: @tr("Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración.");
@@ -92,8 +196,9 @@ export component PanelClaude inherits Rectangle {
                 wrap: word-wrap;
             }
             for mensaje in root.mensajes : Mensaje {
-                tipo: mensaje.tipo;
-                texto: mensaje.texto;
+                mensaje: mensaje;
+                copiar(texto) => { root.copiar(texto); }
+                abrir-enlace(enlace) => { root.abrir-enlace(enlace); }
             }
             if root.ocupado : Text {
                 text: @tr("Claude está trabajando…");
@@ -104,36 +209,30 @@ export component PanelClaude inherits Rectangle {
         }
     }
 
-    HorizontalLayout {
+    abajo := HorizontalLayout {
         x: 16px;
-        y: parent.height - 12px - 30px;
+        y: parent.height - 12px - self.height;
         width: parent.width - 32px;
         height: 30px;
         spacing: 8px;
+        alignment: stretch;
         campo := CampoTexto {
             horizontal-stretch: 1;
             text <=> root.texto;
             placeholder: @tr("Escribe a Claude…");
-            accepted => {
-                if (!root.ocupado && root.texto != "") {
-                    root.enviar(root.texto);
-                    root.texto = "";
-                }
-            }
+            accepted => { root.enviar-texto(); }
         }
-        if !root.ocupado : BotonTexto {
-            texto: @tr("Enviar");
-            peligro: true;
-            clicked => {
-                if (root.texto != "") {
-                    root.enviar(root.texto);
-                    root.texto = "";
-                }
+        VerticalLayout {
+            alignment: end;
+            if !root.ocupado : BotonTexto {
+                texto: @tr("Enviar");
+                peligro: true;
+                clicked => { root.enviar-texto(); }
             }
-        }
-        if root.ocupado : BotonTexto {
-            texto: @tr("Parar");
-            clicked => { root.parar(); }
+            if root.ocupado : BotonTexto {
+                texto: @tr("Parar");
+                clicked => { root.parar(); }
+            }
         }
     }
 }

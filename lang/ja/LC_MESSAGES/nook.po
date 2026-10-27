@@ -719,9 +719,6 @@ msgstr "停止"
 msgid "Claude está trabajando…"
 msgstr "Claude が作業中…"
 
-msgid "Escribe a Claude…"
-msgstr "Claude にメッセージ…"
-
 msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
 msgstr "下の欄から Claude Code に話しかけましょう。上のフォルダーで作業し、設定で許可したものだけを使います。"
 
@@ -745,3 +742,12 @@ msgstr "Claude Code でエラーが発生しました: {}"
 
 msgid "Respuesta parada."
 msgstr "応答を停止しました。"
+
+msgid "Ver con formato"
+msgstr "書式付きで表示"
+
+msgid "Seleccionar texto"
+msgstr "テキストを選択"
+
+msgid "Escribe a Claude…"
+msgstr "Claude にメッセージ…"

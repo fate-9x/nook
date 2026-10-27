@@ -719,9 +719,6 @@ msgstr "중지"
 msgid "Claude está trabajando…"
 msgstr "Claude가 작업 중…"
 
-msgid "Escribe a Claude…"
-msgstr "Claude에게 쓰기…"
-
 msgid "Escríbele abajo a Claude Code: trabaja en la carpeta de arriba y solo usa lo que tengas permitido en su configuración."
 msgstr "아래에서 Claude Code에게 말을 걸어 보세요. 위의 폴더에서 작업하며 설정에서 허용한 것만 사용합니다."
 
@@ -745,3 +742,12 @@ msgstr "Claude Code에서 오류가 발생했습니다: {}"
 
 msgid "Respuesta parada."
 msgstr "응답을 중지했습니다."
+
+msgid "Ver con formato"
+msgstr "서식 있게 보기"
+
+msgid "Seleccionar texto"
+msgstr "텍스트 선택"
+
+msgid "Escribe a Claude…"
+msgstr "Claude에게 쓰기…"

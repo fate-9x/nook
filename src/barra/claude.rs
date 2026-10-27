@@ -41,7 +41,9 @@ impl Ctx {
     }
 
     fn anotar_claude(&self, tipo: i32, texto: impl Into<SharedString>) {
-        self.estado.borrow_mut().claude.mensajes.push(MensajeClaude { tipo, texto: texto.into() });
+        let texto = texto.into();
+        let bloques = if tipo == DE_CLAUDE { modelo(bloques_con_formato(&texto)) } else { ModelRc::default() };
+        self.estado.borrow_mut().claude.mensajes.push(MensajeClaude { tipo, texto, bloques });
     }
 
     /// Le manda un mensaje a Claude (si no está respondiendo otro).
@@ -81,9 +83,14 @@ impl Ctx {
                 if !denegadas.is_empty() {
                     self.anotar_claude(NOTA, tr_con("Claude no tuvo permiso para usar: {}", &[&denegadas.join(", ")]));
                 }
-                // Algunos errores (como no tener la sesión iniciada) llegan antes como su respuesta.
-                let ya_dicho = |error: &str| self.estado.borrow().claude.mensajes.last().is_some_and(|m| m.texto == error);
-                if let Some(error) = error.filter(|e| !ya_dicho(e)) {
+                if let Some(error) = error {
+                    // Algunos errores (como no tener la sesión iniciada) llegan antes como su
+                    // respuesta: se cambia por el aviso.
+                    let mut e = self.estado.borrow_mut();
+                    if e.claude.mensajes.last().is_some_and(|m| m.tipo == DE_CLAUDE && m.texto == error.as_str()) {
+                        e.claude.mensajes.pop();
+                    }
+                    drop(e);
                     self.anotar_claude(NOTA, tr_con("Claude Code falló: {}", &[&error]));
                 }
                 // Con el panel cerrado, el personaje avisa de que ya respondió.
@@ -128,6 +135,89 @@ impl Ctx {
     }
 }
 
+/// Tipos de bloque de un mensaje de Claude (ver ui/claude.slint).
+const PARRAFOS: i32 = 0;
+const TITULO: i32 = 1;
+const CITA: i32 = 2;
+const CODIGO: i32 = 3;
+const LINEA: i32 = 4;
+
+/// Un mensaje de Claude en bloques con formato.
+fn bloques_con_formato(texto: &str) -> Vec<BloqueClaude> {
+    partes_markdown(texto)
+        .into_iter()
+        .map(|(tipo, crudo)| {
+            let texto = if tipo == CODIGO || tipo == LINEA {
+                slint::StyledText::default()
+            } else {
+                slint::StyledText::from_markdown(&crudo).unwrap_or_else(|_| slint::StyledText::from_plain_text(&crudo))
+            };
+            BloqueClaude { tipo, texto, crudo: crudo.into() }
+        })
+        .collect()
+}
+
+/// Las partes de un texto en markdown. `StyledText` solo entiende párrafos, listas y el formato
+/// dentro de las líneas (y con algo más no muestra nada): los títulos, citas, bloques de código,
+/// tablas y líneas se separan aquí.
+fn partes_markdown(texto: &str) -> Vec<(i32, String)> {
+    let mut partes: Vec<(i32, String)> = Vec::new();
+    let mut en_codigo = false;
+    let mut tras_vacia = false;
+    for linea in texto.lines() {
+        let recortada = linea.trim();
+        if recortada.starts_with("```") {
+            en_codigo = !en_codigo;
+            if en_codigo {
+                partes.push((CODIGO, String::new()));
+            }
+            // Lo que sigue al bloque de código va aparte (aunque sea una tabla).
+            tras_vacia = !en_codigo;
+            continue;
+        }
+        if en_codigo {
+            if let Some((_, codigo)) = partes.last_mut() {
+                if !codigo.is_empty() {
+                    codigo.push('\n');
+                }
+                codigo.push_str(linea);
+            }
+            continue;
+        }
+        if recortada.is_empty() {
+            tras_vacia = true;
+            continue;
+        }
+        let almohadillas = recortada.chars().take_while(|&c| c == '#').count();
+        let (tipo, contenido) = if (1..=6).contains(&almohadillas) && recortada[almohadillas..].starts_with(' ') {
+            (TITULO, format!("**{}**", recortada[almohadillas..].trim().replace("**", "")))
+        } else if let Some(cita) = recortada.strip_prefix('>') {
+            (CITA, cita.trim().to_string())
+        } else if recortada.len() >= 3 && recortada.chars().all(|c| c == '-' || c == '*' || c == '_' || c == ' ') {
+            (LINEA, String::new())
+        } else if recortada.starts_with('|') {
+            // La fila que separa la cabecera de una tabla no se muestra.
+            if recortada.chars().all(|c| matches!(c, '|' | '-' | ':' | ' ')) {
+                continue;
+            }
+            (CODIGO, recortada.to_string())
+        } else {
+            (PARRAFOS, linea.to_string())
+        };
+        // Las líneas seguidas de párrafos, citas y tablas van juntas (los párrafos, también
+        // separados por líneas vacías: StyledText los separa).
+        match partes.last_mut() {
+            Some((anterior, junto)) if *anterior == tipo && tipo != TITULO && tipo != LINEA && (!tras_vacia || tipo == PARRAFOS) => {
+                junto.push_str(if tras_vacia { "\n\n" } else { "\n" });
+                junto.push_str(&contenido);
+            }
+            _ => partes.push((tipo, contenido)),
+        }
+        tras_vacia = false;
+    }
+    partes
+}
+
 /// Carpeta en la que trabaja Claude: la elegida o, si no hay, la del usuario.
 fn carpeta_claude(ajustes: &Ajustes) -> PathBuf {
     if ajustes.carpeta_claude.is_empty() {
@@ -149,6 +239,40 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_nueva_conversacion_claude(move || c.nueva_conversacion_claude());
     let c = ctx.clone();
     ui.on_elegir_carpeta_claude(move || c.elegir_carpeta_claude());
+    ui.on_copiar_claude(|texto| {
+        portapapeles::poner(&texto);
+    });
+    // Solo las direcciones web: lo que escribe Claude no puede abrir archivos ni programas.
+    ui.on_abrir_enlace_claude(|enlace| {
+        if enlace.starts_with("https://") || enlace.starts_with("http://") {
+            let _ = sistema::lanzar(&enlace);
+        }
+    });
     let c = ctx.clone();
     ui.on_alternar_boton_claude(move || c.modificar_ajustes(|a| a.boton_claude = !a.boton_claude));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn separa_el_markdown_en_bloques() {
+        let texto = "# Título **uno**\nUn párrafo\nque sigue.\n\n- lista\n- más\n\n> cita\n> larga\n\n\
+            ```rust\nfn main() {}\n\n```\n| a | b |\n|---|:-:|\n| 1 | 2 |\n---\nFin";
+        assert_eq!(
+            partes_markdown(texto),
+            [
+                (TITULO, "**Título uno**".to_string()),
+                (PARRAFOS, "Un párrafo\nque sigue.\n\n- lista\n- más".to_string()),
+                (CITA, "cita\nlarga".to_string()),
+                (CODIGO, "fn main() {}\n".to_string()),
+                (CODIGO, "| a | b |\n| 1 | 2 |".to_string()),
+                (LINEA, String::new()),
+                (PARRAFOS, "Fin".to_string()),
+            ]
+        );
+        // Un bloque de código sin cerrar llega hasta el final.
+        assert_eq!(partes_markdown("```\nx"), [(CODIGO, "x".to_string())]);
+    }
 }

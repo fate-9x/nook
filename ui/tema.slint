@@ -148,10 +148,18 @@ export struct AddonFila {
     error: string,
 }
 
+// Parte de un mensaje de Claude, para mostrarlo con formato (ver src/barra/claude.rs).
+export struct BloqueClaude {
+    tipo: int,          // 0 párrafos y listas, 1 título, 2 cita, 3 código o tabla, 4 línea
+    texto: styled-text, // con formato (los de tipo 0, 1 y 2)
+    crudo: string,      // tal cual (el código)
+}
+
 // Mensaje de la conversación con Claude Code.
 export struct MensajeClaude {
     tipo: int,          // 0 del usuario, 1 de Claude, 2 nota (una herramienta que usa, un error…)
-    texto: string,
+    texto: string,      // tal cual, para copiarlo
+    bloques: [BloqueClaude],    // los de Claude, con formato
 }
 
 // Icono del área de notificación de otro programa.
