@@ -150,8 +150,9 @@ export struct AddonFila {
 
 // Parte de un mensaje de Claude, para mostrarlo con formato (ver src/barra/claude.rs).
 export struct BloqueClaude {
-    tipo: int,          // 0 párrafos y listas, 1 título, 2 cita, 3 código o tabla, 4 línea
+    tipo: int,          // 0 párrafos y listas, 1 título, 2 cita, 3 código o tabla, 4 línea, 5 alternativas
     texto: string,
+    opciones: [string], // las alternativas (tipo 5), que se eligen con un botón
 }
 
 // Mensaje de la conversación con Claude Code.

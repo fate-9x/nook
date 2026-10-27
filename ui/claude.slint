@@ -16,9 +16,12 @@ component TextoSeleccionable inherits TextInput {
     selection-foreground-color: Tema.sobre-acento;
 }
 
-// Parte de un mensaje de Claude con su formato.
+// Parte de un mensaje de Claude con su formato. Las alternativas son botones, que solo se pueden
+// pulsar en su último mensaje mientras no está respondiendo.
 component Bloque inherits VerticalLayout {
     in property <BloqueClaude> bloque;
+    in property <bool> se-puede-elegir;
+    callback elegir(string);
 
     if root.bloque.tipo == 0 : TextoSeleccionable {
         text: root.bloque.texto;
@@ -56,6 +59,31 @@ component Bloque inherits VerticalLayout {
     if root.bloque.tipo == 4 : Rectangle {
         height: 1px;
         background: Tema.linea;
+    }
+    if root.bloque.tipo == 5 : VerticalLayout {
+        spacing: 6px;
+        for opcion in root.bloque.opciones : Rectangle {
+            height: max(30px, etiqueta.preferred-height + 14px);
+            border-radius: 10px;
+            border-width: 1px;
+            border-color: root.se-puede-elegir ? Tema.acento : Tema.linea;
+            background: root.se-puede-elegir && area.has-hover ? Tema.acento : Tema.capa;
+            opacity: root.se-puede-elegir ? 1 : 0.6;
+            etiqueta := Text {
+                x: 12px;
+                width: parent.width - 24px;
+                text: opcion;
+                color: root.se-puede-elegir && area.has-hover ? Tema.sobre-acento : Tema.texto;
+                font-size: 12px;
+                wrap: word-wrap;
+                vertical-alignment: center;
+            }
+            area := TouchArea {
+                enabled: root.se-puede-elegir;
+                mouse-cursor: self.enabled ? pointer : default;
+                clicked => { root.elegir(opcion); }
+            }
+        }
     }
 }
 
@@ -160,7 +188,9 @@ component Accion inherits Text {
 // texto se puede seleccionar y copiar con Ctrl+C.
 component Mensaje inherits Rectangle {
     in property <MensajeClaude> mensaje;
+    in property <bool> se-puede-elegir;     // es el último y Claude no está respondiendo
     callback copiar(string);
+    callback elegir(string);
     background: root.mensaje.tipo == 0 ? Tema.capa : transparent;
     border-radius: 10px;
 
@@ -177,6 +207,8 @@ component Mensaje inherits Rectangle {
             spacing: 8px;
             for bloque in root.mensaje.bloques : Bloque {
                 bloque: bloque;
+                se-puede-elegir: root.se-puede-elegir;
+                elegir(opcion) => { root.elegir(opcion); }
             }
         }
         if root.mensaje.tipo == 2 : Text {
@@ -376,9 +408,11 @@ export component PanelClaude inherits Rectangle {
             width: lista.width;
             spacing: 10px;
             alignment: start;
-            for mensaje in root.mensajes : Mensaje {
+            for mensaje[i] in root.mensajes : Mensaje {
                 mensaje: mensaje;
+                se-puede-elegir: !root.ocupado && i == root.mensajes.length - 1;
                 copiar(texto) => { root.copiar(texto); }
+                elegir(opcion) => { root.enviar(opcion); }
             }
             if root.ocupado : Text {
                 text: @tr("Claude está trabajando…");

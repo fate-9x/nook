@@ -207,14 +207,21 @@ const TITULO: i32 = 1;
 const CITA: i32 = 2;
 const CODIGO: i32 = 3;
 const LINEA: i32 = 4;
+/// Alternativas para elegir (un bloque de código `opciones`, ver `INSTRUCCIONES` en claude.rs).
+const OPCIONES: i32 = 5;
 
 /// Un mensaje de Claude en bloques con formato.
 fn bloques_con_formato(texto: &str) -> Vec<BloqueClaude> {
     partes_markdown(texto)
         .into_iter()
         .map(|(tipo, texto)| {
+            let opciones: Vec<SharedString> = if tipo == OPCIONES {
+                texto.lines().map(|o| o.trim().trim_start_matches(['-', '*', '•']).trim()).filter(|o| !o.is_empty()).map(Into::into).collect()
+            } else {
+                Vec::new()
+            };
             let texto = if matches!(tipo, PARRAFOS | CITA) { sin_marcas(&texto) } else { texto };
-            BloqueClaude { tipo, texto: texto.into() }
+            BloqueClaude { tipo, texto: texto.into(), opciones: modelo(opciones) }
         })
         .collect()
 }
@@ -248,7 +255,7 @@ fn enlaces_en_texto(linea: &str) -> String {
 }
 
 /// Las partes de un texto en markdown: los párrafos (con sus listas), títulos, citas, bloques de
-/// código, tablas y líneas, que se muestran cada uno a su manera.
+/// código, tablas, líneas y alternativas, que se muestran cada uno a su manera.
 fn partes_markdown(texto: &str) -> Vec<(i32, String)> {
     let mut partes: Vec<(i32, String)> = Vec::new();
     let mut en_codigo = false;
@@ -258,7 +265,8 @@ fn partes_markdown(texto: &str) -> Vec<(i32, String)> {
         if recortada.starts_with("```") {
             en_codigo = !en_codigo;
             if en_codigo {
-                partes.push((CODIGO, String::new()));
+                let opciones = recortada.trim_start_matches('`').trim() == "opciones";
+                partes.push((if opciones { OPCIONES } else { CODIGO }, String::new()));
             }
             // Lo que sigue al bloque de código va aparte (aunque sea una tabla).
             tras_vacia = !en_codigo;
@@ -361,6 +369,14 @@ mod tests {
         );
         // Un bloque de código sin cerrar llega hasta el final.
         assert_eq!(partes_markdown("```\nx"), [(CODIGO, "x".to_string())]);
+    }
+
+    #[test]
+    fn las_alternativas_salen_como_opciones() {
+        let bloques = bloques_con_formato("¿Cuál prefieres?\n```opciones\n- Té\nCafé\n\n```");
+        assert_eq!(bloques.len(), 2);
+        assert_eq!(bloques[1].tipo, OPCIONES);
+        assert_eq!(bloques[1].opciones.iter().collect::<Vec<_>>(), ["Té", "Café"]);
     }
 
     #[test]
