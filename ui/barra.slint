@@ -618,29 +618,12 @@ export component Barra inherits Window {
     property <length> a-ancho: root.modo == 0 ? root.ancho : root.vertical ? root.grosor-total : root.largo-tira;
     property <length> a-alto: root.modo == 0 ? root.alto : root.vertical ? root.largo-tira : root.grosor-total;
     // Pieza del panel, en el lienzo (con la línea que lo separa de la tira). A lo largo, donde va
-    // el panel abierto; cerrado, se queda donde estaba, sin grosor: así se despliega y se recoge
-    // como un menú, desde la tira, sin barrerla de lado a lado.
+    // el panel abierto; cerrado, donde está la tira, sin grosor: así se despliega desde la tira,
+    // con su largo, y luego se ensancha (y al recogerse, al revés; ver `fase-grosor`).
     property <length> panel-desde: root.vertical ? root.y-caja + root.contenido-y : root.caja-x + root.contenido-x;
-    property <length> panel-desde-guardado;
-    property <length> panel-largo-guardado;
-    changed panel-desde => {
-        if (root.abierto) {
-            root.panel-desde-guardado = self.panel-desde;
-        }
-    }
-    changed largo-panel => {
-        if (root.abierto) {
-            root.panel-largo-guardado = self.largo-panel;
-        }
-    }
-    changed abierto => {
-        if (self.abierto) {
-            root.panel-desde-guardado = self.panel-desde;
-            root.panel-largo-guardado = self.largo-panel;
-        }
-    }
-    property <length> b-desde-final: root.abierto ? root.panel-desde : root.panel-desde-guardado;
-    property <length> b-largo-final: root.abierto ? root.largo-panel : root.panel-largo-guardado;
+    property <length> b-desde-final: root.abierto ? root.panel-desde
+        : root.vertical ? root.y-caja + root.a-y : root.caja-x + root.a-x;
+    property <length> b-largo-final: root.abierto ? root.largo-panel : root.vertical ? root.a-alto : root.a-ancho;
     // De través: junto a la tira (en la juntura), con el grosor del panel o sin él.
     property <length> b-grosor-final: !root.abierto ? 0px : root.vertical ? root.ancho - root.grosor-total : root.alto - root.grosor-total;
     property <length> b-cruce: root.posicion == 0 ? root.y-caja + root.a-y + root.a-alto
@@ -652,8 +635,10 @@ export component Barra inherits Window {
     property <length> pa-y: root.y-caja + root.a-y;
     property <length> pa-ancho: root.a-ancho;
     property <length> pa-alto: root.a-alto;
-    // El panel, animado a lo largo y de través por separado: a lo largo solo se anima al pasar de
-    // un panel abierto a otro; si no se veía, aparece ya en su sitio.
+    // El panel, animado a lo largo y de través por separado y en dos fases: al abrirse, primero
+    // baja (de través) con el largo de la tira y luego se ensancha (a lo largo) hasta el suyo; al
+    // cerrarse, primero vuelve al largo de la tira y luego se recoge. Al pasar de un panel abierto
+    // a otro, las dos medidas cambian a la vez.
     property <length> pb-desde: root.b-desde-final;
     property <length> pb-largo: root.b-largo-final;
     property <length> pb-cruce: root.b-cruce;
@@ -664,12 +649,23 @@ export component Barra inherits Window {
     property <length> pb-alto: root.vertical ? root.pb-largo : root.pb-grosor;
     property <duration> duracion-forma: !root.animaciones || root.saltar || (root.siguiendo-mas && root.modo == 1 && !root.cambiando-modo) ? 0ms
         : root.abierto ? 420ms : 340ms;
-    animate pa-x, pa-y, pa-ancho, pa-alto, pb-cruce, pb-grosor {
+    // Las dos fases del panel: cuánto dura cada una y cuánto espera la segunda a la primera.
+    property <duration> fase-grosor: root.duracion-forma == 0ms ? 0ms : root.abierto ? 280ms : 220ms;
+    property <duration> fase-largo: root.duracion-forma == 0ms ? 0ms : root.abierto ? 320ms : 220ms;
+    property <duration> espera-largo: root.abierto && root.pb-grosor < 1px ? root.fase-grosor : 0ms;
+    property <duration> espera-grosor: root.abierto ? 0ms : root.fase-largo;
+    animate pa-x, pa-y, pa-ancho, pa-alto {
         duration: root.duracion-forma;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
+    animate pb-cruce, pb-grosor {
+        duration: root.fase-grosor;
+        delay: root.espera-grosor;
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+    }
     animate pb-desde, pb-largo {
-        duration: root.pb-grosor >= 1px ? root.duracion-forma : 0ms;
+        duration: root.fase-largo;
+        delay: root.espera-largo;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     // A lo largo de la tira: dónde empieza y acaba cada pieza, y su grosor.
@@ -961,15 +957,22 @@ export component Barra inherits Window {
 
     // Contorno visible: crece y encoge con una animación; su contenido (la caja) queda fijo en
     // la posición final y el contorno lo va descubriendo o tapando.
-    // La caja, animada: lo que el contorno va descubriendo o tapando.
+    // La caja, animada: lo que el contorno va descubriendo o tapando. Como el panel, en dos
+    // fases: a lo largo de la tira y de través.
     property <length> caja-animada-x: root.caja-x;
     property <length> caja-animada-y: root.y-caja;
     property <length> caja-animada-ancho: root.ancho;
     property <length> caja-animada-alto: root.alto;
     // Como en Coucou: al abrir, una curva que se pasa un poco y vuelve (imita un muelle);
-    // al cerrar, una curva de 340 ms que arranca suave y frena al final, sin rebote.
-    animate caja-animada-x, caja-animada-y, caja-animada-ancho, caja-animada-alto {
-        duration: root.duracion-forma;
+    // al cerrar, una curva que arranca suave y frena al final, sin rebote.
+    animate caja-animada-x, caja-animada-ancho {
+        duration: root.vertical ? root.fase-grosor : root.fase-largo;
+        delay: root.vertical ? root.espera-grosor : root.espera-largo;
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+    }
+    animate caja-animada-y, caja-animada-alto {
+        duration: root.vertical ? root.fase-largo : root.fase-grosor;
+        delay: root.vertical ? root.espera-largo : root.espera-grosor;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     // Lo que abarcan las piezas del fondo (el panel, solo si tiene grosor).
