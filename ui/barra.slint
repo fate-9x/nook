@@ -1889,7 +1889,9 @@ export component Barra inherits Window {
         y: root.pb-y - root.y-caja;
         width: max(0px, root.pb-ancho);
         height: max(0px, root.pb-alto);
-        visible: root.revelado < 1 && self.width > 1px && self.height > 1px;
+        // Solo con el fondo a la vista: al ocultarse la barra (con "Ocultar en reposo"), el panel
+        // se pliega sin fondo y el esqueleto se quedaba flotando sobre lo de detrás.
+        visible: root.revelado < 1 && root.modo != 0 && !root.moviendo && self.width > 1px && self.height > 1px;
         opacity: 1 - root.revelado;
         property <length> relleno: 20px;
         for i in 16 : Rectangle {
