@@ -247,8 +247,8 @@ msgstr "크레딧"
 msgid "El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:"
 msgstr "바의 캐릭터는 직접 만든 것입니다. 캐릭터를 그리고 움직이는 데에는 다른 프로젝트의 기법을 사용하며, 바는 다음 라이브러리를 기반으로 합니다:"
 
-msgid "Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
-msgstr "캐릭터를 그리고 움직이는 기법: 보간되는 방사형 프로필로 만든 실루엣, 구 위에 그린 눈, 시선의 흔들림, 눈 깜빡임과 전환 곡선."
+msgid "Técnica de dibujo y animación del personaje: los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
+msgstr "캐릭터를 그리고 움직이는 기법: 구 위에 그린 눈, 시선의 흔들림, 눈 깜빡임과 전환 곡선."
 
 msgid "Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones."
 msgstr "Slint(slint.dev)로 제작: 바의 레이아웃, 그리기, 애니메이션."
@@ -261,6 +261,18 @@ msgstr "Windows 접근: 창, 아이콘, 단축키, 흐림 효과, 알림, 음악
 
 msgid "La lectura y el guardado de la configuración."
 msgstr "설정 읽기와 저장."
+
+msgid "Los autores de resvg"
+msgstr "resvg 제작자"
+
+msgid "La lectura de los dibujos SVG de los personajes y sus accesorios."
+msgstr "캐릭터와 액세서리의 SVG 그림 읽기."
+
+msgid "Los desarrolladores de image-rs"
+msgstr "image-rs 개발자"
+
+msgid "Las imágenes PNG de los personajes."
+msgstr "캐릭터의 PNG 이미지."
 
 msgid "La hora de la barra."
 msgstr "바의 시계."

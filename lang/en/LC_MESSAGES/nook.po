@@ -247,8 +247,8 @@ msgstr "CREDITS"
 msgid "El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:"
 msgstr "The bar's character is original. It is drawn and animated with a technique from another project, and the bar relies on these libraries:"
 
-msgid "Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
-msgstr "Technique for drawing and animating the character: the silhouette as an interpolated radial profile, the eyes painted on a sphere, the drifting gaze, the blinks and the transition curves."
+msgid "Técnica de dibujo y animación del personaje: los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
+msgstr "Technique for drawing and animating the character: the eyes painted on a sphere, the drifting gaze, the blinks and the transition curves."
 
 msgid "Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones."
 msgstr "Made with Slint (slint.dev): the bar's layout, drawing and animations."
@@ -261,6 +261,18 @@ msgstr "Access to Windows: windows, icons, shortcuts, blur, notifications and mu
 
 msgid "La lectura y el guardado de la configuración."
 msgstr "Reading and saving the settings."
+
+msgid "Los autores de resvg"
+msgstr "The resvg authors"
+
+msgid "La lectura de los dibujos SVG de los personajes y sus accesorios."
+msgstr "Reading the SVG drawings of the characters and their accessories."
+
+msgid "Los desarrolladores de image-rs"
+msgstr "The image-rs developers"
+
+msgid "Las imágenes PNG de los personajes."
+msgstr "The characters' PNG images."
 
 msgid "La hora de la barra."
 msgstr "The bar's clock."

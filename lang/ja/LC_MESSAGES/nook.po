@@ -247,8 +247,8 @@ msgstr "クレジット"
 msgid "El personaje de la barra es propio. Para dibujarlo y animarlo se usa la técnica de otro proyecto, y la barra se apoya en estas bibliotecas:"
 msgstr "バーのキャラクターはオリジナルです。描画とアニメーションには別のプロジェクトの技法を使っており、バーは次のライブラリを利用しています:"
 
-msgid "Técnica de dibujo y animación del personaje: la silueta como perfil radial que se interpola, los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
-msgstr "キャラクターの描画とアニメーションの技法: 補間される放射状プロファイルとしてのシルエット、球面に描かれた目、視線の揺らぎ、まばたき、遷移カーブ。"
+msgid "Técnica de dibujo y animación del personaje: los ojos pintados sobre una esfera, la deriva de la mirada, los parpadeos y las curvas de transición."
+msgstr "キャラクターの描画とアニメーションの技法: 球面に描かれた目、視線の揺らぎ、まばたき、遷移カーブ。"
 
 msgid "Hecho con Slint (slint.dev): el diseño de la barra, su dibujo y sus animaciones."
 msgstr "Slint (slint.dev) で作成: バーのレイアウト、描画、アニメーション。"
@@ -261,6 +261,18 @@ msgstr "Windows へのアクセス: ウィンドウ、アイコン、ショー�
 
 msgid "La lectura y el guardado de la configuración."
 msgstr "設定の読み込みと保存。"
+
+msgid "Los autores de resvg"
+msgstr "resvg の作者"
+
+msgid "La lectura de los dibujos SVG de los personajes y sus accesorios."
+msgstr "キャラクターとアクセサリーの SVG 画像の読み込み。"
+
+msgid "Los desarrolladores de image-rs"
+msgstr "image-rs の開発者"
+
+msgid "Las imágenes PNG de los personajes."
+msgstr "キャラクターの PNG 画像。"
 
 msgid "La hora de la barra."
 msgstr "バーの時計。"

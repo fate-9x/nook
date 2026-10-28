@@ -1,8 +1,8 @@
 # Avisos de terceros
 
 Nookly usa trabajo de otras personas. Aquí se indica qué se usa de cada proyecto, quién lo hizo y
-bajo qué licencia. Este mismo texto va dentro del programa: Configuración → Créditos → Ver
-licencias.
+bajo qué licencia. Este mismo texto va dentro del programa: Configuración → Acerca de → Ver
+licencias completas.
 
 ## bloub
 
@@ -11,8 +11,6 @@ licencias.
 - Licencia: MIT (texto completo más abajo)
 - **Qué se usa:** la **técnica de dibujo y animación** del personaje, pasada de TypeScript a Rust
   en `src/personaje/`:
-  - la silueta como perfil radial (el radio medido en 64 direcciones fijas), que se interpola
-    para cambiar de forma, y su contorno suave con curvas de Catmull-Rom;
   - los ojos pintados sobre una esfera: la orientación de la cabeza (giro, cabeceo e
     inclinación), el plano tangente de cada ojo y su proyección, que hace que el ojo cercano al
     borde se estreche;
@@ -20,9 +18,10 @@ licencias.
     el calendario de parpadeos generado de antemano y la respiración;
   - la mirada guiada desde fuera (absoluta, mezclada con la de reposo) y las transiciones con
     curvas que frenan sin pasarse.
-- **Qué no se usa:** el personaje animado de la barra no es el de bloub (ni su forma, ni sus ojos
-  inclinados, ni sus colores, que recrean el avatar de x.ai): es propio de Nook. Tampoco el icono
-  del programa (`assets/nook.ico`), que es ese mismo personaje (ver `src/icono.rs`).
+- **Qué no se usa:** los personajes de la barra no son el de bloub (ni su forma, ni sus ojos
+  inclinados, ni sus colores, que recrean el avatar de x.ai): son propios de Nook, y su figura
+  sale de un dibujo SVG o de imágenes PNG (ver `src/personaje/figura.rs`), no de la silueta de
+  bloub. Tampoco el icono del programa (`assets/nook.ico`), que es Nook (ver `src/icono.rs`).
 
 ## Slint
 
@@ -41,9 +40,25 @@ licencias.
 - Licencia: MIT o Apache-2.0, a elección; se usa bajo MIT (texto completo más abajo)
 - **Qué se usa:** el rasterizado de las formas del personaje (su cuerpo y sus ojos).
 
+## usvg
+
+- Proyecto: https://github.com/linebender/resvg (crate `usvg`)
+- Copyright 2017 the Resvg Authors
+- Licencia: Apache-2.0 o MIT, a elección; se usa bajo MIT (texto completo más abajo)
+- **Qué se usa:** la lectura de los dibujos SVG de los personajes y de sus accesorios.
+
+## png
+
+- Proyecto: https://github.com/image-rs/image-png
+- Copyright (c) 2015 nwin
+- Licencia: MIT o Apache-2.0, a elección; se usa bajo MIT (texto completo más abajo)
+- **Qué se usa:** las imágenes PNG de los personajes (los hechos con imágenes y las vistas
+  previas).
+
 ## windows-rs
 
-- Proyecto: https://github.com/microsoft/windows-rs (crates `windows` y `windows-core`)
+- Proyecto: https://github.com/microsoft/windows-rs (crates `windows`, `windows-core` y
+  `windows-numerics`)
 - Copyright (c) Microsoft Corporation
 - Licencia: MIT o Apache-2.0, a elección; se usa bajo MIT (texto completo más abajo)
 - **Qué se usa:** el acceso a las funciones de Windows: ventanas, iconos, atajos de teclado, el
@@ -75,8 +90,8 @@ licencias.
 
 ## Licencia MIT
 
-Se aplica a bloub (Copyright (c) 2026 Jérémy Perret), zeno, windows-rs, serde, serde_json, Rhai
-y chrono, cada uno con el aviso de copyright indicado arriba.
+Se aplica a bloub (Copyright (c) 2026 Jérémy Perret), zeno, usvg, png, windows-rs, serde,
+serde_json, Rhai y chrono, cada uno con el aviso de copyright indicado arriba.
 
 ```
 MIT License

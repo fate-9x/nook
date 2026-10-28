@@ -396,4 +396,4 @@ Usa trabajo de otras personas: la técnica de dibujo y animación del personaje 
 [bloub](https://github.com/jeremy-prt/bloub), la interfaz de [Slint](https://slint.dev) y varias
 bibliotecas de Rust. Los detalles y sus licencias están en
 [AVISOS_DE_TERCEROS.md](AVISOS_DE_TERCEROS.md) y, dentro de Nookly, en *Configuración → Acerca de →
-Ver licencias*.
+Ver licencias completas*.
