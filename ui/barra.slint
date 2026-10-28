@@ -654,6 +654,15 @@ export component Barra inherits Window {
     property <duration> fase-largo: root.duracion-forma == 0ms ? 0ms : root.abierto ? 320ms : 220ms;
     property <duration> espera-largo: root.abierto && root.pb-grosor < 1px ? root.fase-grosor : 0ms;
     property <duration> espera-grosor: root.abierto ? 0ms : root.fase-largo;
+    // Cuánto se ve el contenido del panel (0 a 1). Mientras el panel se despliega o se pliega, su
+    // contenido no cabe y se vería cortado: se oculta y en su lugar va un esqueleto (ver
+    // "Esqueleto del panel"). Al abrir aparece cuando el panel ya tiene su tamaño; al cerrar se
+    // oculta enseguida. Al pasar de un panel abierto a otro se sigue viendo.
+    property <float> revelado: root.abierto ? 1 : 0;
+    animate revelado {
+        duration: root.duracion-forma == 0ms ? 0ms : root.abierto ? 160ms : 80ms;
+        delay: root.abierto ? root.espera-largo + root.fase-largo : 0ms;
+    }
     animate pa-x, pa-y, pa-ancho, pa-alto {
         duration: root.duracion-forma;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
@@ -1551,6 +1560,7 @@ export component Barra inherits Window {
     width: max(0px, root.pb-ancho);
     height: max(0px, root.pb-alto);
     clip: true;
+    opacity: root.revelado;
     // Dentro, todo va en coordenadas de la caja.
     Rectangle {
     x: -parent.x;
@@ -1864,6 +1874,30 @@ export component Barra inherits Window {
 
     } // fin de las coordenadas de la caja
     } // fin del panel abierto
+
+    // ---- Esqueleto del panel: mientras se despliega o se pliega, unas barras donde va el
+    // contenido. Se colocan en lo que mide la pieza del panel en cada momento (que depende, por
+    // ejemplo, del largo de la tira), así que nunca salen cortadas: solo las que caben enteras.
+    Rectangle {
+        x: root.pb-x - root.caja-x;
+        y: root.pb-y - root.y-caja;
+        width: max(0px, root.pb-ancho);
+        height: max(0px, root.pb-alto);
+        visible: root.revelado < 1 && self.width > 1px && self.height > 1px;
+        opacity: 1 - root.revelado;
+        property <length> relleno: 20px;
+        for i in 16 : Rectangle {
+            // Como líneas de texto de distinto largo, de arriba abajo.
+            property <float> largo: mod(i, 4) == 0 ? 0.55 : mod(i, 4) == 1 ? 0.85 : mod(i, 4) == 2 ? 0.7 : 0.4;
+            x: parent.relleno;
+            y: parent.relleno + i * 34px;
+            width: max(0px, (parent.width - 2 * parent.relleno) * self.largo);
+            height: 12px;
+            visible: self.y + self.height <= parent.height - parent.relleno && parent.width - 2 * parent.relleno >= 24px;
+            border-radius: self.height / 2;
+            background: Tema.capa-fuerte;
+        }
+    }
 
     } // fin de la caja
 
