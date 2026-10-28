@@ -663,6 +663,9 @@ export component Barra inherits Window {
         duration: root.duracion-forma == 0ms ? 0ms : root.abierto ? 160ms : 80ms;
         delay: root.abierto ? root.espera-largo + root.fase-largo : 0ms;
     }
+    // Mientras aparece, el contenido sube desde un poco más abajo: entra con un movimiento que
+    // sigue al del panel, sin encenderse de golpe.
+    property <length> subida-contenido: (1 - root.revelado) * 6px;
     animate pa-x, pa-y, pa-ancho, pa-alto {
         duration: root.duracion-forma;
         easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
@@ -1561,10 +1564,11 @@ export component Barra inherits Window {
     height: max(0px, root.pb-alto);
     clip: true;
     opacity: root.revelado;
-    // Dentro, todo va en coordenadas de la caja.
+    // Dentro, todo va en coordenadas de la caja (y, mientras aparece, un poco más abajo: ver
+    // `subida-contenido`).
     Rectangle {
     x: -parent.x;
-    y: -parent.y;
+    y: -parent.y + root.subida-contenido;
     width: root.ancho;
     height: root.alto;
 
@@ -1574,7 +1578,9 @@ export component Barra inherits Window {
         property <length> hasta: min(root.a-hasta, root.b-hasta) - 16px;
         visible: root.abierto && self.hasta > self.desde;
         x: !root.vertical ? self.desde - root.caja-x : root.posicion == 1 ? root.grosor-total : root.ancho - root.grosor-total - 1px;
-        y: root.vertical ? self.desde - root.y-caja : root.posicion == 0 ? root.grosor-total : root.alto - root.grosor-total - 1px;
+        // Quieta mientras el contenido sube.
+        y: (root.vertical ? self.desde - root.y-caja : root.posicion == 0 ? root.grosor-total : root.alto - root.grosor-total - 1px)
+            - root.subida-contenido;
         width: !root.vertical ? self.hasta - self.desde : 1px;
         height: !root.vertical ? 1px : self.hasta - self.desde;
         background: Tema.linea;
