@@ -2,7 +2,7 @@
 // rueda se desplazan si no caben).
 
 import { Tema, ElementoItem, PresetItem, AccesorioItem, AddonFila } from "tema.slint";
-import { IconoApp, IconoPersonaje, IconoTarjetas, IconoX, IconoMas, IconoMicrofono, IconoLupa, IconoClaude } from "iconos.slint";
+import { IconoApp, IconoCarpeta, IconoPersonaje, IconoTarjetas, IconoX, IconoMas, IconoMicrofono, IconoLupa, IconoClaude } from "iconos.slint";
 import { BotonTexto, Tecla, Titulo, Deslizador } from "controles.slint";
 
 // Una entrada de los créditos: qué proyecto, de quién, con qué licencia y qué se usa de él.
@@ -414,6 +414,7 @@ component Subtitulo inherits Text {
 component OpcionSegmento inherits Rectangle {
     in property <string> texto;
     in property <bool> elegida;
+    in property <length> letra: 12px;
     callback clicked();
 
     border-radius: 11px;
@@ -422,15 +423,76 @@ component OpcionSegmento inherits Rectangle {
     Text {
         text: root.texto;
         color: root.elegida ? Tema.fondo : Tema.texto-suave;
-        font-size: 12px;
+        font-size: root.letra;
         font-weight: root.elegida ? 800 : 600;
         horizontal-alignment: center;
         vertical-alignment: center;
+        overflow: elide;
     }
 
     area := TouchArea {
         clicked => { root.clicked(); }
     }
+}
+
+// Casilla de una galería del personaje: su miniatura (la dibuja Rust; `LADO_MINIATURA` en
+// src/barra/personaje.rs) o un icono, y su nombre en hasta dos líneas. La elegida lleva un borde.
+component Casilla inherits Rectangle {
+    in property <image> miniatura;
+    in property <string> nombre;
+    in property <bool> elegida;
+    callback clicked();
+
+    height: 90px;
+    border-radius: 12px;
+    background: area.has-hover ? Tema.capa-fuerte : Tema.capa;
+    border-width: root.elegida ? 2px : 0px;
+    border-color: Tema.texto;
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: -2px;
+        width: 64px;
+        height: 64px;
+        source: root.miniatura;
+    }
+    Text {
+        x: 4px;
+        y: 58px;
+        width: parent.width - 8px;
+        height: 30px;
+        text: root.nombre;
+        color: root.elegida ? Tema.texto : Tema.texto-suave;
+        font-size: 10px;
+        font-weight: root.elegida ? 700 : 500;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+        overflow: elide;
+    }
+    @children
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Galería del personaje: reparte `casillas` casillas (sus hijos, que se colocan con `x-de` y `y-de`
+// y miden `ancho`) en tantas columnas como quepan.
+component Galeria inherits Rectangle {
+    in property <int> casillas;
+    property <length> hueco: 6px;
+    property <int> por-fila: max(1, floor((self.width + self.hueco) / 74px));
+    out property <length> ancho: (self.width - (self.por-fila - 1) * self.hueco) / self.por-fila;
+
+    public pure function x-de(i: int) -> length {
+        return mod(i, self.por-fila) * (self.ancho + self.hueco);
+    }
+    public pure function y-de(i: int) -> length {
+        return floor(i / self.por-fila) * (90px + self.hueco);
+    }
+
+    height: ceil(self.casillas / self.por-fila) * (90px + self.hueco);
+    @children
 }
 
 // Opción de una lista en la que se elige una sola (el formato de la fecha): un círculo, marcado
@@ -725,6 +787,8 @@ export component PanelConfiguracion inherits Rectangle {
     in property <int> posicion;
     in property <int> idioma;
     in property <image> personaje-muestra;
+    in property <[image]> miniaturas-figuras;
+    in property <[image]> miniaturas-accesorios;
     in property <[string]> figuras;
     in property <int> figura;
     in property <[string]> expresiones;
@@ -1154,18 +1218,16 @@ export component PanelConfiguracion inherits Rectangle {
                     }
                 }
 
-                // Personaje: a la izquierda, cómo se ve (se mueve como el de la barra) y su figura
-                // (la lista se desplaza si hay muchas), siempre a la vista; a la derecha, los
-                // botones para hacer uno nuevo y abrir su carpeta, los que no se pudieron leer y
-                // los accesorios, cada uno con su interruptor y, puesto, sus colores (con la rueda
-                // se desplazan sin mover la vista previa).
+                // Personaje: a la izquierda, siempre a la vista, cómo se ve (se mueve como el de la
+                // barra), su nombre y sus expresiones (se desplazan si hay muchas); a la derecha,
+                // las galerías de figuras y de accesorios, los colores de los puestos y el aviso
+                // (con la rueda se desplazan sin mover la vista previa).
                 if root.seccion == 4 : HorizontalLayout {
                     height: root.height - 26px;
                     spacing: 14px;
 
                     VerticalLayout {
                         width: root.lado-muestra + 30px;
-                        alignment: start;
                         spacing: 8px;
 
                         Rectangle {
@@ -1180,46 +1242,38 @@ export component PanelConfiguracion inherits Rectangle {
                                 source: root.personaje-muestra;
                             }
                         }
-                        VerticalLayout {
-                            vertical-stretch: 1;
-                            Titulo { text: @tr("FIGURA"); }
-                            Rectangle {
-                                vertical-stretch: 1;
-                                max-height: root.figuras.length * 30px + 6px;
-                                border-radius: 14px;
-                                background: Tema.capa;
-                                figuras := Flickable {
-                                    content-width: self.width;
-                                    content-height: max(self.height, lista-figuras.preferred-height);
-
-                                    lista-figuras := VerticalLayout {
-                                        width: figuras.width;
-                                        alignment: start;
-                                        padding: 3px;
-                                        spacing: 2px;
-                                        for nombre[i] in root.figuras : OpcionSegmento {
-                                            height: 28px;
-                                            texto: nombre;
-                                            elegida: root.figura == i;
-                                            clicked => { root.elegir-figura(i); }
-                                        }
-                                    }
-                                }
-                            }
+                        Text {
+                            height: 18px;
+                            text: root.figuras[root.figura];
+                            color: Tema.texto;
+                            font-size: 12px;
+                            font-weight: 700;
+                            horizontal-alignment: center;
+                            overflow: elide;
                         }
                         // Las expresiones del elegido, si tiene alguna además de la normal.
                         if root.expresiones.length > 1 : VerticalLayout {
+                            vertical-stretch: 1;
                             Titulo { text: @tr("EXPRESIÓN"); }
                             Rectangle {
-                                height: root.expresiones.length * 30px + 6px;
+                                vertical-stretch: 1;
+                                max-height: ceil(root.expresiones.length / 2) * 30px + 6px;
                                 border-radius: 14px;
                                 background: Tema.capa;
-                                VerticalLayout {
-                                    alignment: start;
-                                    padding: 3px;
-                                    spacing: 2px;
+                                expresiones := Flickable {
+                                    x: 3px;
+                                    y: 3px;
+                                    width: parent.width - 6px;
+                                    height: parent.height - 6px;
+                                    content-width: self.width;
+                                    content-height: max(self.height, ceil(root.expresiones.length / 2) * 30px);
+
                                     for nombre[i] in root.expresiones : OpcionSegmento {
+                                        x: mod(i, 2) * (expresiones.width + 2px) / 2;
+                                        y: floor(i / 2) * 30px;
+                                        width: (expresiones.width - 2px) / 2;
                                         height: 28px;
+                                        letra: 11px;
                                         texto: nombre;
                                         elegida: root.expresion == i;
                                         clicked => { root.elegir-expresion(i); }
@@ -1227,30 +1281,58 @@ export component PanelConfiguracion inherits Rectangle {
                                 }
                             }
                         }
+                        if root.expresiones.length <= 1 : Rectangle {
+                            vertical-stretch: 1;
+                        }
                     }
 
-                    accesorios := Flickable {
+                    galerias := Flickable {
                         horizontal-stretch: 1;
                         content-width: self.width;
-                        content-height: max(self.height, lista-accesorios.preferred-height);
+                        content-height: max(self.height, lista-galerias.preferred-height);
 
-                        lista-accesorios := VerticalLayout {
-                            width: accesorios.width;
+                        lista-galerias := VerticalLayout {
+                            width: galerias.width;
                             alignment: start;
-                            Titulo { text: @tr("TUS PERSONAJES"); }
-                            HorizontalLayout {
-                                alignment: start;
-                                height: 38px;
-                                spacing: 8px;
-                                BotonTexto {
-                                    y: 4px;
-                                    texto: @tr("Nuevo personaje");
-                                    clicked => { root.nuevo-personaje(); }
+                            Titulo { text: @tr("FIGURA"); }
+                            galeria-figuras := Galeria {
+                                casillas: root.figuras.length + 2;
+                                for nombre[i] in root.figuras : Casilla {
+                                    x: galeria-figuras.x-de(i);
+                                    y: galeria-figuras.y-de(i);
+                                    width: galeria-figuras.ancho;
+                                    miniatura: root.miniaturas-figuras[i];
+                                    nombre: nombre;
+                                    elegida: root.figura == i;
+                                    clicked => { root.elegir-figura(i); }
                                 }
-                                BotonTexto {
-                                    y: 4px;
-                                    texto: @tr("Abrir carpeta");
+                                Casilla {
+                                    x: galeria-figuras.x-de(root.figuras.length);
+                                    y: galeria-figuras.y-de(root.figuras.length);
+                                    width: galeria-figuras.ancho;
+                                    nombre: @tr("Nuevo personaje");
+                                    clicked => { root.nuevo-personaje(); }
+                                    IconoMas {
+                                        x: (parent.width - self.width) / 2;
+                                        y: 21px;
+                                        width: 18px;
+                                        height: 18px;
+                                        color: Tema.texto-suave;
+                                    }
+                                }
+                                Casilla {
+                                    x: galeria-figuras.x-de(root.figuras.length + 1);
+                                    y: galeria-figuras.y-de(root.figuras.length + 1);
+                                    width: galeria-figuras.ancho;
+                                    nombre: @tr("Abrir carpeta");
                                     clicked => { root.abrir-carpeta-personajes(); }
+                                    IconoCarpeta {
+                                        x: (parent.width - self.width) / 2;
+                                        y: 21px;
+                                        width: 21px;
+                                        height: 18px;
+                                        color: Tema.texto-suave;
+                                    }
                                 }
                             }
                             if root.errores-personajes != "" : VerticalLayout {
@@ -1261,6 +1343,63 @@ export component PanelConfiguracion inherits Rectangle {
                                     color: Tema.texto-suave;
                                     font-size: 11px;
                                     wrap: word-wrap;
+                                }
+                            }
+                            Titulo { text: @tr("ACCESORIOS"); }
+                            galeria-accesorios := Galeria {
+                                casillas: root.accesorios.length + 1;
+                                for a[i] in root.accesorios : Casilla {
+                                    x: galeria-accesorios.x-de(i);
+                                    y: galeria-accesorios.y-de(i);
+                                    width: galeria-accesorios.ancho;
+                                    miniatura: root.miniaturas-accesorios[i];
+                                    nombre: a.nombre;
+                                    elegida: a.puesto;
+                                    clicked => { root.alternar-accesorio(a.id); }
+                                }
+                                Casilla {
+                                    x: galeria-accesorios.x-de(root.accesorios.length);
+                                    y: galeria-accesorios.y-de(root.accesorios.length);
+                                    width: galeria-accesorios.ancho;
+                                    nombre: @tr("Abrir carpeta de accesorios");
+                                    clicked => { root.abrir-carpeta-accesorios(); }
+                                    IconoCarpeta {
+                                        x: (parent.width - self.width) / 2;
+                                        y: 21px;
+                                        width: 21px;
+                                        height: 18px;
+                                        color: Tema.texto-suave;
+                                    }
+                                }
+                            }
+                            for a in root.accesorios : VerticalLayout {
+                                if a.puesto : VerticalLayout {
+                                    padding-bottom: 8px;
+                                    Text {
+                                        text: a.nombre;
+                                        color: Tema.texto;
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        height: 20px;
+                                        vertical-alignment: center;
+                                    }
+                                    for c[j] in a.colores : VerticalLayout {
+                                        if c.nombre != "" : Text {
+                                            text: c.nombre;
+                                            color: Tema.texto-tenue;
+                                            font-size: 11px;
+                                            height: 18px;
+                                            vertical-alignment: bottom;
+                                        }
+                                        FilaMuestras {
+                                            colores: c.paleta;
+                                            elegido: c.color;
+                                            base: c.base;
+                                            elegir(col) => { root.elegir-color-accesorio(a.id, j, col); }
+                                            menu(k) => { root.menu-color-accesorio(k - c.desplazamiento); }
+                                            mas => { root.agregar-color-accesorio(a.id, j); }
+                                        }
+                                    }
                                 }
                             }
                             Titulo { text: @tr("AVISO"); }
@@ -1285,42 +1424,6 @@ export component PanelConfiguracion inherits Rectangle {
                                     y: 4px;
                                     texto: @tr("Probar aviso");
                                     clicked => { root.probar-aviso(); }
-                                }
-                            }
-                            Titulo { text: @tr("ACCESORIOS"); }
-                            HorizontalLayout {
-                                alignment: start;
-                                height: 38px;
-                                BotonTexto {
-                                    y: 4px;
-                                    texto: @tr("Abrir carpeta de accesorios");
-                                    clicked => { root.abrir-carpeta-accesorios(); }
-                                }
-                            }
-                            for a in root.accesorios : VerticalLayout {
-                                FilaInterruptor {
-                                    texto: a.nombre;
-                                    activo: a.puesto;
-                                    clicked => { root.alternar-accesorio(a.id); }
-                                }
-                                if a.puesto : VerticalLayout {
-                                    for c[j] in a.colores : VerticalLayout {
-                                        if c.nombre != "" : Text {
-                                            text: c.nombre;
-                                            color: Tema.texto-tenue;
-                                            font-size: 11px;
-                                            height: 18px;
-                                            vertical-alignment: bottom;
-                                        }
-                                        FilaMuestras {
-                                            colores: c.paleta;
-                                            elegido: c.color;
-                                            base: c.base;
-                                            elegir(col) => { root.elegir-color-accesorio(a.id, j, col); }
-                                            menu(k) => { root.menu-color-accesorio(k - c.desplazamiento); }
-                                            mas => { root.agregar-color-accesorio(a.id, j); }
-                                        }
-                                    }
                                 }
                             }
                         }

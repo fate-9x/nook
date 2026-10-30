@@ -40,7 +40,7 @@ fn dibujar(figura: &Arc<Figura>, aspecto: &Aspecto, lado: u32) -> Imagen {
 
 /// El personaje de frente, con los ojos abiertos y quieto: de los primeros segundos de su vida
 /// en reposo, el cuadro con los ojos más abiertos.
-fn cuadro(figura: &Arc<Figura>) -> personaje::Cuadro {
+pub fn cuadro(figura: &Arc<Figura>) -> personaje::Cuadro {
     let mut motor = Motor::new();
     motor.poner_figura(figura.clone());
     motor.poner_mirada(Mirar { guinada: 0.0, cabeceo: 0.0, mezcla: 1.0, deriva: 0.0 }, 0.0, 0.001);

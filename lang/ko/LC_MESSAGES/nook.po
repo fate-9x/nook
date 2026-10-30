@@ -184,9 +184,6 @@ msgstr "표정"
 msgid "Normal"
 msgstr "기본"
 
-msgid "TUS PERSONAJES"
-msgstr "직접 만든 캐릭터"
-
 msgid "Nuevo personaje"
 msgstr "새 캐릭터"
 

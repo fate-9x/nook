@@ -122,6 +122,8 @@ export component Barra inherits Window {
     // Personalización del personaje: su vista previa (la dibuja Rust), los accesorios y la fila
     // de colores para ellos (los primeros no se pueden quitar).
     in property <image> personaje-muestra;
+    in property <[image]> miniaturas-figuras;    // las dibuja Rust al abrir la sección
+    in property <[image]> miniaturas-accesorios; // en el orden de `figuras` y de `accesorios`
     in property <[string]> figuras;         // los personajes que hay (personaje::coleccion)
     in property <int> figura;               // el elegido, su posición en `figuras`
     in property <[string]> expresiones;     // las del elegido: la normal y las suyas
@@ -1669,6 +1671,8 @@ export component Barra inherits Window {
         posicion: root.posicion;
         idioma: root.idioma;
         personaje-muestra: root.personaje-muestra;
+        miniaturas-figuras: root.miniaturas-figuras;
+        miniaturas-accesorios: root.miniaturas-accesorios;
         figuras: root.figuras;
         figura: root.figura;
         expresiones: root.expresiones;

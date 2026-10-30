@@ -23,6 +23,9 @@ pub(crate) struct Personaje {
     pub(crate) dibujado: Option<Dibujado>,
     /// Lo mismo para la vista previa de la configuración.
     pub(crate) dibujado_muestra: Option<Dibujado>,
+    /// Con qué se dibujaron las miniaturas de la configuración (sin dibujar aún, None).
+    pub(crate) miniaturas_figuras: Option<ClaveMiniaturas>,
+    pub(crate) miniaturas_accesorios: Option<(ClaveMiniaturas, usize, Vec<config::Accesorio>)>,
     /// Cuándo llegó la notificación que está contando, si cuenta alguna.
     pub(crate) aviso: Option<Instant>,
     /// Golpes del ritmo de la música que suena.
@@ -46,6 +49,8 @@ impl Personaje {
             movido: Instant::now() - CURSOR_QUIETO,
             dibujado: None,
             dibujado_muestra: None,
+            miniaturas_figuras: None,
+            miniaturas_accesorios: None,
             aviso: None,
             ritmo: musica::Ritmo::new(),
             segundo: None,
@@ -73,6 +78,13 @@ pub(crate) type Dibujado = (personaje::Cuadro, u32, personaje::Aspecto);
 /// `lado-muestra` en ui/configuracion.slint), y sección de la configuración en la que está.
 pub(crate) const LADO_MUESTRA: f32 = 120.0;
 pub(crate) const SECCION_PERSONAJE: i32 = 4;
+/// Lado de las miniaturas de la galería de la configuración, en píxeles lógicos (como el de su
+/// imagen en `Casilla`, en ui/configuracion.slint).
+pub(crate) const LADO_MINIATURA: f32 = 64.0;
+
+/// Lo que cambia todas las miniaturas: su lado en píxeles, los colores del cuerpo y de los rasgos
+/// y lo que había en las carpetas de personajes y accesorios (ver `coleccion::firma`).
+pub(crate) type ClaveMiniaturas = (u32, [u8; 3], [u8; 3], Option<u64>);
 
 /// Clics seguidos en el personaje (cada uno a menos de `ENTRE_CLICS` del anterior) que hacen
 /// aparecer al segundo, cuánto se queda y cuánto va adelantado su reloj.
@@ -154,32 +166,69 @@ pub(crate) fn aspecto_de(ajustes: &Ajustes, coleccion: &Coleccion) -> personaje:
 /// y los de archivos que se encuentran (con los de otro personaje o que ya no están, no se dibuja
 /// nada).
 pub(crate) fn accesorios_puestos(p: &config::Personaje, coleccion: &Coleccion) -> Vec<personaje::Puesto> {
-    p.accesorios
+    p.accesorios.iter().filter(|a| a.puesto).filter_map(|a| puesto_de(a, &p.figura, coleccion)).collect()
+}
+
+/// El accesorio `a` listo para dibujarlo en la figura `figura`, si se encuentra.
+fn puesto_de(a: &config::Accesorio, figura: &str, coleccion: &Coleccion) -> Option<personaje::Puesto> {
+    let Some(integrado) = TipoAccesorio::de_id(&a.tipo) else {
+        let archivo = coleccion.accesorio(&a.tipo, figura)?.clone();
+        let colores = (0..archivo.ranuras.len()).map(|i| leer_hex(a.color_de(i)).map(|c| [c.red(), c.green(), c.blue()])).collect();
+        return Some(personaje::Puesto::Archivo { archivo, colores });
+    };
+    let c = color(&a.color);
+    let rgb = [c.red(), c.green(), c.blue()];
+    let tipo = match integrado {
+        TipoAccesorio::Audifonos => personaje::TipoAccesorio::Audifonos,
+        TipoAccesorio::Corona => personaje::TipoAccesorio::Corona,
+        TipoAccesorio::GorroDeLana => personaje::TipoAccesorio::GorroDeLana,
+        TipoAccesorio::Cuernos => personaje::TipoAccesorio::Cuernos,
+        TipoAccesorio::GafasDeSol => personaje::TipoAccesorio::GafasDeSol,
+        TipoAccesorio::Monoculo => personaje::TipoAccesorio::Monoculo,
+        TipoAccesorio::Antifaz => personaje::TipoAccesorio::Antifaz,
+        TipoAccesorio::Mascarilla => personaje::TipoAccesorio::Mascarilla,
+        TipoAccesorio::Corbatin => personaje::TipoAccesorio::Corbatin,
+        TipoAccesorio::CapaDeVampiro => personaje::TipoAccesorio::CapaDeVampiro,
+    };
+    Some(personaje::Accesorio { tipo, color: rgb }.into())
+}
+
+/// Las miniaturas de los accesorios que se pueden poner, en el orden de `disponibles`: la figura
+/// con ese accesorio solo, de sus colores (así se ve también el de un archivo, que no tiene icono).
+pub(crate) fn miniaturas_de_accesorios(
+    figura: &Arc<personaje::Figura>,
+    lado: u32,
+    aspecto: &personaje::Aspecto,
+    ajustes: &config::Personaje,
+    coleccion: &Coleccion,
+) -> Vec<Image> {
+    let cuadro = icono::cuadro(figura);
+    disponibles(coleccion, &ajustes.figura)
         .iter()
-        .filter(|a| a.puesto)
-        .filter_map(|a| {
-            let Some(integrado) = TipoAccesorio::de_id(&a.tipo) else {
-                let archivo = coleccion.accesorio(&a.tipo, &p.figura)?.clone();
-                let colores = (0..archivo.ranuras.len()).map(|i| leer_hex(a.color_de(i)).map(|c| [c.red(), c.green(), c.blue()])).collect();
-                return Some(personaje::Puesto::Archivo { archivo, colores });
-            };
-            let c = color(&a.color);
-            let rgb = [c.red(), c.green(), c.blue()];
-            let tipo = match integrado {
-                TipoAccesorio::Audifonos => personaje::TipoAccesorio::Audifonos,
-                TipoAccesorio::Corona => personaje::TipoAccesorio::Corona,
-                TipoAccesorio::GorroDeLana => personaje::TipoAccesorio::GorroDeLana,
-                TipoAccesorio::Cuernos => personaje::TipoAccesorio::Cuernos,
-                TipoAccesorio::GafasDeSol => personaje::TipoAccesorio::GafasDeSol,
-                TipoAccesorio::Monoculo => personaje::TipoAccesorio::Monoculo,
-                TipoAccesorio::Antifaz => personaje::TipoAccesorio::Antifaz,
-                TipoAccesorio::Mascarilla => personaje::TipoAccesorio::Mascarilla,
-                TipoAccesorio::Corbatin => personaje::TipoAccesorio::Corbatin,
-                TipoAccesorio::CapaDeVampiro => personaje::TipoAccesorio::CapaDeVampiro,
-            };
-            Some(personaje::Accesorio { tipo, color: rgb }.into())
+        .map(|d| {
+            let accesorios = puesto_de(&ajustes.accesorio(&d.id), &ajustes.figura, coleccion).into_iter().collect();
+            personaje::dibujar(&cuadro, lado, &personaje::Aspecto { accesorios, aviso: None, ..aspecto.clone() })
         })
         .collect()
+}
+
+/// Dibuja las miniaturas de la galería si cambió algo de lo que se ve en ellas: las de las figuras
+/// llevan los colores del personaje y las de los accesorios, además, la figura y la expresión
+/// elegidas. Dibujarlas cuesta bastante más que un cuadro, y por eso no se repiten.
+fn poner_miniaturas(ui: &Barra, p: &mut Personaje, figura: &Arc<personaje::Figura>, aspecto: &personaje::Aspecto, ajustes: &config::Personaje) {
+    let lado = (LADO_MINIATURA * plataforma::escala()).round().max(1.0) as u32;
+    let clave = (lado, aspecto.cuerpo, aspecto.rasgos, p.firma);
+    if p.miniaturas_figuras != Some(clave) {
+        p.miniaturas_figuras = Some(clave);
+        let sin_accesorios = personaje::Aspecto { accesorios: Vec::new(), aviso: None, ..aspecto.clone() };
+        let imagenes = p.coleccion.figuras.iter().map(|f| personaje::dibujar(&icono::cuadro(f), lado, &sin_accesorios));
+        ui.set_miniaturas_figuras(modelo(imagenes.collect()));
+    }
+    let de_accesorios = (clave, Arc::as_ptr(figura) as usize, ajustes.accesorios.clone());
+    if p.miniaturas_accesorios.as_ref() != Some(&de_accesorios) {
+        p.miniaturas_accesorios = Some(de_accesorios);
+        ui.set_miniaturas_accesorios(modelo(miniaturas_de_accesorios(figura, lado, aspecto, ajustes, &p.coleccion)));
+    }
 }
 
 /// Un color de un accesorio que se puede poner, para la configuración: su nombre (vacío si solo
@@ -488,7 +537,7 @@ impl Ctx {
         if let Some(s) = p.segundo.as_mut() {
             s.motor.poner_figura(figura.clone());
         }
-        p.motor.poner_figura(figura);
+        p.motor.poner_figura(figura.clone());
         let lado = (ui.get_lado_personaje() * escala).round().max(1.0) as u32;
         let p = &mut *p;
         if let Some(imagen) = dibujar_personaje(&p.motor, ahora, lado, &aspecto, &mut p.dibujado) {
@@ -505,6 +554,7 @@ impl Ctx {
             if let Some(imagen) = dibujar_personaje(&p.motor, ahora, lado, &aspecto, &mut p.dibujado_muestra) {
                 ui.set_personaje_muestra(imagen);
             }
+            poner_miniaturas(&ui, p, &figura, &aspecto, &self.estado.borrow().config.ajustes.personaje);
         } else {
             p.dibujado_muestra = None;
         }
@@ -611,4 +661,22 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_abrir_carpeta_personajes(move || c.abrir_carpeta_personajes());
     let c = ctx.clone();
     ui.on_abrir_carpeta_accesorios(move || c.abrir_carpeta_accesorios());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cada_accesorio_tiene_su_miniatura() {
+        let coleccion = Coleccion::default();
+        let ajustes = config::Personaje::default();
+        let aspecto = personaje::Aspecto { cuerpo: [90, 200, 120], rasgos: [10, 20, 40], aviso: None, accesorios: Vec::new() };
+        let miniaturas = miniaturas_de_accesorios(&personaje::Figura::nook(), 64, &aspecto, &ajustes, &coleccion);
+        let pixeles: Vec<_> = miniaturas.iter().map(|m| m.to_rgba8_premultiplied().unwrap().as_bytes().to_vec()).collect();
+        assert_eq!(pixeles.len(), disponibles(&coleccion, &ajustes.figura).len());
+        for (i, p) in pixeles.iter().enumerate() {
+            assert!(pixeles[..i].iter().all(|otro| otro != p), "la miniatura {i} se ve igual que otra");
+        }
+    }
 }

@@ -184,9 +184,6 @@ msgstr "EXPRESSION"
 msgid "Normal"
 msgstr "Normal"
 
-msgid "TUS PERSONAJES"
-msgstr "YOUR CHARACTERS"
-
 msgid "Nuevo personaje"
 msgstr "New character"
 
