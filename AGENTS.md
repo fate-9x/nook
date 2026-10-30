@@ -31,16 +31,16 @@ Hay dos versiones, cada una en su repositorio, que comparten casi todo el códig
 
 | Versión | Repositorio | Rama local | Carpeta |
 |---|---|---|---|
-| **Nookly** (gratuita) | `fate-9x/nook` (público), remoto `origin` | `main` | `Desktop/nook` |
-| **Nookly Pro** (de pago, Microsoft Store) | `fate-9x/nook-pro` (privado), remoto `pro` | `pro` | `Desktop/nook-pro` |
+| **Nookly** (gratuita) | `fate-9x/nook` (público), remoto `origin` | `main` | `Nook-Stack/nook` |
+| **Nookly Pro** (de pago, Microsoft Store) | `fate-9x/nook-pro` (privado), remoto `pro` | `pro` | `Nook-Stack/nook-pro` |
 
 Las dos carpetas son el mismo repositorio de git (`git worktree`): cada una tiene su rama, y los
 cambios pasan de una a otra sin subir ni bajar nada.
 
 - **Los cambios solo van de la gratuita a la Pro.** Lo que es común (un arreglo, la bóveda, el
-  personaje…) se hace en `Desktop/nook` y se pasa a la Pro con `git merge main` desde
-  `Desktop/nook-pro`. Lo que es solo de Pro se hace en `Desktop/nook-pro`. Nunca se hace merge de
-  `pro` en `main`.
+  personaje…) se hace en `Nook-Stack/nook` y se pasa a la Pro con `git merge main` desde
+  `Nook-Stack/nook-pro`. Lo que es solo de Pro se hace en `Nook-Stack/nook-pro`. Nunca se hace
+  merge de `pro` en `main`.
 - **El código de las funciones Pro** está en `src/pro/`, que solo existe en la rama `pro`. Con esa
   carpeta, `build.rs` compila con `cfg(pro)` y `src/main.rs` toma los módulos de ahí; sin ella,
   los de `src/gratis/`, que tienen lo mismo pero no hacen nada. En el código, `PRO` dice si es
