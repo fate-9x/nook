@@ -92,6 +92,7 @@ use slint::platform::Key;
 use slint::{Color, ComponentHandle, Image, Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, Timer, TimerMode, VecModel};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
+use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -481,7 +482,37 @@ impl Ctx {
     }
 }
 
+/// Archivo de la carpeta de los datos donde se apuntan los fallos, y lo que puede llegar a medir.
+const REGISTRO_DE_FALLOS: &str = "fallos.log";
+const TOPE_REGISTRO_DE_FALLOS: u64 = 64 * 1024;
+
+/// Apunta los panics en un archivo: la versión publicada no tiene consola ni símbolos, y un panic
+/// dentro de un callback de Windows cierra el programa con 0xc0000409 sin decir dónde fue.
+fn registrar_fallos() {
+    let anterior = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let fecha = Local::now().format("%F %T");
+        let texto = format!("{fecha} v{} {info}", actualizacion::VERSION);
+        anotar_fallo(&config::carpeta().join(REGISTRO_DE_FALLOS), &texto);
+        anterior(info);
+    }));
+}
+
+/// Añade `texto` al registro. Si un fallo se repite sin parar el archivo no crece sin límite: al
+/// llegar al tope se empieza de nuevo.
+fn anotar_fallo(ruta: &std::path::Path, texto: &str) {
+    if let Some(carpeta) = ruta.parent() {
+        let _ = std::fs::create_dir_all(carpeta);
+    }
+    let lleno = std::fs::metadata(ruta).is_ok_and(|m| m.len() >= TOPE_REGISTRO_DE_FALLOS);
+    let archivo = std::fs::OpenOptions::new().create(true).write(true).append(!lleno).truncate(lleno).open(ruta);
+    if let Ok(mut archivo) = archivo {
+        let _ = writeln!(archivo, "{texto}");
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    registrar_fallos();
     // El ayudante de la tecla Windows, su preparación y su retirada (como administrador) no son
     // la barra.
     match std::env::args().nth(1).as_deref() {
@@ -819,5 +850,19 @@ mod tests {
     fn hora_con_dos_digitos() {
         let t = Local.with_ymd_and_hms(2026, 1, 5, 7, 3, 0).unwrap();
         assert_eq!(formatear_hora(&t), "07:03");
+    }
+
+    #[test]
+    fn el_registro_de_fallos_se_acumula_y_no_pasa_del_tope() {
+        let carpeta = std::env::temp_dir().join(format!("nook-prueba-fallos-{}", crate::azar::siguiente().to_bits()));
+        let ruta = carpeta.join(REGISTRO_DE_FALLOS);
+        anotar_fallo(&ruta, "uno");
+        anotar_fallo(&ruta, "dos");
+        assert_eq!(std::fs::read_to_string(&ruta).unwrap().lines().collect::<Vec<_>>(), ["uno", "dos"]);
+
+        std::fs::write(&ruta, vec![b'x'; TOPE_REGISTRO_DE_FALLOS as usize]).unwrap();
+        anotar_fallo(&ruta, "tres");
+        assert_eq!(std::fs::read_to_string(&ruta).unwrap().trim(), "tres");
+        std::fs::remove_dir_all(&carpeta).unwrap();
     }
 }
