@@ -24,6 +24,11 @@ Proyecto: **Nookly**, una barra de tareas en Rust + Slint para Windows (`src/` y
   `accesorio.svg` y un `accesorio.json` en `%APPDATA%\nook\accesorios\` (o en la carpeta de un
   personaje): `accesorio_archivo.rs` los lee y los coloca en la figura, y `config::Accesorio` los
   guarda por su id de texto (`usuario/<carpeta>`), con un color por cada color de su dibujo.
+- La **bóveda** guarda textos (`src/boveda.rs`), que se sincronizan con un Gist de GitHub
+  (`cuenta.rs`). En Nookly Pro también imágenes y archivos, que se pasan con el launcher de Android
+  por la red de casa (`src/pro/enlace.rs`): el protocolo, el cifrado y lo que se pasa están en
+  `enlace/protocolo.rs`, y tienen que coincidir con `PcLink.kt` del launcher. El PC espera y el
+  móvil llama, en hilos parados mientras no llega nada.
 
 ## Nookly y Nookly Pro
 
