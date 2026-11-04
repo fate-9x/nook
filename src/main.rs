@@ -34,6 +34,9 @@ mod abiertas;
 #[cfg_attr(pro, path = "pro/claude.rs")]
 #[cfg_attr(not(pro), path = "gratis/claude.rs")]
 mod claude;
+#[cfg_attr(pro, path = "pro/enlace.rs")]
+#[cfg_attr(not(pro), path = "gratis/enlace.rs")]
+mod enlace;
 #[cfg_attr(pro, path = "pro/energia.rs")]
 #[cfg_attr(not(pro), path = "gratis/energia.rs")]
 mod energia;
