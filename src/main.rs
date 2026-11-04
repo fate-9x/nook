@@ -219,6 +219,10 @@ struct Estado {
     conectando_cuenta: bool,
     codigo_cuenta: Option<String>,
     error_cuenta: String,
+    /// Por qué no se pudo guardar un archivo en la bóveda (se ve en su campo hasta que se vuelve a
+    /// abrir) y el último error al vincular el móvil.
+    aviso_boveda: Option<String>,
+    error_movil: String,
     /// Addons instalados (solo lo que dicen sus manifiestos: se cargan al abrirlos) y lo de su
     /// sección de la configuración.
     addons: Vec<addons::Addon>,
@@ -262,6 +266,8 @@ struct Ctx {
     musica: Arc<musica::Musica>,
     /// Cuenta de GitHub con la que se sincroniza la bóveda.
     cuenta: Rc<cuenta::Cuenta>,
+    /// Imágenes y archivos de la bóveda y el móvil con el que se pasan (solo en nook Pro).
+    enlace: Rc<enlace::Enlace>,
     /// Mira de vez en cuando lo que cambia fuera del programa (ver `sondear`), y cuántas veces lo
     /// ha hecho.
     sondeo: Rc<Timer>,
@@ -594,6 +600,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             conectando_cuenta: false,
             codigo_cuenta: None,
             error_cuenta: String::new(),
+            aviso_boveda: None,
+            error_movil: String::new(),
             addons: Vec::new(),
             config_addons: Default::default(),
             claude: Default::default(),
@@ -617,6 +625,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let ui = ui.as_weak();
             move || {
                 let _ = ui.upgrade_in_event_loop(|ui| ui.invoke_novedades_cuenta());
+            }
+        })),
+        enlace: Rc::new(enlace::Enlace::iniciar({
+            let ui = ui.as_weak();
+            move || {
+                let _ = ui.upgrade_in_event_loop(|ui| ui.invoke_novedades_enlace());
             }
         })),
         sondeo: Rc::new(Timer::default()),

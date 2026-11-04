@@ -777,6 +777,12 @@ export component PanelConfiguracion inherits Rectangle {
     in property <string> cuenta-usuario;
     in property <string> cuenta-codigo;
     in property <string> cuenta-error;
+    // Móvil vinculado (nook Pro): 0 ninguno, 1 esperando al móvil, 2 comprobando el código, 3 ya
+    // dicho que sí aquí (falta el móvil), 4 vinculado.
+    in property <int> movil-estado;
+    in property <string> movil-nombre;
+    in property <string> movil-codigo;
+    in property <string> movil-error;
     in property <[color]> fondos;
     in property <[color]> acentos;
     in property <int> colores-base;
@@ -833,6 +839,8 @@ export component PanelConfiguracion inherits Rectangle {
     callback alternar-usar-boveda();
     callback alternar-animaciones();
     callback boton-cuenta();
+    callback boton-movil();                 // vincular, cancelar o desvincular el móvil
+    callback responder-movil(bool);         // si el código es el mismo que se ve en el móvil
     callback elegir-fondo(color);
     callback elegir-acento(color);
     callback agregar-color(int);
@@ -1060,6 +1068,66 @@ export component PanelConfiguracion inherits Rectangle {
                                 texto: root.cuenta-estado == 3 ? @tr("Desconectar") : root.cuenta-estado == 0 ? @tr("Conectar") : @tr("Cancelar");
                                 peligro: root.cuenta-estado == 0;
                                 clicked => { root.boton-cuenta(); }
+                            }
+                        }
+                    }
+
+                    // Móvil (nook Pro) para pasarse las imágenes y los archivos de la bóveda.
+                    if root.usar-boveda : Rectangle { height: 12px; }
+                    if root.usar-boveda : Titulo { text: @tr("MÓVIL"); }
+                    if root.usar-boveda : HorizontalLayout {
+                        height: 44px;
+                        spacing: 10px;
+
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            spacing: 2px;
+
+                            Text {
+                                text: root.movil-estado == 4 ? @tr("Vinculado con {}", root.movil-nombre)
+                                    : root.movil-estado >= 2 ? @tr("Código: {}", root.movil-codigo)
+                                    : root.movil-estado == 1 ? @tr("Esperando al móvil…")
+                                    : @tr("Pasar imágenes y archivos con el móvil");
+                                color: Tema.texto;
+                                font-size: 12px;
+                                font-weight: root.movil-estado == 2 || root.movil-estado == 3 ? 700 : 400;
+                                overflow: elide;
+                            }
+                            Text {
+                                text: !Tema.pro ? @tr("Disponible en Nookly Pro")
+                                    : root.movil-error != "" ? @tr("No se pudo: {}", root.movil-error)
+                                    : root.movil-estado == 4 ? @tr("Se pasan al abrir la bóveda en el móvil")
+                                    : root.movil-estado == 3 ? @tr("Falta confirmarlo en el móvil")
+                                    : root.movil-estado == 2 ? @tr("¿Es el mismo que se ve en {}?", root.movil-nombre)
+                                    : root.movil-estado == 1 ? @tr("En el móvil, abre la bóveda y toca Vincular con el PC")
+                                    : @tr("Con Nookly para Android, en la misma red");
+                                color: Tema.texto-tenue;
+                                font-size: 11px;
+                                overflow: elide;
+                            }
+                        }
+                        if Tema.pro && root.movil-estado == 2 : VerticalLayout {
+                            alignment: center;
+                            BotonTexto {
+                                texto: @tr("No");
+                                clicked => { root.responder-movil(false); }
+                            }
+                        }
+                        if Tema.pro && root.movil-estado == 2 : VerticalLayout {
+                            alignment: center;
+                            BotonTexto {
+                                texto: @tr("Sí");
+                                peligro: true;
+                                clicked => { root.responder-movil(true); }
+                            }
+                        }
+                        if Tema.pro && root.movil-estado != 2 : VerticalLayout {
+                            alignment: center;
+                            BotonTexto {
+                                texto: root.movil-estado == 4 ? @tr("Desvincular") : root.movil-estado == 0 ? @tr("Vincular") : @tr("Cancelar");
+                                peligro: root.movil-estado == 0;
+                                clicked => { root.boton-movil(); }
                             }
                         }
                     }

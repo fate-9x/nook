@@ -793,3 +793,66 @@ msgstr "기타…"
 
 msgid "Escribe tu respuesta…"
 msgstr "답변 입력…"
+
+msgid "Escribe o pega un texto, una imagen o un archivo para guardarlo"
+msgstr "텍스트, 이미지 또는 파일을 입력하거나 붙여 넣어 저장"
+
+msgid "No se pudo guardar «{}»: {}"
+msgstr "“{}”을(를) 저장하지 못했습니다: {}"
+
+msgid "las carpetas no se pueden guardar"
+msgstr "폴더는 저장할 수 없습니다"
+
+msgid "pasa de 100 MB"
+msgstr "100MB를 넘습니다"
+
+msgid "la bóveda está llena (1 GB)"
+msgstr "보관함이 가득 찼습니다(1GB)"
+
+msgid "Imagen"
+msgstr "이미지"
+
+msgid "MÓVIL"
+msgstr "휴대폰"
+
+msgid "Vinculado con {}"
+msgstr "{} 연동됨"
+
+msgid "Esperando al móvil…"
+msgstr "휴대폰을 기다리는 중…"
+
+msgid "Pasar imágenes y archivos con el móvil"
+msgstr "휴대폰과 이미지 및 파일 주고받기"
+
+msgid "Se pasan al abrir la bóveda en el móvil"
+msgstr "휴대폰에서 보관함을 열면 주고받습니다"
+
+msgid "Falta confirmarlo en el móvil"
+msgstr "휴대폰에서도 확인하세요"
+
+msgid "¿Es el mismo que se ve en {}?"
+msgstr "{}에 표시된 것과 같나요?"
+
+msgid "En el móvil, abre la bóveda y toca Vincular con el PC"
+msgstr "휴대폰에서 보관함을 열고 “Vincular con el PC”를 누르세요"
+
+msgid "Con Nookly para Android, en la misma red"
+msgstr "Android용 Nookly로, 같은 네트워크에서"
+
+msgid "No"
+msgstr "아니요"
+
+msgid "Sí"
+msgstr "예"
+
+msgid "Desvincular"
+msgstr "연동 해제"
+
+msgid "Vincular"
+msgstr "연동"
+
+msgid "en el móvil se dijo que el código no coincide"
+msgstr "휴대폰에서 코드가 일치하지 않는다고 했습니다"
+
+msgid "no se terminó de comprobar el código"
+msgstr "코드 확인이 끝나지 않았습니다"

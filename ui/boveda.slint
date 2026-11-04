@@ -1,4 +1,5 @@
-// Bóveda de textos: un campo para guardar textos y, debajo, sus tarjetas (sueltas o en grupos).
+// Bóveda de textos: un campo para guardar textos y, debajo, sus tarjetas (sueltas o en grupos). En
+// nook Pro, detrás de ellas, las imágenes y los archivos que se arrastran o se pegan.
 
 import { Tema, ItemBoveda } from "tema.slint";
 import { IconoTarjetas, IconoCarpeta, IconoAtras } from "iconos.slint";
@@ -19,6 +20,8 @@ export component PanelBoveda inherits Rectangle {
     callback volver-en-boveda();
     callback cancelar-entrada-boveda();
     callback alternar-boveda();
+    // Ctrl+V: si en el portapapeles hay archivos o una imagen, los guarda (y devuelve true).
+    callback pegar-en-boveda() -> bool;
     // Alto de lo que hay bajo el campo (la cabecera del grupo y las tarjetas).
     in property <length> zona-boveda;
 
@@ -69,12 +72,13 @@ export component PanelBoveda inherits Rectangle {
     pure function tarjeta-y(i: int) -> length {
         return floor(i / root.columnas-boveda) * (root.alto-tarjeta + root.hueco-tarjeta);
     }
-    // Tarjeta de la bóveda en el punto (x, y) de la zona de tarjetas (sin desplazar), o -1.
+    // Tarjeta de la bóveda en el punto (x, y) de la zona de tarjetas (sin desplazar) sobre la que
+    // se puede soltar un texto, o -1.
     pure function tarjeta-en(x: length, y: length) -> int {
         let columna = floor(x / (root.ancho-tarjeta + root.hueco-tarjeta));
         let fila = floor(y / (root.alto-tarjeta + root.hueco-tarjeta));
         let i = fila * root.columnas-boveda + columna;
-        if (x < 0 || y < 0 || columna >= root.columnas-boveda || i >= root.boveda.length || i == root.arrastrando-boveda) {
+        if (x < 0 || y < 0 || columna >= root.columnas-boveda || i >= root.boveda.length || i == root.arrastrando-boveda || root.boveda[i].es-archivo) {
             return -1;
         }
         return i;
@@ -132,6 +136,9 @@ export component PanelBoveda inherits Rectangle {
                     } else {
                         root.alternar-boveda();
                     }
+                    return accept;
+                }
+                if (evento.modifiers.control && evento.text == "v" && root.entrada-boveda == 0 && root.pegar-en-boveda()) {
                     return accept;
                 }
                 if (evento.text == Key.Return) {
@@ -328,7 +335,7 @@ export component PanelBoveda inherits Rectangle {
                     if (parent.gesto == 1) {
                         root.arrastre-boveda-x += dx;
                         root.arrastre-boveda-y += dy;
-                    } else if (!t.es-grupo && !root.en-grupo-boveda && (abs(dx) > 6px || abs(dy) > 6px)) {
+                    } else if (!t.es-grupo && !t.es-archivo && !root.en-grupo-boveda && (abs(dx) > 6px || abs(dy) > 6px)) {
                         parent.gesto = 1;
                         root.arrastrando-boveda = i;
                         root.arrastre-boveda-x = dx;
@@ -371,9 +378,51 @@ export component PanelBoveda inherits Rectangle {
                 overflow: elide;
             }
 
+            // Archivo: una imagen ocupa la tarjeta (marcada, con un borde); los demás llevan el
+            // icono de su tipo, su nombre y lo que miden.
+            if t.es-foto : Image {
+                width: parent.width;
+                height: parent.height;
+                source: t.miniatura;
+            }
+            if t.es-foto && i == root.seleccion-boveda : Rectangle {
+                border-radius: 14px;
+                border-width: 2px;
+                border-color: Tema.acento;
+            }
+            if t.es-archivo && !t.es-foto : Image {
+                x: 10px;
+                y: 9px;
+                width: 28px;
+                height: 28px;
+                source: t.miniatura;
+            }
+            if t.es-archivo && !t.es-foto : Text {
+                x: 10px;
+                y: 42px;
+                width: parent.width - 20px;
+                height: 16px;
+                text: t.titulo;
+                color: Tema.texto;
+                font-size: 12px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            if t.es-archivo && !t.es-foto : Text {
+                x: 10px;
+                y: 58px;
+                width: parent.width - 20px;
+                height: 12px;
+                text: t.detalle;
+                color: Tema.texto-tenue;
+                font-size: 10px;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+
             // Texto: sus primeras líneas, en el hueco que deja la etiqueta, y la etiqueta
             // abajo, que no pasa del ancho de la tarjeta.
-            if !t.es-grupo : Text {
+            if !t.es-grupo && !t.es-archivo : Text {
                 x: 10px;
                 y: 8px;
                 width: parent.width - 20px;
@@ -385,7 +434,7 @@ export component PanelBoveda inherits Rectangle {
                 overflow: elide;
                 vertical-alignment: top;
             }
-            if !t.es-grupo && t.etiqueta != "" : Rectangle {
+            if !t.es-grupo && !t.es-archivo && t.etiqueta != "" : Rectangle {
                 x: 10px;
                 y: parent.height - 8px - self.height;
                 width: min(etiqueta.preferred-width + 12px, parent.width - 20px);

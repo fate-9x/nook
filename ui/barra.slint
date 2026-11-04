@@ -76,6 +76,11 @@ export component Barra inherits Window {
     in property <string> cuenta-usuario;
     in property <string> cuenta-codigo;
     in property <string> cuenta-error;
+    // Móvil vinculado (nook Pro, ver `movil-estado` en ui/configuracion.slint).
+    in property <int> movil-estado;
+    in property <string> movil-nombre;
+    in property <string> movil-codigo;
+    in property <string> movil-error;
     in property <int> colores-base: 4;      // los primeros de cada fila no se pueden quitar
     in property <[PresetItem]> presets;
     in property <bool> preset-guardado;     // la combinación actual ya es un preset
@@ -246,6 +251,9 @@ export component Barra inherits Window {
     callback actualizar();
     callback boton-cuenta();                // conectar, cancelar o desconectar la cuenta
     callback novedades-cuenta();            // (desde Rust) hay eventos de la cuenta que recoger
+    callback boton-movil();                 // vincular, cancelar o desvincular el móvil
+    callback responder-movil(bool);         // si el código es el mismo que se ve en el móvil
+    callback novedades-enlace();            // (desde Rust) cambió algo de los archivos o del móvil
     callback buscar(string);
     callback elegir-resultado(int);
     callback salir-del-buscador();
@@ -267,6 +275,7 @@ export component Barra inherits Window {
     callback juntar-en-boveda(int, int);    // soltar un texto sobre otro o sobre un grupo
     callback volver-en-boveda();            // salir del grupo a la vista de arriba
     callback cancelar-entrada-boveda();
+    callback pegar-en-boveda() -> bool;     // Ctrl+V: guarda los archivos o la imagen que se copió
     callback elegir-figura(int);
     callback elegir-expresion(int);
     callback nuevo-personaje();             // crea uno a partir de Nook y abre su carpeta
@@ -1661,6 +1670,10 @@ export component Barra inherits Window {
         cuenta-usuario: root.cuenta-usuario;
         cuenta-codigo: root.cuenta-codigo;
         cuenta-error: root.cuenta-error;
+        movil-estado: root.movil-estado;
+        movil-nombre: root.movil-nombre;
+        movil-codigo: root.movil-codigo;
+        movil-error: root.movil-error;
         fondos: root.fondos;
         acentos: root.acentos;
         colores-base: root.colores-base;
@@ -1716,6 +1729,8 @@ export component Barra inherits Window {
         alternar-usar-boveda => { root.alternar-usar-boveda(); }
         alternar-animaciones => { root.alternar-animaciones(); }
         boton-cuenta => { root.boton-cuenta(); }
+        boton-movil => { root.boton-movil(); }
+        responder-movil(a) => { root.responder-movil(a); }
         elegir-fondo(a) => { root.elegir-fondo(a); }
         elegir-acento(a) => { root.elegir-acento(a); }
         agregar-color(a) => { root.agregar-color(a); }
@@ -1778,6 +1793,7 @@ export component Barra inherits Window {
         volver-en-boveda => { root.volver-en-boveda(); }
         cancelar-entrada-boveda => { root.cancelar-entrada-boveda(); }
         alternar-boveda => { root.alternar-boveda(); }
+        pegar-en-boveda => { return root.pegar-en-boveda(); }
     }
 
     // ---- Reproductor ----

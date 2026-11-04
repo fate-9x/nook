@@ -363,6 +363,13 @@ impl Ctx {
         for addon in &addons {
             self.importar_addon(addon);
         }
+        // Con la bóveda abierta, en nook Pro, se guardan en ella.
+        if PRO && self.estado.borrow().modo == Modo::Boveda {
+            if !rutas.is_empty() {
+                self.guardar_archivos_en_boveda(rutas);
+            }
+            return;
+        }
         let apps: Vec<App> = rutas.iter().map(|r| App::desde_ruta(r)).collect();
         if apps.is_empty() {
             return;

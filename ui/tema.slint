@@ -46,12 +46,15 @@ export struct ElementoItem {
     fija: bool,
 }
 
-// Tarjeta de la bóveda: un grupo de textos o un texto.
+// Tarjeta de la bóveda: un grupo de textos, un texto o (en nook Pro) un archivo.
 export struct ItemBoveda {
     es-grupo: bool,
-    titulo: string,     // nombre del grupo o lo que se ve del texto
-    detalle: string,    // en los grupos, cuántos textos tienen
+    titulo: string,     // nombre del grupo o del archivo, o lo que se ve del texto
+    detalle: string,    // cuántos textos tiene el grupo, o lo que mide el archivo
     etiqueta: string,   // etiqueta del texto ("" sin etiqueta)
+    es-archivo: bool,
+    es-foto: bool,      // una imagen: `miniatura` ocupa la tarjeta (ya con sus esquinas)
+    miniatura: image,   // la de la foto, o el icono del tipo de archivo
 }
 
 // Un color de un accesorio del personaje (los que trae el programa tienen uno; los de archivos,

@@ -793,3 +793,66 @@ msgstr "Other…"
 
 msgid "Escribe tu respuesta…"
 msgstr "Write your answer…"
+
+msgid "Escribe o pega un texto, una imagen o un archivo para guardarlo"
+msgstr "Type or paste a text, image or file to save it"
+
+msgid "No se pudo guardar «{}»: {}"
+msgstr "Couldn't save “{}”: {}"
+
+msgid "las carpetas no se pueden guardar"
+msgstr "folders can't be saved"
+
+msgid "pasa de 100 MB"
+msgstr "it's over 100 MB"
+
+msgid "la bóveda está llena (1 GB)"
+msgstr "the vault is full (1 GB)"
+
+msgid "Imagen"
+msgstr "Image"
+
+msgid "MÓVIL"
+msgstr "PHONE"
+
+msgid "Vinculado con {}"
+msgstr "Linked with {}"
+
+msgid "Esperando al móvil…"
+msgstr "Waiting for the phone…"
+
+msgid "Pasar imágenes y archivos con el móvil"
+msgstr "Share images and files with your phone"
+
+msgid "Se pasan al abrir la bóveda en el móvil"
+msgstr "They're shared when you open the vault on the phone"
+
+msgid "Falta confirmarlo en el móvil"
+msgstr "Now confirm it on the phone"
+
+msgid "¿Es el mismo que se ve en {}?"
+msgstr "Is it the same one shown on {}?"
+
+msgid "En el móvil, abre la bóveda y toca Vincular con el PC"
+msgstr "On the phone, open the vault and tap “Vincular con el PC”"
+
+msgid "Con Nookly para Android, en la misma red"
+msgstr "With Nookly for Android, on the same network"
+
+msgid "No"
+msgstr "No"
+
+msgid "Sí"
+msgstr "Yes"
+
+msgid "Desvincular"
+msgstr "Unlink"
+
+msgid "Vincular"
+msgstr "Link"
+
+msgid "en el móvil se dijo que el código no coincide"
+msgstr "the phone said the code doesn't match"
+
+msgid "no se terminó de comprobar el código"
+msgstr "the code check wasn't finished"
