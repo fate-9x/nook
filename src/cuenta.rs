@@ -554,8 +554,9 @@ fn guardar_sesion(sesion: &Sesion) {
     }
 }
 
-/// Cifra con la protección de datos de Windows (DPAPI), ligada al usuario de Windows.
-fn cifrar(datos: &[u8]) -> Option<Vec<u8>> {
+/// Cifra con la protección de datos de Windows (DPAPI), ligada al usuario de Windows. También
+/// guarda así nook Pro el vínculo con el móvil.
+pub(crate) fn cifrar(datos: &[u8]) -> Option<Vec<u8>> {
     let entrada = CRYPT_INTEGER_BLOB { cbData: datos.len() as u32, pbData: datos.as_ptr() as *mut u8 };
     let mut salida = CRYPT_INTEGER_BLOB::default();
     unsafe {
@@ -564,7 +565,7 @@ fn cifrar(datos: &[u8]) -> Option<Vec<u8>> {
     }
 }
 
-fn descifrar(datos: &[u8]) -> Option<Vec<u8>> {
+pub(crate) fn descifrar(datos: &[u8]) -> Option<Vec<u8>> {
     let entrada = CRYPT_INTEGER_BLOB { cbData: datos.len() as u32, pbData: datos.as_ptr() as *mut u8 };
     let mut salida = CRYPT_INTEGER_BLOB::default();
     unsafe {

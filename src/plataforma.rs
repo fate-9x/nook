@@ -1538,20 +1538,28 @@ fn rutas_de(datos: &IDataObject) -> Vec<PathBuf> {
         lindex: -1,
         tymed: TYMED_HGLOBAL.0 as u32,
     };
-    let mut rutas = Vec::new();
     unsafe {
-        let Ok(mut medio) = datos.GetData(&formato) else { return rutas };
-        let soltado = HDROP(medio.u.hGlobal.0);
-        let cantidad = DragQueryFileW(soltado, u32::MAX, None);
-        for i in 0..cantidad {
-            let largo = DragQueryFileW(soltado, i, None) as usize;
-            let mut texto = vec![0u16; largo + 1];
-            DragQueryFileW(soltado, i, Some(&mut texto));
-            rutas.push(PathBuf::from(String::from_utf16_lossy(&texto[..largo])));
-        }
+        let Ok(mut medio) = datos.GetData(&formato) else { return Vec::new() };
+        let rutas = rutas_de_lista(HDROP(medio.u.hGlobal.0));
         ReleaseStgMedium(&mut medio);
+        rutas
     }
-    rutas
+}
+
+/// Rutas de una lista de archivos de Windows (la de un arrastre, o la de los archivos copiados en
+/// el portapapeles, que nook Pro pega en la bóveda).
+pub fn rutas_de_lista(lista: HDROP) -> Vec<PathBuf> {
+    unsafe {
+        let cantidad = DragQueryFileW(lista, u32::MAX, None);
+        (0..cantidad)
+            .map(|i| {
+                let largo = DragQueryFileW(lista, i, None) as usize;
+                let mut texto = vec![0u16; largo + 1];
+                DragQueryFileW(lista, i, Some(&mut texto));
+                PathBuf::from(String::from_utf16_lossy(&texto[..largo]))
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]

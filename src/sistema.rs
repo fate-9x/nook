@@ -10,7 +10,7 @@ use std::mem::size_of;
 use std::path::Path;
 use windows::Win32::Graphics::Gdi::{
     BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC,
-    DeleteObject, GetDIBits, GetObjectW,
+    DeleteObject, GetDIBits, GetObjectW, HBITMAP,
 };
 use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
 use windows::Win32::System::Com::{CoTaskMemFree, IBindCtx};
@@ -229,7 +229,17 @@ fn icono_a_pixeles(icono: HICON) -> Option<(Vec<u8>, u32, u32)> {
         if color.is_invalid() {
             return None; // icono monocromo antiguo: se usará la inicial
         }
+        let pixeles = pixeles_de_mapa(color);
+        let _ = DeleteObject(color.into());
+        pixeles
+    }
+}
 
+/// Copia los píxeles de un mapa de bits de Windows (RGBA, alfa sin premultiplicar; si no trae
+/// transparencia, opacos). Lo usan los iconos y, en nook Pro, las imágenes que se pegan en la
+/// bóveda.
+pub fn pixeles_de_mapa(color: HBITMAP) -> Option<(Vec<u8>, u32, u32)> {
+    unsafe {
         let mut mapa = BITMAP::default();
         GetObjectW(
             color.into(),
@@ -262,7 +272,6 @@ fn icono_a_pixeles(icono: HICON) -> Option<(Vec<u8>, u32, u32)> {
             DIB_RGB_COLORS,
         );
         let _ = DeleteDC(dc);
-        let _ = DeleteObject(color.into());
         if filas == 0 || ancho <= 0 || alto <= 0 {
             return None;
         }
@@ -273,7 +282,8 @@ fn icono_a_pixeles(icono: HICON) -> Option<(Vec<u8>, u32, u32)> {
 
 /// Windows entrega los píxeles en orden BGRA; Slint los quiere en RGBA.
 fn bgra_a_rgba(mut pixeles: Vec<u8>) -> Vec<u8> {
-    // Los iconos antiguos no traen transparencia (alfa = 0 en todo): se hacen opacos.
+    // Los iconos antiguos y las capturas de pantalla no traen transparencia (alfa = 0 en todo): se
+    // hacen opacos.
     let sin_alfa = pixeles.chunks_exact(4).all(|p| p[3] == 0);
     for p in pixeles.chunks_exact_mut(4) {
         p.swap(0, 2);
