@@ -110,6 +110,8 @@ export component PanelBoveda inherits Rectangle {
             color: root.entrada-boveda == 0 ? Tema.texto-suave : Tema.acento;
         }
 
+        // Si no cabe en una línea (un aviso de por qué no se guardó un archivo), va en dos, más
+        // pequeña.
         Text {
             visible: root.texto-boveda == "";
             x: 36px;
@@ -117,7 +119,8 @@ export component PanelBoveda inherits Rectangle {
             height: parent.height;
             text: root.pista-entrada-boveda;
             color: Tema.texto-tenue;
-            font-size: 13px;
+            font-size: root.pista-entrada-boveda.character-count > 70 ? 11px : 13px;
+            wrap: word-wrap;
             vertical-alignment: center;
             overflow: elide;
         }

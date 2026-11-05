@@ -794,8 +794,8 @@ msgstr "その他…"
 msgid "Escribe tu respuesta…"
 msgstr "回答を入力…"
 
-msgid "Escribe o pega un texto, una imagen o un archivo para guardarlo"
-msgstr "テキスト、画像、ファイルを入力または貼り付けて保存"
+msgid "Escribe o pega un texto, una imagen o un archivo"
+msgstr "テキスト、画像、ファイルを入力または貼り付け"
 
 msgid "No se pudo guardar «{}»: {}"
 msgstr "「{}」を保存できませんでした: {}"

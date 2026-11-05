@@ -794,8 +794,8 @@ msgstr "Other…"
 msgid "Escribe tu respuesta…"
 msgstr "Write your answer…"
 
-msgid "Escribe o pega un texto, una imagen o un archivo para guardarlo"
-msgstr "Type or paste a text, image or file to save it"
+msgid "Escribe o pega un texto, una imagen o un archivo"
+msgstr "Type or paste a text, image or file"
 
 msgid "No se pudo guardar «{}»: {}"
 msgstr "Couldn't save “{}”: {}"

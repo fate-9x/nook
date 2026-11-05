@@ -50,6 +50,19 @@ pub(crate) fn tamano_visible(bytes: u64, coma: bool) -> String {
     }
 }
 
+/// `texto` con `largo` caracteres como mucho: si es más largo, con "…" en medio, que deja ver el
+/// principio y el final (la extensión, en un nombre de archivo).
+fn recortar(texto: &str, largo: usize) -> String {
+    let n = texto.chars().count();
+    if n <= largo {
+        return texto.to_string();
+    }
+    let final_ = (largo - 1) / 3;
+    let inicio: String = texto.chars().take(largo - 1 - final_).collect();
+    let fin: String = texto.chars().skip(n - final_).collect();
+    format!("{inicio}…{fin}")
+}
+
 /// Por qué no se pudo algo de los archivos o del móvil, para enseñarlo.
 fn motivo(motivo: &enlace::Motivo) -> String {
     match motivo {
@@ -125,7 +138,7 @@ impl Ctx {
         let (entrada, pista) = match e.entrada_boveda {
             EntradaBoveda::Texto if vista.is_some() => (0, tr("Escribe o pega un texto para guardarlo en este grupo").into()),
             EntradaBoveda::Texto if let Some(aviso) = &e.aviso_boveda => (0, aviso.clone()),
-            EntradaBoveda::Texto if PRO => (0, tr("Escribe o pega un texto, una imagen o un archivo para guardarlo").into()),
+            EntradaBoveda::Texto if PRO => (0, tr("Escribe o pega un texto, una imagen o un archivo").into()),
             EntradaBoveda::Texto => (0, tr("Escribe o pega un texto y pulsa Intro para guardarlo").into()),
             EntradaBoveda::Etiqueta(i) => match boveda.texto(vista, i).and_then(|t| t.etiqueta.as_deref()) {
                 Some(actual) => (1, tr_con("Nueva etiqueta (ahora «{}»)", &[actual])),
@@ -246,6 +259,7 @@ impl Ctx {
                     }
                 }
                 enlace::Evento::NoGuardado { nombre, motivo: m } => {
+                    let nombre = recortar(&nombre, 32);
                     self.estado.borrow_mut().aviso_boveda = Some(tr_con("No se pudo guardar «{}»: {}", &[&nombre, &motivo(&m)]));
                 }
                 enlace::Evento::ErrorMovil(m) => self.estado.borrow_mut().error_movil = motivo(&m),
@@ -620,6 +634,14 @@ mod tests {
         assert_eq!(vista_de_texto("1\n2\n3\n4\n5"), "1\n2\n3\n4");
         assert_eq!(vista_de_texto(&"x".repeat(300)).chars().count(), 200);
         assert_eq!(vista_de_texto(""), "");
+    }
+
+    #[test]
+    fn los_nombres_largos_se_recortan_por_en_medio() {
+        assert_eq!(recortar("foto.jpg", 32), "foto.jpg");
+        let recortado = recortar("Captura de pantalla 2026-11-04 215633.png", 20);
+        assert_eq!(recortado, "Captura de pa…33.png");
+        assert_eq!(recortado.chars().count(), 20);
     }
 
     #[test]
