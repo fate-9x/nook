@@ -22,6 +22,7 @@ export component PanelBoveda inherits Rectangle {
     callback alternar-boveda();
     // Ctrl+V: si en el portapapeles hay archivos o una imagen, los guarda (y devuelve true).
     callback pegar-en-boveda() -> bool;
+    callback abrir-carpeta-boveda();
     // Alto de lo que hay bajo el campo (la cabecera del grupo y las tarjetas).
     in property <length> zona-boveda;
 
@@ -95,7 +96,7 @@ export component PanelBoveda inherits Rectangle {
     Rectangle {
         x: 16px;
         y: 14px;
-        width: parent.width - 32px;
+        width: parent.width - 32px - (Tema.pro ? 36px + 8px : 0px);
         height: 36px;
         border-radius: 14px;
         background: Tema.capa;
@@ -212,6 +213,24 @@ export component PanelBoveda inherits Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    // nook Pro: abre la carpeta donde se guardan las imágenes y los archivos.
+    if Tema.pro : Rectangle {
+        x: parent.width - 16px - self.width;
+        y: 14px;
+        width: 36px;
+        height: 36px;
+        border-radius: 14px;
+        background: carpeta.has-hover ? Tema.capa-fuerte : Tema.capa;
+        IconoCarpeta {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            color: Tema.acento;
+        }
+        carpeta := TouchArea {
+            clicked => { root.abrir-carpeta-boveda(); }
         }
     }
 

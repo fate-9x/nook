@@ -276,6 +276,7 @@ export component Barra inherits Window {
     callback volver-en-boveda();            // salir del grupo a la vista de arriba
     callback cancelar-entrada-boveda();
     callback pegar-en-boveda() -> bool;     // Ctrl+V: guarda los archivos o la imagen que se copió
+    callback abrir-carpeta-boveda();        // abre la carpeta de las imágenes y los archivos (nook Pro)
     callback elegir-figura(int);
     callback elegir-expresion(int);
     callback nuevo-personaje();             // crea uno a partir de Nook y abre su carpeta
@@ -1794,6 +1795,7 @@ export component Barra inherits Window {
         cancelar-entrada-boveda => { root.cancelar-entrada-boveda(); }
         alternar-boveda => { root.alternar-boveda(); }
         pegar-en-boveda => { return root.pegar-en-boveda(); }
+        abrir-carpeta-boveda => { root.abrir-carpeta-boveda(); }
     }
 
     // ---- Reproductor ----

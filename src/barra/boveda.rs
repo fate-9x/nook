@@ -268,6 +268,13 @@ impl Ctx {
         self.refrescar();
     }
 
+    /// Abre en el Explorador la carpeta donde se guardan las imágenes y los archivos.
+    pub(crate) fn abrir_carpeta_boveda(&self) {
+        if let Err(e) = sistema::lanzar(&self.enlace.carpeta().to_string_lossy()) {
+            eprintln!("{e}");
+        }
+    }
+
     /// Guarda en la bóveda una copia de estos archivos (soltados en la barra con la bóveda abierta).
     pub(crate) fn guardar_archivos_en_boveda(&self, rutas: Vec<PathBuf>) {
         self.estado.borrow_mut().aviso_boveda = None;
@@ -608,6 +615,8 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     });
     let c = ctx.clone();
     ui.on_pegar_en_boveda(move || c.pegar_en_boveda());
+    let c = ctx.clone();
+    ui.on_abrir_carpeta_boveda(move || c.abrir_carpeta_boveda());
     let c = ctx.clone();
     ui.on_boton_cuenta(move || c.boton_cuenta());
     let c = ctx.clone();

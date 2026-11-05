@@ -63,6 +63,10 @@ impl Enlace {
         Vec::new()
     }
 
+    pub fn carpeta(&self) -> PathBuf {
+        PathBuf::new()
+    }
+
     pub fn agregar(&self, _rutas: Vec<PathBuf>) {}
 
     pub fn pegar(&self, _nombre: String) -> bool {
