@@ -205,9 +205,13 @@ impl Ctx {
                 lh = lh.max(anterior.3);
             }
         }
-        let oculta = ui.get_modo() == 0;
+        let oculta = ui.get_recogida();
         let (lienzo, mut caja) =
             geometria(pantalla, posicion, oculta, (w, h), (lw, lh), px(ui.get_largo_reposo()));
+        // Hacia dónde se recoge la barra al ocultarse.
+        let (_, recogida) =
+            geometria(pantalla, posicion, true, (w, px(ui.get_alto_oculta())), (lw, lh), px(ui.get_largo_reposo()));
+        ui.set_caja_y_oculta((recogida.1 - lienzo.1) as f32 / escala);
         // Arriba (o abajo), con el hueco del "+" abierto la caja se corre a la derecha (ver
         // `desvio-caja`).
         caja.0 += px(ui.get_desvio_caja());

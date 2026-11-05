@@ -542,6 +542,19 @@ export component Barra inherits Window {
     property <length> ancho-claude: 500px;
     property <length> alto-claude: 480px;
     property <bool> abierto: root.modo >= 2;
+    // Al ocultarse, la barra se recoge como se despliega pero al revés: la tira sigue en su sitio,
+    // con su fondo, mientras la forma encoge hasta lo que se asoma. Solo al acabar queda `recogida`.
+    property <float> presente: root.modo == 0 ? 0 : 1;
+    animate presente { duration: root.duracion-forma; }
+    // `presente` va primero: si no se lee mientras la barra se ve, se queda en 0 y no hay animación.
+    out property <bool> recogida: root.presente <= 0 && root.modo == 0;
+    // Lo que se asoma de la barra oculta, en el lienzo.
+    in property <length> caja-y-oculta;
+    property <length> ancho-oculta: root.vertical ? root.asomo : root.zona + root.separacion-personajes;
+    out property <length> alto-oculta: root.vertical ? root.zona + root.separacion-personajes : root.asomo;
+    property <length> oculta-x: !root.vertical ? (root.width - root.ancho-oculta) / 2
+        : root.posicion == 2 ? root.width - root.ancho-oculta : 0px;
+    property <length> oculta-y: root.posicion == 3 ? root.height - root.alto-oculta : root.caja-y-oculta;
     property <length> ancho-contenido: root.modo == 2 ? root.ancho-grupo : root.modo == 3 ? root.ancho-config
         : root.modo == 4 || root.modo == 5 ? root.ancho-buscar : root.modo == 6 ? root.ancho-musica
         : root.modo == 7 ? root.ancho-sonido : root.modo == 8 ? root.ancho-addon : root.modo == 9 ? root.ancho-claude : 0px;
@@ -551,10 +564,10 @@ export component Barra inherits Window {
     property <length> alto-panel-addon: root.ajustar-alto-addon && root.error-addon == ""
         ? min(root.alto-addon, contenedor-addon.preferred-height) : root.alto-addon;
 
-    out property <length> ancho: root.modo == 0 ? (root.vertical ? root.asomo : root.zona + root.separacion-personajes)
+    out property <length> ancho: root.recogida ? root.ancho-oculta
         : root.vertical ? root.grosor-total + (root.abierto ? 1px + root.ancho-contenido : 0px)
         : max(root.largo-tira, root.ancho-contenido);
-    out property <length> alto: root.modo == 0 ? (root.vertical ? root.zona + root.separacion-personajes : root.asomo)
+    out property <length> alto: root.recogida ? root.alto-oculta
         : root.vertical ? max(root.largo-tira, root.alto-contenido)
         : root.grosor-total + (root.abierto ? 1px + root.alto-contenido : 0px);
 
@@ -570,7 +583,7 @@ export component Barra inherits Window {
     //   del personaje a su lado.
     // Arriba, la caja se corre a la derecha lo justo para que quepa el hueco del "+" (Rust la
     // coloca igual, ver `recolocar`).
-    out property <length> desvio-caja: root.vertical || root.modo == 0 ? 0px
+    out property <length> desvio-caja: root.vertical || root.recogida ? 0px
         : max(0px, root.largo-sin-mas / 2 + (root.largo-tira - root.largo-sin-mas) - root.ancho / 2);
     property <length> desfase-tira: !root.vertical ? (root.ancho - root.largo-sin-mas) / 2 - root.desvio-caja : 0px;
     property <length> tira-x: root.posicion == 2 ? root.ancho - root.grosor : 0px;
@@ -612,17 +625,17 @@ export component Barra inherits Window {
     // desenfoque de lo de detrás, para que solo se vea dentro de la barra.
     // Con la barra oculta solo se asoma el personaje, sin fondo ni desenfoque.
     // Son las dos piezas de la barra (ver "Forma de la barra", más abajo).
-    out property <Pieza> forma-tira: root.modo == 0 || root.moviendo ? {} : {
+    out property <Pieza> forma-tira: root.recogida || root.moviendo ? {} : {
         x: root.sa-x0, y: root.sa-y0, ancho: root.sa-x1 - root.sa-x0, alto: root.sa-y1 - root.sa-y0,
         arriba-izquierda: root.ra-ai, arriba-derecha: root.ra-ad, abajo-derecha: root.ra-bd, abajo-izquierda: root.ra-bi,
     };
-    out property <Pieza> forma-panel: root.modo == 0 || root.moviendo ? {} : {
+    out property <Pieza> forma-panel: root.recogida || root.moviendo ? {} : {
         x: root.sb-x0, y: root.sb-y0, ancho: max(0px, root.sb-x1 - root.sb-x0), alto: max(0px, root.sb-y1 - root.sb-y0),
         arriba-izquierda: root.rb-ai, arriba-derecha: root.rb-ad, abajo-derecha: root.rb-bd, abajo-izquierda: root.rb-bi,
     };
     // Los empalmes también llevan el desenfoque: sin él, se veía nítido lo que hay detrás.
-    out property <Pieza> forma-empalme-inicio: root.modo == 0 || root.moviendo ? {} : root.empalme(0);
-    out property <Pieza> forma-empalme-final: root.modo == 0 || root.moviendo ? {} : root.empalme(1);
+    out property <Pieza> forma-empalme-inicio: root.recogida || root.moviendo ? {} : root.empalme(0);
+    out property <Pieza> forma-empalme-final: root.recogida || root.moviendo ? {} : root.empalme(1);
 
     // ---- Forma de la barra ----
     // No es un solo rectángulo: es la tira (con la zona del personaje) y, pegado a ella, el panel
@@ -631,11 +644,12 @@ export component Barra inherits Window {
     // otro, la esquina de dentro se suaviza con un "empalme". Cada pieza se anima por su cuenta (en
     // coordenadas del lienzo, que no cambian al cambiar la caja); el contorno es lo que las abarca.
     // Pieza de la tira, en la caja: con la barra oculta, lo que se asoma.
-    property <length> a-x: root.modo == 0 ? 0px : !root.vertical ? root.desfase-tira
+    property <length> a-x: root.modo == 0 ? root.oculta-x - root.caja-x : !root.vertical ? root.desfase-tira
         : root.posicion == 1 ? 0px : root.ancho - root.grosor-total;
-    property <length> a-y: root.modo == 0 || root.vertical || root.posicion == 0 ? 0px : root.alto - root.grosor-total;
-    property <length> a-ancho: root.modo == 0 ? root.ancho : root.vertical ? root.grosor-total : root.largo-tira;
-    property <length> a-alto: root.modo == 0 ? root.alto : root.vertical ? root.largo-tira : root.grosor-total;
+    property <length> a-y: root.modo == 0 ? root.oculta-y - root.y-caja
+        : root.vertical || root.posicion == 0 ? 0px : root.alto - root.grosor-total;
+    property <length> a-ancho: root.modo == 0 ? root.ancho-oculta : root.vertical ? root.grosor-total : root.largo-tira;
+    property <length> a-alto: root.modo == 0 ? root.alto-oculta : root.vertical ? root.largo-tira : root.grosor-total;
     // Pieza del panel, en el lienzo (con la línea que lo separa de la tira). A lo largo, donde va
     // el panel abierto; cerrado, donde está la tira, sin grosor: así se despliega desde la tira,
     // con su largo, y luego se ensancha (y al recogerse, al revés; ver `fase-grosor`).
@@ -672,7 +686,7 @@ export component Barra inherits Window {
     property <duration> fase-grosor: root.duracion-forma == 0ms ? 0ms : root.abierto ? 280ms : 220ms;
     property <duration> fase-largo: root.duracion-forma == 0ms ? 0ms : root.abierto ? 320ms : 220ms;
     property <duration> espera-largo: root.abierto && root.pb-grosor < 1px ? root.fase-grosor : 0ms;
-    property <duration> espera-grosor: root.abierto ? 0ms : root.fase-largo;
+    property <duration> espera-grosor: root.abierto || root.modo == 0 ? 0ms : root.fase-largo;
     // Cuánto se ve el contenido del panel (0 a 1). Mientras el panel se despliega o se pliega, su
     // contenido no cabe y se vería cortado: se oculta y en su lugar va un esqueleto (ver
     // "Esqueleto del panel"). Al abrir aparece cuando el panel ya tiene su tamaño; al cerrar se
@@ -687,17 +701,17 @@ export component Barra inherits Window {
     property <length> subida-contenido: (1 - root.revelado) * 6px;
     animate pa-x, pa-y, pa-ancho, pa-alto {
         duration: root.duracion-forma;
-        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : root.modo == 0 ? cubic-bezier(0.8, 0, 0.55, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     animate pb-cruce, pb-grosor {
         duration: root.fase-grosor;
         delay: root.espera-grosor;
-        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : root.modo == 0 ? cubic-bezier(0.8, 0, 0.55, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     animate pb-desde, pb-largo {
         duration: root.fase-largo;
         delay: root.espera-largo;
-        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : root.modo == 0 ? cubic-bezier(0.8, 0, 0.55, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     // A lo largo de la tira: dónde empieza y acaba cada pieza, y su grosor.
     property <length> a-desde: root.vertical ? root.pa-y : root.pa-x;
@@ -711,7 +725,7 @@ export component Barra inherits Window {
     property <length> sobra-inicio: root.a-desde - root.b-desde;
     property <length> sobra-final: root.b-hasta - root.a-hasta;
     // Radio de las esquinas de fuera y de los empalmes.
-    property <length> radio: root.modo == 0 ? 3px : 18px;
+    property <length> radio: root.recogida ? 3px : 18px;
     property <length> radio-empalme: 14px;
     property <length> empalme-inicio: max(0px, min(min(root.radio-empalme, abs(root.sobra-inicio) / 2), root.b-grosor));
     property <length> empalme-final: max(0px, min(min(root.radio-empalme, abs(root.sobra-final) / 2), root.b-grosor));
@@ -838,23 +852,23 @@ export component Barra inherits Window {
     property <length> largo-centrado: root.abierto ? root.largo-sin-mas : root.largo-tira;
     property <length> centro-x: root.modo != 0
         ? root.caja-x + root.zona-x + (root.vertical ? root.zona : root.largo-centrado) / 2
-        : !root.vertical ? root.caja-x + root.ancho / 2
-        : root.posicion == 1 ? root.caja-x + root.asomo - 3px - root.radio-personaje
-        : root.caja-x + root.ancho - root.asomo + 3px + root.radio-personaje;
+        : !root.vertical ? root.oculta-x + root.ancho-oculta / 2
+        : root.posicion == 1 ? root.oculta-x + root.asomo - 3px - root.radio-personaje
+        : root.oculta-x + root.ancho-oculta - root.asomo + 3px + root.radio-personaje;
     // Abajo, con la barra oculta asoma desde el borde de abajo lo alto del cuerpo, que queda a
     // 0,52 radios del centro (BAJADA menos su alto).
     property <length> centro-y: root.modo != 0
         ? root.y-caja + root.zona-y + (root.vertical ? root.largo-centrado : root.zona) / 2
-        : root.posicion == 0 ? root.y-caja + root.asomo - 3px - root.radio-personaje * 1.08
-        : root.posicion == 3 ? root.y-caja + 3px + root.radio-personaje * 0.52
-        : root.y-caja + root.alto / 2;
+        : root.posicion == 0 ? root.oculta-y + root.asomo - 3px - root.radio-personaje * 1.08
+        : root.posicion == 3 ? root.oculta-y + 3px + root.radio-personaje * 0.52
+        : root.oculta-y + root.alto-oculta / 2;
     out property <length> centro-personaje-x: root.centro-x - (root.vertical ? 0px : root.separacion-personajes / 2);
     out property <length> centro-personaje-y: root.centro-y - (root.vertical ? root.separacion-personajes / 2 : 0px);
     out property <length> centro-personaje-2-x: root.centro-x + (root.vertical ? 0px : root.separacion-personajes / 2);
     out property <length> centro-personaje-2-y: root.centro-y + (root.vertical ? root.separacion-personajes / 2 : 0px);
     animate centro-personaje-x, centro-personaje-y, centro-personaje-2-x, centro-personaje-2-y {
         duration: !root.animaciones || root.saltar ? 0ms : root.abierto ? 420ms : 340ms;
-        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : root.modo == 0 ? cubic-bezier(0.8, 0, 0.55, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
 
     // Personaje en el punto (x, y) de la ventana: 0 el primero, 1 el segundo, -1 ninguno.
@@ -989,21 +1003,22 @@ export component Barra inherits Window {
     // la posición final y el contorno lo va descubriendo o tapando.
     // La caja, animada: lo que el contorno va descubriendo o tapando. Como el panel, en dos
     // fases: a lo largo de la tira y de través.
-    property <length> caja-animada-x: root.caja-x;
-    property <length> caja-animada-y: root.y-caja;
-    property <length> caja-animada-ancho: root.ancho;
-    property <length> caja-animada-alto: root.alto;
-    // Como en Coucou: al abrir, una curva que se pasa un poco y vuelve (imita un muelle);
-    // al cerrar, una curva que arranca suave y frena al final, sin rebote.
+    // Como en Coucou: al abrir, una curva que se pasa un poco y vuelve (imita un muelle); al cerrar,
+    // una que arranca suave y frena al final, sin rebote; al ocultarse, esa misma hacia atrás.
+    // Al ocultarse, a la par que el fondo: los iconos no se quedan fuera de él.
+    property <length> caja-animada-x: root.modo == 0 ? root.oculta-x : root.caja-x;
+    property <length> caja-animada-y: root.modo == 0 ? root.oculta-y : root.y-caja;
+    property <length> caja-animada-ancho: root.modo == 0 ? root.ancho-oculta : root.ancho;
+    property <length> caja-animada-alto: root.modo == 0 ? root.alto-oculta : root.alto;
     animate caja-animada-x, caja-animada-ancho {
-        duration: root.vertical ? root.fase-grosor : root.fase-largo;
+        duration: root.modo == 0 ? root.duracion-forma : root.vertical ? root.fase-grosor : root.fase-largo;
         delay: root.vertical ? root.espera-grosor : root.espera-largo;
-        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : root.modo == 0 ? cubic-bezier(0.8, 0, 0.55, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     animate caja-animada-y, caja-animada-alto {
-        duration: root.vertical ? root.fase-largo : root.fase-grosor;
+        duration: root.modo == 0 ? root.duracion-forma : root.vertical ? root.fase-largo : root.fase-grosor;
         delay: root.vertical ? root.espera-largo : root.espera-grosor;
-        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : cubic-bezier(0.45, 0, 0.2, 1);
+        easing: root.abierto ? cubic-bezier(0.32, 1.28, 0.6, 1) : root.modo == 0 ? cubic-bezier(0.8, 0, 0.55, 1) : cubic-bezier(0.45, 0, 0.2, 1);
     }
     // Lo que abarcan las piezas del fondo (el panel, solo si tiene grosor).
     property <bool> con-panel: root.sb-x1 > root.sb-x0 && root.sb-y1 > root.sb-y0;
@@ -1021,7 +1036,7 @@ export component Barra inherits Window {
     width: max(root.caja-animada-x + root.caja-animada-ancho, root.piezas-x1) - self.x;
     height: max(root.caja-animada-y + root.caja-animada-alto, root.piezas-y1) - self.y;
     // Las esquinas las ponen las piezas; con la barra oculta, recorta lo que se asoma.
-    border-radius: root.modo == 0 ? 3px : 0px;
+    border-radius: root.recogida ? 3px : 0px;
     background: transparent;
     clip: true;
 
@@ -1029,7 +1044,7 @@ export component Barra inherits Window {
     Rectangle {
         // Oculta, casi invisible: lo justo para que pasar el ratón por la zona la despliegue.
         // Con opacidad 0 Windows dejaría pasar el ratón; con la mínima (2 de 255) no se ve.
-        property <color> tono: root.modo == 0 ? Tema.fondo.with-alpha(2 / 255) : Tema.fondo.with-alpha(Tema.opacidad);
+        property <color> tono: root.recogida ? Tema.fondo.with-alpha(2 / 255) : Tema.fondo.with-alpha(Tema.opacidad);
         opacity: root.moviendo ? 0 : 1;
         animate opacity { duration: root.animaciones ? 150ms : 0ms; }
 
@@ -1092,7 +1107,7 @@ export component Barra inherits Window {
 
     // ---- Tira de iconos ----
     Rectangle {
-        visible: root.modo >= 1;
+        visible: !root.recogida;
 
         // Zona del personaje: arrastrándola también se mueve la barra. Un clic sobre el
         // personaje lo hace rebotar. Va pegada al borde de la caja (sin `y`, Slint la centraría
@@ -1931,9 +1946,7 @@ export component Barra inherits Window {
         y: root.pb-y - root.y-caja;
         width: max(0px, root.pb-ancho);
         height: max(0px, root.pb-alto);
-        // Solo con el fondo a la vista: al ocultarse la barra (con "Ocultar en reposo"), el panel
-        // se pliega sin fondo y el esqueleto se quedaba flotando sobre lo de detrás.
-        visible: root.revelado < 1 && root.modo != 0 && !root.moviendo && self.width > 1px && self.height > 1px;
+        visible: root.revelado < 1 && !root.recogida && !root.moviendo && self.width > 1px && self.height > 1px;
         opacity: 1 - root.revelado;
         property <length> relleno: 20px;
         for i in 16 : Rectangle {
