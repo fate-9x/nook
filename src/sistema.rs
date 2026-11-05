@@ -12,13 +12,13 @@ use windows::Win32::Graphics::Gdi::{
     BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC,
     DeleteObject, GetDIBits, GetObjectW, HBITMAP,
 };
-use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
+use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_NORMAL, FILE_FLAGS_AND_ATTRIBUTES};
 use windows::Win32::System::Com::{CoTaskMemFree, IBindCtx};
 use windows::Win32::UI::Controls::{HIMAGELIST, ILD_TRANSPARENT, IImageList, ImageList_GetIcon};
 use windows::Win32::UI::Shell::Common::ITEMIDLIST;
 use windows::Win32::UI::Shell::{
     BHID_EnumItems, FOLDERID_AppsFolder, IEnumShellItems, ILFree, IShellItem, IShellItem2, KF_FLAG_DEFAULT,
-    SHFILEINFOW, SHGFI_FLAGS, SHGFI_LARGEICON, SHGFI_PIDL, SHGFI_SYSICONINDEX, SHGetFileInfoW,
+    SHFILEINFOW, SHGFI_FLAGS, SHGFI_LARGEICON, SHGFI_PIDL, SHGFI_SYSICONINDEX, SHGFI_USEFILEATTRIBUTES, SHGetFileInfoW,
     SHGetImageList, SHGetKnownFolderItem, SHIL_EXTRALARGE, SHIL_JUMBO, SHParseDisplayName, SIGDN, SIGDN_NORMALDISPLAY, SIGDN_PARENTRELATIVEPARSING,
     ShellExecuteW,
 };
@@ -127,6 +127,21 @@ pub fn pixeles_icono(ruta: &str, lado: u32) -> Option<Vec<u8>> {
     Some(dibujo::redimensionar(&pixeles, ancho, alto, lado))
 }
 
+/// El icono genérico de los archivos con esta `extension` (".exe", o "" si no tienen), sin mirar
+/// ningún archivo: el de un .exe sería el suyo, que puede hacerse pasar por el de una foto.
+pub fn icono_de_tipo(extension: &str, lado: u32) -> Option<slint::Image> {
+    pixeles_de_tipo(extension, lado).map(|pixeles| imagen(&pixeles, lado))
+}
+
+fn pixeles_de_tipo(extension: &str, lado: u32) -> Option<Vec<u8>> {
+    // Con la ruta de un archivo que existe, Windows da su icono aunque se le diga que no lo mire.
+    let extension = if extension.contains(['\\', '/', ':']) { "" } else { extension };
+    let nombre = HSTRING::from(format!("archivo{extension}"));
+    let (lista, indice) = unsafe { pedir_indice(PCWSTR(nombre.as_ptr()), SHGFI_USEFILEATTRIBUTES, FILE_ATTRIBUTE_NORMAL) }?;
+    let (pixeles, ancho, alto) = mejor_imagen(lista, indice)?;
+    Some(dibujo::redimensionar(&pixeles, ancho, alto, lado))
+}
+
 /// Los píxeles RGBA de un icono de Windows (por ejemplo, el de otro programa en el área de
 /// notificación de nook Pro), reducido a `lado` × `lado`.
 #[cfg_attr(not(pro), allow(dead_code))]
@@ -149,12 +164,12 @@ fn indice_de_icono(ruta: &str) -> Option<(HIMAGELIST, i32)> {
             // Las apps de la carpeta "Aplicaciones" no son archivos: se piden por su PIDL.
             let mut pidl: *mut ITEMIDLIST = std::ptr::null_mut();
             SHParseDisplayName(&HSTRING::from(ruta), None::<&IBindCtx>, &mut pidl, 0, None).ok()?;
-            let indice = pedir_indice(PCWSTR(pidl as *const u16), SHGFI_PIDL);
+            let indice = pedir_indice(PCWSTR(pidl as *const u16), SHGFI_PIDL, FILE_FLAGS_AND_ATTRIBUTES(0));
             ILFree(Some(pidl));
             indice
         } else {
             let ruta = HSTRING::from(ruta);
-            pedir_indice(PCWSTR(ruta.as_ptr()), SHGFI_FLAGS(0))
+            pedir_indice(PCWSTR(ruta.as_ptr()), SHGFI_FLAGS(0), FILE_FLAGS_AND_ATTRIBUTES(0))
         }
     }
 }
@@ -162,12 +177,12 @@ fn indice_de_icono(ruta: &str) -> Option<(HIMAGELIST, i32)> {
 /// Se pide el índice en la lista de iconos del sistema, no el icono ya hecho: Windows guarda
 /// aparte las capas que pinta encima (como la flecha de los accesos directos) y solo las añade
 /// si se le piden; con el icono ya hecho (`SHGFI_ICON`) los accesos directos salían con la flecha.
-unsafe fn pedir_indice(ruta: PCWSTR, extra: SHGFI_FLAGS) -> Option<(HIMAGELIST, i32)> {
+unsafe fn pedir_indice(ruta: PCWSTR, extra: SHGFI_FLAGS, atributos: FILE_FLAGS_AND_ATTRIBUTES) -> Option<(HIMAGELIST, i32)> {
     unsafe {
         let mut info = SHFILEINFOW::default();
         let lista = SHGetFileInfoW(
             ruta,
-            FILE_FLAGS_AND_ATTRIBUTES(0),
+            atributos,
             Some(&mut info),
             size_of::<SHFILEINFOW>() as u32,
             SHGFI_SYSICONINDEX | SHGFI_LARGEICON | extra,
@@ -380,6 +395,15 @@ pub fn cerrar_otras_copias() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn el_icono_de_un_tipo_de_archivo_no_es_el_del_archivo() {
+        let explorador = r"C:\Windows\explorer.exe";
+        let generico = pixeles_de_tipo(".exe", 32).unwrap();
+        assert_ne!(pixeles_icono(explorador, 32).unwrap(), generico);
+        assert_ne!(pixeles_de_tipo(".txt", 32).unwrap(), generico);
+        assert_eq!(pixeles_de_tipo(r"\Windows\explorer.exe", 32), pixeles_de_tipo("", 32));
+    }
 
     #[test]
     fn distingue_direcciones_de_rutas() {

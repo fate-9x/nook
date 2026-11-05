@@ -119,7 +119,7 @@ impl Ctx {
             for archivo in self.enlace.archivos() {
                 let foto = if archivo.foto { self.enlace.foto(&archivo.id) } else { None };
                 let es_foto = foto.is_some();
-                let icono = || icono_de(&mut e.iconos, &archivo.ruta.to_string_lossy(), lado_icono(LADO_ICONO_ARCHIVO));
+                let icono = || icono_de_tipo(&mut e.iconos, &archivo.nombre, lado_icono(LADO_ICONO_ARCHIVO));
                 tarjetas.push(ItemBoveda {
                     titulo: archivo.nombre.as_str().into(),
                     detalle: tamano_visible(archivo.tamano, coma).into(),

@@ -25,6 +25,14 @@ pub(crate) fn icono_de(iconos: &mut HashMap<(String, u32), Option<Image>>, ruta:
     iconos.entry((ruta.to_string(), lado)).or_insert_with(|| sistema::icono(ruta, lado)).clone()
 }
 
+/// El icono genérico del tipo del archivo `nombre`, por su extensión (ver `sistema::icono_de_tipo`).
+pub(crate) fn icono_de_tipo(iconos: &mut HashMap<(String, u32), Option<Image>>, nombre: &str, lado: u32) -> Option<Image> {
+    let extension = std::path::Path::new(nombre).extension().map(|e| format!(".{}", e.to_string_lossy().to_lowercase())).unwrap_or_default();
+    // Con "*" delante, que no puede estar en la ruta de una app.
+    let tipo = format!("*{extension}");
+    iconos.entry((tipo, lado)).or_insert_with(|| sistema::icono_de_tipo(&extension, lado)).clone()
+}
+
 /// Índice del grupo siguiente (o anterior) a `actual`, saltando las apps sueltas.
 /// `grupos[i]` indica si el elemento `i` es un grupo.
 pub(crate) fn siguiente_grupo(grupos: &[bool], actual: usize, adelante: bool) -> Option<usize> {
