@@ -71,6 +71,7 @@ fn motivo(motivo: &enlace::Motivo) -> String {
         enlace::Motivo::Llena => tr("la bóveda está llena (1 GB)").into(),
         enlace::Motivo::NoCoincide => tr("en el móvil se dijo que el código no coincide").into(),
         enlace::Motivo::SinTerminar => tr("no se terminó de comprobar el código").into(),
+        enlace::Motivo::OtroAparato => tr("otro aparato intentó vincularse a la vez").into(),
         enlace::Motivo::Otro(e) => e.clone(),
     }
 }

@@ -45,9 +45,11 @@ pub enum Motivo {
     Carpeta,
     Grande,
     Llena,
-    /// Al vincular: en el móvil se dijo que el código no coincide, o no se terminó de comprobar.
+    /// Al vincular: en el móvil se dijo que el código no coincide, no se terminó de comprobar u
+    /// otro aparato intentó vincularse a la vez (y se canceló, por si era el que no tocaba).
     NoCoincide,
     SinTerminar,
+    OtroAparato,
     /// Lo que dijo Windows.
     Otro(String),
 }
