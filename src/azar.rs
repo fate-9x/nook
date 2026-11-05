@@ -2,6 +2,7 @@
 //! empieza en la hora de arranque para lo que tiene que cambiar cada vez (los addons).
 
 use std::cell::Cell;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Generador determinista: da siempre la misma secuencia de números entre 0 y 1.
@@ -17,9 +18,14 @@ fn paso(a: &mut u32) -> u32 {
     t ^ (t >> 14)
 }
 
+/// Para que dos hilos que empiezan a la vez no tengan la misma secuencia (las pruebas, que van en
+/// paralelo, sacan de ella los nombres de sus carpetas temporales).
+static HILOS: AtomicU32 = AtomicU32::new(0);
+
 thread_local! {
     static ESTADO: Cell<u32> = Cell::new(
-        SystemTime::now().duration_since(UNIX_EPOCH).map_or(0x5EED, |d| d.as_nanos() as u32),
+        SystemTime::now().duration_since(UNIX_EPOCH).map_or(0x5EED, |d| d.as_nanos() as u32)
+            ^ HILOS.fetch_add(0x9E37_79B9, Ordering::Relaxed),
     );
 }
 
@@ -51,5 +57,12 @@ mod tests {
             let n = siguiente();
             assert!((0.0..1.0).contains(&n));
         }
+    }
+
+    #[test]
+    fn dos_hilos_no_sacan_la_misma_secuencia() {
+        let hilos: Vec<_> = (0..8).map(|_| std::thread::spawn(siguiente)).collect();
+        let valores: std::collections::HashSet<u64> = hilos.into_iter().map(|h| h.join().unwrap().to_bits()).collect();
+        assert_eq!(valores.len(), 8);
     }
 }
