@@ -375,17 +375,24 @@ export component Barra inherits Window {
     property <length> eje-lupa: root.inicio + root.boton + 2px;
     property <length> linea-inicio: root.boton-buscar ? root.eje-lupa + root.boton + root.hueco : root.inicio + root.boton + root.hueco;
     property <length> primer-grupo: root.linea-inicio + 1px + root.hueco;
-    // El botón "+" (añadir apps) solo ocupa su hueco cuando se ve: al acercar el cursor a la
-    // mitad final del último icono o al hueco que lo sigue, mientras el cursor siga en él, al
-    // arrastrar archivos hasta ahí y siempre que la tira está vacía. Al salir el cursor tarda un
-    // momento en irse (`reteniendo-mas`), así no se cierra si se pasa un poco de largo. El hueco
-    // se abre y se cierra poco a poco para que los iconos no salten.
-    property <bool> en-borde-del-ultimo;
+    // El botón "+" (añadir apps) solo ocupa su hueco cuando se ve: cuando el cursor se queda un
+    // momento quieto en el hueco que sigue al último icono (`cursor-pide-mas`) y mientras siga en
+    // él, al arrastrar archivos hasta ahí y siempre que la tira está vacía. Que haga falta
+    // pararse ahí es para que no se abra al ir a hacer clic en el último icono o en la bóveda: se
+    // abría al pasar el cursor y lo de al lado se movía justo antes del clic. Al salir el cursor
+    // tarda un momento en irse (`reteniendo-mas`), así no se cierra si se pasa un poco de largo.
+    // El hueco se abre y se cierra poco a poco para que los iconos no salten.
+    property <bool> cursor-pide-mas;
+    abrir-mas := Timer {
+        interval: 350ms;
+        running: zona-nuevo.has-hover && !zona-nuevo.pressed && !root.cursor-pide-mas
+            && root.reordenando < 0;
+        triggered => { root.cursor-pide-mas = true; }
+    }
     // Arrastrando archivos hasta el "+" (se anota al cambiar `destino-arrastre`, que depende de
     // dónde están los botones, que a su vez dependen de si se ve el "+").
     property <bool> arrastre-al-final;
-    property <bool> pide-mas: root.n == 0 || root.en-borde-del-ultimo || zona-nuevo.has-hover
-        || root.arrastre-al-final;
+    property <bool> pide-mas: root.n == 0 || root.cursor-pide-mas || root.arrastre-al-final;
     property <bool> reteniendo-mas;
     property <bool> mas-visible: root.pide-mas || root.reteniendo-mas;
     changed pide-mas => {
@@ -946,7 +953,6 @@ export component Barra inherits Window {
     default-font-family: Tema.fuente;
     changed ancho => { root.recolocar(); }
     changed desvio-caja => { root.recolocar(); }
-    changed n => { root.en-borde-del-ultimo = false; }
     // Si la tira se rehace mientras se arrastra un icono (se cierra o se quita una app), sus botones
     // se crean de nuevo y el "soltar" no llega nunca: sin esto el icono se quedaba fuera de sitio.
     changed tira => {
@@ -1214,10 +1220,6 @@ export component Barra inherits Window {
             clicked => { root.abrir-elemento(root.lupa >= 0 ? root.lupa : i); }
             arrastrar => { root.mover-barra(); }
             menu => { root.menu-elemento(root.lupa >= 0 ? root.lupa : i); }
-            // Cursor en el final del último icono: se abre el hueco del "+".
-            property <bool> en-su-borde: i == root.n - 1 && self.encima && root.reordenando < 0
-                && self.raton-a-lo-largo > root.boton * 0.5;
-            changed en-su-borde => { root.en-borde-del-ultimo = self.en-su-borde; }
             changed encima => {
                 if (self.encima) {
                     root.bajo-cursor = i;
@@ -1304,10 +1306,28 @@ export component Barra inherits Window {
             y: root.py(root.eje-grupo(root.n)) - (root.vertical ? root.hueco : (root.grosor - root.boton) / 2);
             width: root.vertical ? root.grosor : self.largo;
             height: root.vertical ? self.largo : root.grosor;
+            changed has-hover => {
+                if (!self.has-hover) {
+                    root.cursor-pide-mas = false;
+                }
+            }
             moved => {
                 if (abs(self.mouse-x - self.pressed-x) > 5px || abs(self.mouse-y - self.pressed-y) > 5px) {
                     root.mover-barra();
                 }
+            }
+
+            // Mientras el cursor espera en el hueco cerrado, un punto suave avisa de que ahí se
+            // abre algo, sin mover nada.
+            Rectangle {
+                width: 4px;
+                height: 4px;
+                border-radius: 2px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                background: Tema.texto-suave;
+                opacity: parent.has-hover && !root.mas-visible ? 0.6 : 0;
+                animate opacity { duration: root.animaciones ? 120ms : 0ms; }
             }
 
             // Crece con su hueco, desde el último icono.
