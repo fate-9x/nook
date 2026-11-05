@@ -859,3 +859,6 @@ msgstr "the code check wasn't finished"
 
 msgid "otro aparato intentó vincularse a la vez"
 msgstr "another device tried to link at the same time"
+
+msgid "Copiado"
+msgstr "Copied"

@@ -859,3 +859,6 @@ msgstr "コードの確認が完了しませんでした"
 
 msgid "otro aparato intentó vincularse a la vez"
 msgstr "別のデバイスが同時に連携しようとしました"
+
+msgid "Copiado"
+msgstr "コピーしました"

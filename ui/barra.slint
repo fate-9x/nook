@@ -105,6 +105,7 @@ export component Barra inherits Window {
     in property <string> nombre-grupo-boveda;
     in-out property <int> seleccion-boveda; // tarjeta marcada (se copia o abre con Intro o con el atajo)
     in-out property <string> texto-boveda;  // lo que se está escribiendo en el campo
+    in property <int> copiado-boveda: -1;   // tarjeta que se acaba de copiar (se marca hasta cerrar)
     // Para qué es el campo: 0 guardar un texto nuevo, 1 la etiqueta de un texto, 2 el nombre de
     // un grupo. Con 1 y 2, Intro guarda aunque esté vacío y Esc cancela.
     in property <int> entrada-boveda;
@@ -1821,6 +1822,8 @@ export component Barra inherits Window {
         pista-entrada-boveda: root.pista-entrada-boveda;
         seleccion-boveda <=> root.seleccion-boveda;
         texto-boveda <=> root.texto-boveda;
+        copiado-boveda: root.copiado-boveda;
+        animaciones: root.animaciones;
         guardar-en-boveda(a) => { root.guardar-en-boveda(a); }
         elegir-en-boveda(a) => { root.elegir-en-boveda(a); }
         quitar-de-boveda(a) => { root.quitar-de-boveda(a); }

@@ -8,6 +8,9 @@ use crate::*;
 const SECCION_CUENTA: i32 = 1;
 /// Lado del icono de un archivo en su tarjeta (ver ui/boveda.slint).
 const LADO_ICONO_ARCHIVO: f32 = 28.0;
+/// Lo que se ve marcado lo que se copia antes de cerrarse la barra (ver `MarcaCopiado` en
+/// ui/boveda.slint, que aparece en 140 ms y cuya marca crece en 300).
+const ESPERA_COPIADO: Duration = Duration::from_millis(450);
 
 /// Para qué es el campo de arriba de la bóveda.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -203,6 +206,9 @@ impl Ctx {
             e.aviso_boveda = None;
         }
         self.limpiar_campo_boveda(0);
+        if let Some(ui) = self.ui.upgrade() {
+            ui.set_copiado_boveda(-1);
+        }
         self.poner_modo(Modo::Boveda);
         // Por si se cambió en otro ordenador.
         self.cuenta.descargar();
@@ -310,17 +316,34 @@ impl Ctx {
         self.enlace.archivos().into_iter().nth(j)
     }
 
-    /// Copia un archivo para pegarlo, cierra la barra y devuelve el foco a la ventana en la que se
-    /// estaba (como con los textos).
-    fn copiar_archivo(&self, id: &str) {
+    /// Copia el archivo de la tarjeta `i` para pegarlo y, como con los textos, lo marca, cierra la
+    /// barra y devuelve el foco a la ventana en la que se estaba.
+    fn copiar_archivo(&self, i: usize, id: &str) {
         if !self.enlace.copiar(id) {
             eprintln!("No se pudo copiar el archivo: otro programa está usando el portapapeles");
             return;
         }
-        self.cerrar();
-        if let Some(ventana) = self.ventana_previa.take() {
-            ventana::activar(ventana);
-        }
+        self.tras_copiar(i);
+    }
+
+    /// Marca como copiada la tarjeta `i` y, al rato (lo que tarda en verse la marca), cierra la
+    /// barra y devuelve el foco a la ventana en la que se estaba, para pegar lo copiado.
+    fn tras_copiar(&self, i: usize) {
+        let Some(ui) = self.ui.upgrade() else { return };
+        ui.set_copiado_boveda(i as i32);
+        let c = self.clone();
+        Timer::single_shot(ESPERA_COPIADO, move || {
+            let Some(ui) = c.ui.upgrade() else { return };
+            // Si mientras tanto se cerró o se copió otra cosa, ya no toca.
+            if c.estado.borrow().modo != Modo::Boveda || ui.get_copiado_boveda() != i as i32 {
+                return;
+            }
+            c.cerrar();
+            ui.set_copiado_boveda(-1);
+            if let Some(ventana) = c.ventana_previa.take() {
+                ventana::activar(ventana);
+            }
+        });
     }
 
     fn quitar_archivo(&self, id: &str) {
@@ -329,7 +352,7 @@ impl Ctx {
     }
 
     /// Clic derecho en la tarjeta de un archivo.
-    fn menu_archivo(&self, archivo: enlace::Archivo) {
+    fn menu_archivo(&self, i: usize, archivo: enlace::Archivo) {
         const COPIAR: u32 = 1;
         const ABRIR: u32 = 2;
         const ELIMINAR: u32 = 3;
@@ -340,7 +363,7 @@ impl Ctx {
             Opcion::Normal(ELIMINAR, tr("Eliminar")),
         ];
         self.mostrar_menu(&opciones, move |c, id| match id {
-            COPIAR => c.copiar_archivo(&archivo.id),
+            COPIAR => c.copiar_archivo(i, &archivo.id),
             ABRIR => {
                 if let Err(e) = sistema::lanzar(&archivo.ruta.to_string_lossy()) {
                     eprintln!("{e}");
@@ -410,7 +433,7 @@ impl Ctx {
     /// Clic (o Intro) en una tarjeta: un texto o un archivo se copia; en un grupo se entra.
     pub(crate) fn elegir_en_boveda(&self, i: usize) {
         if let Some(archivo) = self.archivo_de_boveda(i) {
-            return self.copiar_archivo(&archivo.id);
+            return self.copiar_archivo(i, &archivo.id);
         }
         let (vista, es_grupo) = {
             let e = self.estado.borrow();
@@ -442,18 +465,15 @@ impl Ctx {
         }
     }
 
-    /// Copia el texto `i` de la vista, cierra la barra y devuelve el foco a la ventana en la
-    /// que se estaba, para pegarlo.
+    /// Copia el texto `i` de la vista y, tras marcarlo, cierra la barra y devuelve el foco a la
+    /// ventana en la que se estaba, para pegarlo.
     pub(crate) fn copiar_de_boveda(&self, vista: Option<usize>, i: usize) {
         let Some(texto) = self.estado.borrow().config.boveda.texto(vista, i).map(|t| t.texto.clone()) else { return };
         if !portapapeles::poner(&texto) {
             eprintln!("No se pudo copiar el texto: otro programa está usando el portapapeles");
             return;
         }
-        self.cerrar();
-        if let Some(ventana) = self.ventana_previa.take() {
-            ventana::activar(ventana);
-        }
+        self.tras_copiar(i);
     }
 
     /// Intro en el campo de arriba: guarda el texto nuevo, la etiqueta o el nombre del grupo.
@@ -550,7 +570,7 @@ impl Ctx {
         const RENOMBRAR: u32 = 7;
         const DESHACER: u32 = 8;
         if let Some(archivo) = self.archivo_de_boveda(i) {
-            return self.menu_archivo(archivo);
+            return self.menu_archivo(i, archivo);
         }
         let (vista, es_grupo, tiene_etiqueta) = {
             let e = self.estado.borrow();

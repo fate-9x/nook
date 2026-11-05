@@ -2,7 +2,40 @@
 // nook Pro, detrás de ellas, las imágenes y los archivos que se arrastran o se pegan.
 
 import { Tema, ItemBoveda } from "tema.slint";
-import { IconoTarjetas, IconoCarpeta, IconoAtras } from "iconos.slint";
+import { IconoTarjetas, IconoCarpeta, IconoAtras, IconoHecho } from "iconos.slint";
+
+// Lo que cubre lo que se acaba de copiar: el acento, que aparece, y "✓ Copiado", con la marca
+// creciendo con un pequeño rebote.
+component MarcaCopiado inherits Rectangle {
+    in property <bool> animaciones;
+    in property <length> radio: 14px;
+    property <bool> puesto;
+    init => { self.puesto = true; }
+    border-radius: root.radio;
+    background: Tema.acento;
+    opacity: root.puesto ? 1 : 0;
+    animate opacity { duration: root.animaciones ? 140ms : 0ms; easing: ease-out; }
+
+    property <length> lado: root.puesto ? 18px : 6px;
+    animate lado { duration: root.animaciones ? 300ms : 0ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+    property <length> ancho-todo: 18px + 6px + texto.preferred-width;
+    IconoHecho {
+        x: (root.width - root.ancho-todo) / 2 + (18px - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        width: root.lado;
+        height: root.lado;
+        color: Tema.sobre-acento;
+    }
+    texto := Text {
+        x: (root.width - root.ancho-todo) / 2 + 18px + 6px;
+        height: root.height;
+        text: @tr("Copiado");
+        color: Tema.sobre-acento;
+        font-size: 13px;
+        font-weight: 700;
+        vertical-alignment: center;
+    }
+}
 
 export component PanelBoveda inherits Rectangle {
     in property <[ItemBoveda]> boveda;
@@ -25,6 +58,10 @@ export component PanelBoveda inherits Rectangle {
     callback abrir-carpeta-boveda();
     // Alto de lo que hay bajo el campo (la cabecera del grupo y las tarjetas).
     in property <length> zona-boveda;
+    // La tarjeta que se acaba de copiar (-1 ninguna): se cubre con el acento y una marca hasta que
+    // se cierra la barra, para ver que se copió.
+    in property <int> copiado-boveda: -1;
+    in property <bool> animaciones: true;
 
     // Tarjetas en una cuadrícula de 3 columnas que se desplaza con la rueda.
     property <int> columnas-boveda: 3;
@@ -475,6 +512,11 @@ export component PanelBoveda inherits Rectangle {
                     vertical-alignment: center;
                     overflow: elide;
                 }
+            }
+
+            // Copiada: el acento aparece encima y la marca crece con un pequeño rebote.
+            if i == root.copiado-boveda : MarcaCopiado {
+                animaciones: root.animaciones;
             }
         }
     }

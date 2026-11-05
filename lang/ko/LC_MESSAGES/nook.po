@@ -859,3 +859,6 @@ msgstr "코드 확인이 끝나지 않았습니다"
 
 msgid "otro aparato intentó vincularse a la vez"
 msgstr "다른 기기가 동시에 연동하려고 했습니다"
+
+msgid "Copiado"
+msgstr "복사됨"

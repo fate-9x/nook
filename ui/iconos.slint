@@ -149,6 +149,19 @@ export component IconoX inherits Path {
     fill: transparent;
 }
 
+// Marca "✓" de algo hecho (lo que se copió de la bóveda).
+export component IconoHecho inherits Path {
+    in property <color> color;
+    width: 16px;
+    height: 16px;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    commands: "M 3 8.5 L 6.5 12 L 13 4.5";
+    stroke: root.color;
+    stroke-width: 2px;
+    fill: transparent;
+}
+
 // Botones del reproductor: 0 anterior, 1 reproducir, 2 pausa, 3 siguiente.
 export component IconoMusica inherits Path {
     in property <int> tipo;
