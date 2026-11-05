@@ -162,6 +162,32 @@ export component IconoHecho inherits Path {
     fill: transparent;
 }
 
+// Dos hojas, una sobre otra: copiar.
+export component IconoCopiar inherits Path {
+    in property <color> color;
+    width: 14px;
+    height: 14px;
+    viewbox-width: 14;
+    viewbox-height: 14;
+    commands: "M 5 4.5 Q 5 3.5 6 3.5 L 11.5 3.5 Q 12.5 3.5 12.5 4.5 L 12.5 11.5 Q 12.5 12.5 11.5 12.5 L 6 12.5 Q 5 12.5 5 11.5 Z M 9.5 1.5 L 3 1.5 Q 1.5 1.5 1.5 3 L 1.5 9.5";
+    stroke: root.color;
+    stroke-width: 1.4px;
+    fill: transparent;
+}
+
+// Flecha que sale de un recuadro: abrir.
+export component IconoAbrir inherits Path {
+    in property <color> color;
+    width: 14px;
+    height: 14px;
+    viewbox-width: 14;
+    viewbox-height: 14;
+    commands: "M 8 1.5 L 12.5 1.5 L 12.5 6 M 12.5 1.5 L 6.5 7.5 M 11 8.5 L 11 11 Q 11 12.5 9.5 12.5 L 3 12.5 Q 1.5 12.5 1.5 11 L 1.5 4.5 Q 1.5 3 3 3 L 5.5 3";
+    stroke: root.color;
+    stroke-width: 1.4px;
+    fill: transparent;
+}
+
 // Botones del reproductor: 0 anterior, 1 reproducir, 2 pausa, 3 siguiente.
 export component IconoMusica inherits Path {
     in property <int> tipo;

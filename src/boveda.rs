@@ -17,6 +17,19 @@ pub fn nombre_grupo_nuevo() -> &'static str {
     tr("Grupo nuevo")
 }
 
+/// Si un archivo de la bóveda (nook Pro) es una imagen, por su extensión: va en la sección de las
+/// imágenes, con su vista previa. Son las que lee Windows sin instalar nada (y HEIC y AVIF, si
+/// están sus extensiones de la Store; si no, se ve el icono de su tipo).
+#[cfg_attr(not(pro), allow(dead_code))]
+pub fn es_imagen(nombre: &str) -> bool {
+    const EXTENSIONES: [&str; 16] =
+        ["png", "jpg", "jpeg", "jpe", "jfif", "gif", "bmp", "dib", "webp", "tif", "tiff", "ico", "heic", "heif", "avif", "jxr"];
+    std::path::Path::new(nombre)
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| EXTENSIONES.iter().any(|x| x.eq_ignore_ascii_case(e)))
+}
+
 /// Un texto guardado.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(from = "TextoGuardado")]
@@ -101,6 +114,7 @@ impl Boveda {
     }
 
     /// Cuántos elementos tiene la vista.
+    #[cfg(test)]
     pub fn largo(&self, vista: Option<usize>) -> usize {
         match vista {
             None => self.elementos.len(),
@@ -310,6 +324,16 @@ impl Boveda {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn las_imagenes_se_reconocen_por_su_extension() {
+        assert!(es_imagen("Captura 2026-11-05.png"));
+        assert!(es_imagen("FOTO.JPG"));
+        assert!(es_imagen("mapa.webp"));
+        assert!(!es_imagen("informe.pdf"));
+        assert!(!es_imagen("png"));
+        assert!(!es_imagen("sin extension"));
+    }
 
     fn textos(b: &Boveda, vista: Option<usize>) -> Vec<String> {
         (0..b.largo(vista)).map(|i| b.texto(vista, i).map_or("[grupo]".into(), |t| t.texto.clone())).collect()

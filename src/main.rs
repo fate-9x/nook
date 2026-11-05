@@ -223,6 +223,9 @@ struct Estado {
     /// abrir) y el último error al vincular el móvil.
     aviso_boveda: Option<String>,
     error_movil: String,
+    /// Se acaba de añadir algo a la bóveda (nook Pro) y, cuando llegue, se pasa a verlo en su
+    /// sección: el archivo más nuevo que había antes (None si no había ninguno).
+    espera_boveda: Option<Option<String>>,
     /// Addons instalados (solo lo que dicen sus manifiestos: se cargan al abrirlos) y lo de su
     /// sección de la configuración.
     addons: Vec<addons::Addon>,
@@ -602,6 +605,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             error_cuenta: String::new(),
             aviso_boveda: None,
             error_movil: String::new(),
+            espera_boveda: None,
             addons: Vec::new(),
             config_addons: Default::default(),
             claude: Default::default(),

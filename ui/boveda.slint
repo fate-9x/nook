@@ -1,8 +1,10 @@
-// Bóveda de textos: un campo para guardar textos y, debajo, sus tarjetas (sueltas o en grupos). En
-// nook Pro, detrás de ellas, las imágenes y los archivos que se arrastran o se pegan.
+// Bóveda: los textos (sueltos o en grupos), en tarjetas bajo un campo para guardarlos. En Nookly
+// Pro, también las imágenes y los archivos que se arrastran o se pegan, cada cosa en su sección:
+// en una lista con, al lado, la vista previa del elegido y los botones para copiarlo o abrirlo
+// (como en el Explorador).
 
-import { Tema, ItemBoveda } from "tema.slint";
-import { IconoTarjetas, IconoCarpeta, IconoAtras, IconoHecho } from "iconos.slint";
+import { Tema, ItemBoveda, ArchivoBoveda, VistaImagen } from "tema.slint";
+import { IconoTarjetas, IconoCarpeta, IconoAtras, IconoHecho, IconoCopiar, IconoAbrir } from "iconos.slint";
 
 // Lo que cubre lo que se acaba de copiar: el acento, que aparece, y "✓ Copiado", con la marca
 // creciendo con un pequeño rebote.
@@ -37,6 +39,395 @@ component MarcaCopiado inherits Rectangle {
     }
 }
 
+// Pestaña de una sección de la bóveda, con cuántas cosas tiene (si `cuantos` no es negativo).
+component PestanaBoveda inherits Rectangle {
+    in property <string> texto;
+    in property <int> cuantos: -1;
+    in property <bool> activa;
+    callback clicked();
+
+    preferred-width: contenido.preferred-width + 28px;
+    height: 28px;
+    border-radius: 10px;
+    background: root.activa ? Tema.acento : area.has-hover ? Tema.capa-fuerte : transparent;
+    animate background { duration: 120ms; }
+
+    contenido := HorizontalLayout {
+        alignment: center;
+        spacing: 6px;
+        Text {
+            text: root.texto;
+            color: root.activa ? Tema.sobre-acento : Tema.texto;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+        if root.cuantos > 0 : Text {
+            text: root.cuantos;
+            color: root.activa ? Tema.sobre-acento : Tema.texto-tenue;
+            opacity: root.activa ? 0.75 : 1;
+            font-size: 11px;
+            vertical-alignment: center;
+        }
+    }
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Botón de la vista previa de un archivo: el principal (copiar) va con el acento. Con `hecho`,
+// dice que ya se hizo (con la marca en lugar de su icono).
+component BotonArchivo inherits Rectangle {
+    in property <string> texto;
+    in property <bool> principal;
+    in property <bool> abrir;   // el icono de abrir (si no, el de copiar)
+    in property <bool> hecho;
+    callback clicked();
+
+    height: 34px;
+    border-radius: 12px;
+    background: root.principal ? (area.has-hover ? Tema.acento.brighter(0.12) : Tema.acento)
+        : area.has-hover ? Tema.capa-fuerte : Tema.capa;
+    property <color> tinta: root.principal ? Tema.sobre-acento : Tema.texto;
+
+    HorizontalLayout {
+        alignment: center;
+        spacing: 7px;
+        VerticalLayout {
+            alignment: center;
+            if root.hecho : IconoHecho {
+                width: 14px;
+                height: 14px;
+                color: root.tinta;
+            }
+            if !root.hecho && root.abrir : IconoAbrir {
+                color: root.tinta;
+            }
+            if !root.hecho && !root.abrir : IconoCopiar {
+                color: root.tinta;
+            }
+        }
+        Text {
+            text: root.texto;
+            color: root.tinta;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+    }
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Fila de la lista de imágenes o de archivos: el icono de su tipo, su nombre y lo que mide.
+component FilaArchivo inherits Rectangle {
+    in property <ArchivoBoveda> archivo;
+    in property <bool> elegida;
+    in property <bool> copiada;
+    in property <bool> animaciones;
+    callback elegir();
+    callback abrir();
+    callback menu();
+    callback rueda(length);
+
+    height: 44px;
+    border-radius: 11px;
+    background: root.elegida ? Tema.capa-fuerte : area.has-hover ? Tema.capa : transparent;
+
+    Image {
+        x: 10px;
+        y: (parent.height - self.height) / 2;
+        width: 24px;
+        height: 24px;
+        source: root.archivo.icono;
+    }
+    Text {
+        x: 44px;
+        y: 6px;
+        width: parent.width - 54px;
+        height: 18px;
+        text: root.archivo.nombre;
+        color: Tema.texto;
+        font-size: 13px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Text {
+        x: 44px;
+        y: 24px;
+        width: parent.width - 54px;
+        height: 14px;
+        text: root.archivo.detalle;
+        color: Tema.texto-tenue;
+        font-size: 11px;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    // Como en el Explorador: un clic la elige y dos la abren.
+    area := TouchArea {
+        clicked => { root.elegir(); }
+        double-clicked => { root.abrir(); }
+        pointer-event(evento) => {
+            if (evento.button == PointerEventButton.right && evento.kind == PointerEventKind.up) {
+                root.elegir();
+                root.menu();
+            }
+        }
+        scroll-event(evento) => {
+            root.rueda(evento.delta-y);
+            return accept;
+        }
+    }
+
+    if root.copiada : MarcaCopiado {
+        radio: 11px;
+        animaciones: root.animaciones;
+    }
+}
+
+// Una sección de imágenes o de archivos: la lista a la izquierda y, a la derecha, la vista previa
+// del elegido (la imagen o el icono de su tipo) con su nombre y los botones para copiarlo o
+// abrirlo.
+component SeccionArchivos inherits Rectangle {
+    in property <[ArchivoBoveda]> archivos;
+    in property <bool> imagenes;
+    in property <VistaImagen> vista;
+    in property <string> archivo-copiado;
+    in property <string> aviso;
+    in property <string> vacia;
+    in property <bool> animaciones;
+    in-out property <int> seleccion;
+    callback copiar(string);
+    callback abrir(string);
+    callback quitar(string);
+    callback menu(string);
+    callback pegar() -> bool;
+    callback cerrar();
+    callback cambiar-seccion(int);
+
+    property <length> ancho-lista: 250px;
+    property <length> alto-fila: 44px;
+    property <length> hueco-fila: 2px;
+    property <length> alto-aviso: root.aviso != "" ? 40px : 0px;
+    property <length> alto-lista: root.height - root.alto-aviso;
+    property <length> alto-contenido: root.archivos.length * (root.alto-fila + root.hueco-fila) - root.hueco-fila;
+    property <length> desplazamiento;
+    property <bool> hay: root.archivos.length > 0 && root.seleccion >= 0 && root.seleccion < root.archivos.length;
+    property <ArchivoBoveda> elegido: root.hay ? root.archivos[root.seleccion] : { };
+    // La vista previa que llegó es la del elegido (si no, aún no se ha pedido la suya).
+    property <bool> vista-al-dia: root.hay && root.vista.id == root.elegido.id;
+
+    public function enfocar() {
+        teclas.focus();
+    }
+    // Desplaza la lista para que se vea la fila elegida.
+    public function mostrar-seleccion() {
+        let arriba = root.seleccion * (root.alto-fila + root.hueco-fila);
+        if (arriba < root.desplazamiento) {
+            root.desplazamiento = arriba;
+        }
+        if (arriba + root.alto-fila > root.desplazamiento + root.alto-lista) {
+            root.desplazamiento = arriba + root.alto-fila - root.alto-lista;
+        }
+    }
+    function mover(d: int) {
+        root.seleccion = max(0, min(root.archivos.length - 1, root.seleccion + d));
+        root.mostrar-seleccion();
+    }
+    function desplazar(d: length) {
+        root.desplazamiento = max(0px, min(root.desplazamiento - d, root.alto-contenido - root.alto-lista));
+    }
+
+    teclas := FocusScope {
+        key-pressed(evento) => {
+            if (evento.text == Key.Escape) {
+                root.cerrar();
+                return accept;
+            }
+            if (evento.modifiers.control && (evento.text == Key.Tab || evento.text == Key.Backtab)) {
+                root.cambiar-seccion(evento.text == Key.Backtab || evento.modifiers.shift ? -1 : 1);
+                return accept;
+            }
+            if (evento.modifiers.control && evento.text == "v") {
+                root.pegar();
+                return accept;
+            }
+            if (evento.text == Key.UpArrow) {
+                root.mover(-1);
+                return accept;
+            }
+            if (evento.text == Key.DownArrow) {
+                root.mover(1);
+                return accept;
+            }
+            if (evento.text == Key.Home) {
+                root.mover(-root.archivos.length);
+                return accept;
+            }
+            if (evento.text == Key.End) {
+                root.mover(root.archivos.length);
+                return accept;
+            }
+            if (!root.hay) {
+                return reject;
+            }
+            if (evento.text == Key.Return) {
+                if (evento.modifiers.control) {
+                    root.abrir(root.elegido.id);
+                } else {
+                    root.copiar(root.elegido.id);
+                }
+                return accept;
+            }
+            if (evento.text == Key.Delete) {
+                root.quitar(root.elegido.id);
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    if root.archivos.length == 0 : Text {
+        width: parent.width;
+        height: root.alto-lista;
+        text: root.vacia;
+        color: Tema.texto-tenue;
+        font-size: 12px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    // La lista, que se desplaza con la rueda.
+    if root.archivos.length > 0 : Rectangle {
+        x: 0px;
+        y: 0px;
+        width: root.ancho-lista;
+        height: root.alto-lista;
+        clip: true;
+
+        TouchArea {
+            scroll-event(evento) => {
+                root.desplazar(evento.delta-y);
+                return accept;
+            }
+        }
+
+        for a[i] in root.archivos : FilaArchivo {
+            y: i * (root.alto-fila + root.hueco-fila) - root.desplazamiento;
+            width: parent.width;
+            height: root.alto-fila;
+            archivo: a;
+            elegida: i == root.seleccion;
+            copiada: a.id == root.archivo-copiado;
+            animaciones: root.animaciones;
+            elegir => {
+                root.seleccion = i;
+                teclas.focus();
+            }
+            abrir => { root.abrir(a.id); }
+            menu => { root.menu(a.id); }
+            rueda(d) => { root.desplazar(d); }
+        }
+    }
+
+    // Por qué no se pudo guardar algo, debajo de la lista.
+    if root.aviso != "" : Text {
+        x: 4px;
+        y: root.alto-lista + 6px;
+        width: (root.archivos.length > 0 ? root.ancho-lista : root.width) - 8px;
+        height: root.alto-aviso - 6px;
+        text: root.aviso;
+        color: Tema.texto-tenue;
+        font-size: 11px;
+        wrap: word-wrap;
+        overflow: elide;
+        vertical-alignment: center;
+        horizontal-alignment: root.archivos.length > 0 ? left : center;
+    }
+
+    // La vista previa del elegido.
+    if root.archivos.length > 0 : Rectangle {
+        x: root.ancho-lista + 12px;
+        width: parent.width - self.x;
+        height: parent.height;
+        border-radius: 16px;
+        background: Tema.capa;
+
+        // Hueco de la imagen (Rust la pide de este tamaño, ver `VISTA_PREVIA` en
+        // src/barra/boveda.rs).
+        Rectangle {
+            x: 14px;
+            y: 14px;
+            width: parent.width - 28px;
+            height: nombre.y - 12px - self.y;
+
+            if root.imagenes && root.vista-al-dia && root.vista.estado == 1 : Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.vista.imagen;
+                image-fit: contain;
+            }
+            // Un archivo que no es una imagen, o una imagen que no se pudo leer: el icono de su
+            // tipo, en grande.
+            if !root.imagenes || (root.vista-al-dia && root.vista.estado == 2) : Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 64px;
+                height: 64px;
+                source: root.elegido.icono-grande;
+            }
+        }
+
+        nombre := Text {
+            x: 14px;
+            y: detalle.y - 2px - self.height;
+            width: parent.width - 28px;
+            height: 18px;
+            text: root.elegido.nombre;
+            color: Tema.texto;
+            font-size: 13px;
+            font-weight: 600;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        detalle := Text {
+            x: 14px;
+            y: botones.y - 14px - self.height;
+            width: parent.width - 28px;
+            height: 14px;
+            text: root.imagenes && root.vista-al-dia && root.vista.medidas != ""
+                ? root.vista.medidas + "  ·  " + root.elegido.detalle : root.elegido.detalle;
+            color: Tema.texto-tenue;
+            font-size: 11px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        botones := HorizontalLayout {
+            x: 14px;
+            y: parent.height - 14px - 34px;
+            width: parent.width - 28px;
+            height: 34px;
+            spacing: 8px;
+            BotonArchivo {
+                horizontal-stretch: 1;
+                texto: root.elegido.id == root.archivo-copiado ? @tr("Copiado") : @tr("Copiar archivo");
+                principal: true;
+                hecho: root.elegido.id == root.archivo-copiado;
+                clicked => { root.copiar(root.elegido.id); }
+            }
+            BotonArchivo {
+                horizontal-stretch: 1;
+                texto: @tr("Abrir archivo");
+                abrir: true;
+                clicked => { root.abrir(root.elegido.id); }
+            }
+        }
+    }
+}
+
 export component PanelBoveda inherits Rectangle {
     in property <[ItemBoveda]> boveda;
     in property <bool> en-grupo-boveda;
@@ -56,12 +447,35 @@ export component PanelBoveda inherits Rectangle {
     // Ctrl+V: si en el portapapeles hay archivos o una imagen, los guarda (y devuelve true).
     callback pegar-en-boveda() -> bool;
     callback abrir-carpeta-boveda();
-    // Alto de lo que hay bajo el campo (la cabecera del grupo y las tarjetas).
+    // Alto de lo que hay bajo el campo, en los textos (la cabecera del grupo y las tarjetas), o de
+    // la lista y la vista previa, en las imágenes y los archivos.
     in property <length> zona-boveda;
     // La tarjeta que se acaba de copiar (-1 ninguna): se cubre con el acento y una marca hasta que
     // se cierra la barra, para ver que se copió.
     in property <int> copiado-boveda: -1;
     in property <bool> animaciones: true;
+
+    // Nookly Pro: la sección que se ve (0 textos, 1 imágenes, 2 archivos), sus listas, la fila
+    // elegida en cada una y la vista previa de la imagen elegida. Las imágenes y los archivos se
+    // nombran por su id; `archivo-copiado` es el que se acaba de copiar.
+    in-out property <int> seccion-boveda;
+    in property <[ArchivoBoveda]> imagenes-boveda;
+    in property <[ArchivoBoveda]> archivos-boveda;
+    in-out property <int> seleccion-imagen;
+    in-out property <int> seleccion-archivo;
+    in property <VistaImagen> vista-imagen;
+    in property <string> archivo-copiado;
+    // Por qué no se pudo guardar algo (en los textos se ve en el campo).
+    in property <string> aviso-boveda;
+    callback copiar-archivo-boveda(string);
+    callback abrir-archivo-boveda(string);
+    callback quitar-archivo-boveda(string);
+    callback menu-archivo-boveda(string);
+    // Cambió la sección o la fila elegida: hay que poner la vista previa.
+    callback ver-en-boveda();
+
+    // Arriba, en Nookly Pro, las pestañas de las secciones.
+    property <length> arriba: Tema.pro ? 14px + 32px + 10px : 14px;
 
     // Tarjetas en una cuadrícula de 3 columnas que se desplaza con la rueda.
     property <int> columnas-boveda: 3;
@@ -81,8 +495,19 @@ export component PanelBoveda inherits Rectangle {
         root.tarjeta-x(root.arrastrando-boveda) + root.arrastre-boveda-x + root.ancho-tarjeta / 2,
         root.tarjeta-y(root.arrastrando-boveda) + root.arrastre-boveda-y + root.alto-tarjeta / 2);
 
-    // Desplaza las tarjetas de la bóveda para que se vea la marcada.
+    changed seccion-boveda => { root.ver-en-boveda(); }
+    changed seleccion-imagen => { root.ver-en-boveda(); }
+
+    // Desplaza las tarjetas (o la lista) de la bóveda para que se vea lo marcado.
     public function mostrar-seleccion() {
+        if (root.seccion-boveda == 1) {
+            imagenes.mostrar-seleccion();
+            return;
+        }
+        if (root.seccion-boveda == 2) {
+            archivos.mostrar-seleccion();
+            return;
+        }
         let fila = floor(root.seleccion-boveda / root.columnas-boveda);
         let arriba = fila * (root.alto-tarjeta + root.hueco-tarjeta);
         if (arriba < root.desplazamiento-boveda) {
@@ -102,6 +527,16 @@ export component PanelBoveda inherits Rectangle {
         root.desplazamiento-boveda = max(0px, min(root.desplazamiento-boveda - d,
             root.alto-contenido-boveda - root.alto-tarjetas));
     }
+    // Pasa a la sección siguiente (`d` = 1) o a la anterior (-1), dando la vuelta.
+    function cambiar-seccion(d: int) {
+        if (Tema.pro) {
+            root.elegir-seccion(mod(root.seccion-boveda + d + 3, 3));
+        }
+    }
+    function elegir-seccion(s: int) {
+        root.seccion-boveda = s;
+        root.enfocar();
+    }
 
     // Posición de la tarjeta `i` de la bóveda dentro de la zona de tarjetas (sin desplazar).
     pure function tarjeta-x(i: int) -> length {
@@ -116,24 +551,81 @@ export component PanelBoveda inherits Rectangle {
         let columna = floor(x / (root.ancho-tarjeta + root.hueco-tarjeta));
         let fila = floor(y / (root.alto-tarjeta + root.hueco-tarjeta));
         let i = fila * root.columnas-boveda + columna;
-        if (x < 0 || y < 0 || columna >= root.columnas-boveda || i >= root.boveda.length || i == root.arrastrando-boveda || root.boveda[i].es-archivo) {
+        if (x < 0 || y < 0 || columna >= root.columnas-boveda || i >= root.boveda.length || i == root.arrastrando-boveda) {
             return -1;
         }
         return i;
     }
 
-    // Da el foco del teclado al campo de arriba.
+    // Da el foco del teclado al campo de arriba (en los textos) o a la lista.
     public function enfocar() {
-        entrada-boveda.focus();
+        if (root.seccion-boveda == 1) {
+            imagenes.enfocar();
+        } else if (root.seccion-boveda == 2) {
+            archivos.enfocar();
+        } else {
+            entrada-boveda.focus();
+        }
     }
 
+    // Nookly Pro: las pestañas de las secciones y, a la derecha, el botón que abre la carpeta
+    // donde se guardan las imágenes y los archivos.
+    if Tema.pro : Rectangle {
+        x: 16px;
+        y: 14px;
+        width: pestanas.preferred-width;
+        height: 32px;
+        border-radius: 12px;
+        background: Tema.capa;
+
+        pestanas := HorizontalLayout {
+            padding: 2px;
+            spacing: 2px;
+            PestanaBoveda {
+                texto: @tr("Textos");
+                activa: root.seccion-boveda == 0;
+                clicked => { root.elegir-seccion(0); }
+            }
+            PestanaBoveda {
+                texto: @tr("Imágenes");
+                cuantos: root.imagenes-boveda.length;
+                activa: root.seccion-boveda == 1;
+                clicked => { root.elegir-seccion(1); }
+            }
+            PestanaBoveda {
+                texto: @tr("Archivos");
+                cuantos: root.archivos-boveda.length;
+                activa: root.seccion-boveda == 2;
+                clicked => { root.elegir-seccion(2); }
+            }
+        }
+    }
+    if Tema.pro : Rectangle {
+        x: parent.width - 16px - self.width;
+        y: 14px;
+        width: 32px;
+        height: 32px;
+        border-radius: 12px;
+        background: carpeta.has-hover ? Tema.capa-fuerte : Tema.capa;
+        IconoCarpeta {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            color: Tema.acento;
+        }
+        carpeta := TouchArea {
+            clicked => { root.abrir-carpeta-boveda(); }
+        }
+    }
+
+    // ---- Textos ----
 
     // Campo de arriba: guarda un texto nuevo (en el grupo, si se está dentro de uno), o
     // escribe la etiqueta de un texto o el nombre de un grupo.
     Rectangle {
+        visible: root.seccion-boveda == 0;
         x: 16px;
-        y: 14px;
-        width: parent.width - 32px - (Tema.pro ? 36px + 8px : 0px);
+        y: root.arriba;
+        width: parent.width - 32px;
         height: 36px;
         border-radius: 14px;
         background: Tema.capa;
@@ -177,6 +669,10 @@ export component PanelBoveda inherits Rectangle {
                     } else {
                         root.alternar-boveda();
                     }
+                    return accept;
+                }
+                if (evento.modifiers.control && (evento.text == Key.Tab || evento.text == Key.Backtab) && Tema.pro) {
+                    root.cambiar-seccion(evento.text == Key.Backtab || evento.modifiers.shift ? -1 : 1);
                     return accept;
                 }
                 if (evento.modifiers.control && evento.text == "v" && root.entrada-boveda == 0 && root.pegar-en-boveda()) {
@@ -253,28 +749,10 @@ export component PanelBoveda inherits Rectangle {
         }
     }
 
-    // nook Pro: abre la carpeta donde se guardan las imágenes y los archivos.
-    if Tema.pro : Rectangle {
-        x: parent.width - 16px - self.width;
-        y: 14px;
-        width: 36px;
-        height: 36px;
-        border-radius: 14px;
-        background: carpeta.has-hover ? Tema.capa-fuerte : Tema.capa;
-        IconoCarpeta {
-            x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
-            color: Tema.acento;
-        }
-        carpeta := TouchArea {
-            clicked => { root.abrir-carpeta-boveda(); }
-        }
-    }
-
     // Dentro de un grupo: volver a la vista de arriba y el nombre del grupo.
-    if root.en-grupo-boveda : Rectangle {
+    if root.seccion-boveda == 0 && root.en-grupo-boveda : Rectangle {
         x: 10px;
-        y: 14px + 36px + 8px;
+        y: root.arriba + 36px + 8px;
         width: parent.width - 20px;
         height: root.cabecera-grupo-boveda - 6px;
 
@@ -313,9 +791,9 @@ export component PanelBoveda inherits Rectangle {
         }
     }
 
-    if root.boveda.length == 0 && !root.en-grupo-boveda : Text {
+    if root.seccion-boveda == 0 && root.boveda.length == 0 && !root.en-grupo-boveda : Text {
         x: 16px;
-        y: 14px + 36px + 8px;
+        y: root.arriba + 36px + 8px;
         width: parent.width - 32px;
         height: root.alto-tarjeta * 2;
         text: @tr("La bóveda está vacía.\nGuarda aquí los textos que copias a menudo.");
@@ -328,8 +806,9 @@ export component PanelBoveda inherits Rectangle {
     // Tarjetas: se desplazan con la rueda; las de texto se pueden arrastrar sobre otra
     // (crea un grupo) o sobre un grupo (entran en él).
     Rectangle {
+        visible: root.seccion-boveda == 0;
         x: 10px;
-        y: 14px + 36px + 8px + root.cabecera-grupo-boveda;
+        y: root.arriba + 36px + 8px + root.cabecera-grupo-boveda;
         width: parent.width - 20px;
         height: root.alto-tarjetas;
         clip: true;
@@ -394,7 +873,7 @@ export component PanelBoveda inherits Rectangle {
                     if (parent.gesto == 1) {
                         root.arrastre-boveda-x += dx;
                         root.arrastre-boveda-y += dy;
-                    } else if (!t.es-grupo && !t.es-archivo && !root.en-grupo-boveda && (abs(dx) > 6px || abs(dy) > 6px)) {
+                    } else if (!t.es-grupo && !root.en-grupo-boveda && (abs(dx) > 6px || abs(dy) > 6px)) {
                         parent.gesto = 1;
                         root.arrastrando-boveda = i;
                         root.arrastre-boveda-x = dx;
@@ -437,51 +916,9 @@ export component PanelBoveda inherits Rectangle {
                 overflow: elide;
             }
 
-            // Archivo: una imagen ocupa la tarjeta (marcada, con un borde); los demás llevan el
-            // icono de su tipo, su nombre y lo que miden.
-            if t.es-foto : Image {
-                width: parent.width;
-                height: parent.height;
-                source: t.miniatura;
-            }
-            if t.es-foto && i == root.seleccion-boveda : Rectangle {
-                border-radius: 14px;
-                border-width: 2px;
-                border-color: Tema.acento;
-            }
-            if t.es-archivo && !t.es-foto : Image {
-                x: 10px;
-                y: 9px;
-                width: 28px;
-                height: 28px;
-                source: t.miniatura;
-            }
-            if t.es-archivo && !t.es-foto : Text {
-                x: 10px;
-                y: 42px;
-                width: parent.width - 20px;
-                height: 16px;
-                text: t.titulo;
-                color: Tema.texto;
-                font-size: 12px;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-            if t.es-archivo && !t.es-foto : Text {
-                x: 10px;
-                y: 58px;
-                width: parent.width - 20px;
-                height: 12px;
-                text: t.detalle;
-                color: Tema.texto-tenue;
-                font-size: 10px;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-
             // Texto: sus primeras líneas, en el hueco que deja la etiqueta, y la etiqueta
             // abajo, que no pasa del ancho de la tarjeta.
-            if !t.es-grupo && !t.es-archivo : Text {
+            if !t.es-grupo : Text {
                 x: 10px;
                 y: 8px;
                 width: parent.width - 20px;
@@ -493,7 +930,7 @@ export component PanelBoveda inherits Rectangle {
                 overflow: elide;
                 vertical-alignment: top;
             }
-            if !t.es-grupo && !t.es-archivo && t.etiqueta != "" : Rectangle {
+            if !t.es-grupo && t.etiqueta != "" : Rectangle {
                 x: 10px;
                 y: parent.height - 8px - self.height;
                 width: min(etiqueta.preferred-width + 12px, parent.width - 20px);
@@ -519,5 +956,50 @@ export component PanelBoveda inherits Rectangle {
                 animaciones: root.animaciones;
             }
         }
+    }
+
+    // ---- Imágenes y archivos (Nookly Pro) ----
+
+    imagenes := SeccionArchivos {
+        visible: root.seccion-boveda == 1;
+        x: 16px;
+        y: root.arriba;
+        width: parent.width - 32px;
+        height: root.zona-boveda;
+        archivos: root.imagenes-boveda;
+        imagenes: true;
+        vista: root.vista-imagen;
+        seleccion <=> root.seleccion-imagen;
+        archivo-copiado: root.archivo-copiado;
+        aviso: root.aviso-boveda;
+        vacia: @tr("No hay imágenes guardadas.\nArrástralas aquí o pégalas con Ctrl+V.");
+        animaciones: root.animaciones;
+        copiar(id) => { root.copiar-archivo-boveda(id); }
+        abrir(id) => { root.abrir-archivo-boveda(id); }
+        quitar(id) => { root.quitar-archivo-boveda(id); }
+        menu(id) => { root.menu-archivo-boveda(id); }
+        pegar => { return root.pegar-en-boveda(); }
+        cerrar => { root.alternar-boveda(); }
+        cambiar-seccion(d) => { root.cambiar-seccion(d); }
+    }
+    archivos := SeccionArchivos {
+        visible: root.seccion-boveda == 2;
+        x: 16px;
+        y: root.arriba;
+        width: parent.width - 32px;
+        height: root.zona-boveda;
+        archivos: root.archivos-boveda;
+        seleccion <=> root.seleccion-archivo;
+        archivo-copiado: root.archivo-copiado;
+        aviso: root.aviso-boveda;
+        vacia: @tr("No hay archivos guardados.\nArrástralos aquí o pégalos con Ctrl+V.");
+        animaciones: root.animaciones;
+        copiar(id) => { root.copiar-archivo-boveda(id); }
+        abrir(id) => { root.abrir-archivo-boveda(id); }
+        quitar(id) => { root.quitar-archivo-boveda(id); }
+        menu(id) => { root.menu-archivo-boveda(id); }
+        pegar => { return root.pegar-en-boveda(); }
+        cerrar => { root.alternar-boveda(); }
+        cambiar-seccion(d) => { root.cambiar-seccion(d); }
     }
 }

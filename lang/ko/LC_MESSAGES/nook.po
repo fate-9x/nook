@@ -862,3 +862,24 @@ msgstr "다른 기기가 동시에 연동하려고 했습니다"
 
 msgid "Copiado"
 msgstr "복사됨"
+
+msgid "Textos"
+msgstr "텍스트"
+
+msgid "Imágenes"
+msgstr "이미지"
+
+msgid "Archivos"
+msgstr "파일"
+
+msgid "Copiar archivo"
+msgstr "파일 복사"
+
+msgid "Abrir archivo"
+msgstr "파일 열기"
+
+msgid "No hay imágenes guardadas.\nArrástralas aquí o pégalas con Ctrl+V."
+msgstr "저장된 이미지가 없습니다.\n여기로 끌어오거나 Ctrl+V로 붙여넣으세요."
+
+msgid "No hay archivos guardados.\nArrástralos aquí o pégalos con Ctrl+V."
+msgstr "저장된 파일이 없습니다.\n여기로 끌어오거나 Ctrl+V로 붙여넣으세요."

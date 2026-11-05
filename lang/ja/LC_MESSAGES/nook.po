@@ -862,3 +862,24 @@ msgstr "別のデバイスが同時に連携しようとしました"
 
 msgid "Copiado"
 msgstr "コピーしました"
+
+msgid "Textos"
+msgstr "テキスト"
+
+msgid "Imágenes"
+msgstr "画像"
+
+msgid "Archivos"
+msgstr "ファイル"
+
+msgid "Copiar archivo"
+msgstr "ファイルをコピー"
+
+msgid "Abrir archivo"
+msgstr "ファイルを開く"
+
+msgid "No hay imágenes guardadas.\nArrástralas aquí o pégalas con Ctrl+V."
+msgstr "保存された画像はありません。\nここにドラッグするか、Ctrl+V で貼り付けてください。"
+
+msgid "No hay archivos guardados.\nArrástralos aquí o pégalos con Ctrl+V."
+msgstr "保存されたファイルはありません。\nここにドラッグするか、Ctrl+V で貼り付けてください。"

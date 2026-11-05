@@ -1,16 +1,31 @@
 //! Bóveda de textos: guardar, copiar, etiquetar y agrupar textos, y la cuenta de GitHub con la que
-//! se sincroniza. En nook Pro, también imágenes y archivos, que se pasan al móvil vinculado (ver
-//! `enlace`).
+//! se sincroniza. En nook Pro, también imágenes y archivos, cada cosa en su sección, que se pasan
+//! al móvil vinculado (ver `enlace`).
 
 use crate::*;
 
 /// Sección de la configuración donde están la cuenta y el móvil.
 const SECCION_CUENTA: i32 = 1;
-/// Lado del icono de un archivo en su tarjeta (ver ui/boveda.slint).
-const LADO_ICONO_ARCHIVO: f32 = 28.0;
+/// Lado del icono de una imagen o un archivo en su lista y en grande, en la vista previa de lo que
+/// no es una imagen (ver `SeccionArchivos` en ui/boveda.slint).
+const LADO_ICONO_FILA: f32 = 24.0;
+const LADO_ICONO_GRANDE: f32 = 64.0;
+/// El hueco de la vista previa de una imagen, en píxeles lógicos (ver `SeccionArchivos`).
+const VISTA_PREVIA: (f32, f32) = (278.0, 198.0);
+/// Las secciones de la bóveda (ver `seccion-boveda` en ui/boveda.slint).
+const SECCION_IMAGENES: i32 = 1;
+const SECCION_ARCHIVOS: i32 = 2;
 /// Lo que se ve marcado lo que se copia antes de cerrarse la barra (ver `MarcaCopiado` en
 /// ui/boveda.slint, que aparece en 140 ms y cuya marca crece en 300).
 const ESPERA_COPIADO: Duration = Duration::from_millis(450);
+
+/// Lo que se acaba de copiar de la bóveda, que se ve marcado hasta que se cierra la barra.
+enum Copiado {
+    /// El texto con esa posición en la vista.
+    Texto(usize),
+    /// La imagen o el archivo con ese id.
+    Archivo(String),
+}
 
 /// Para qué es el campo de arriba de la bóveda.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -79,6 +94,12 @@ fn motivo(motivo: &enlace::Motivo) -> String {
     }
 }
 
+/// Quita la marca de lo que se copió.
+fn limpiar_copiado(ui: &Barra) {
+    ui.set_copiado_boveda(-1);
+    ui.set_archivo_copiado("".into());
+}
+
 /// Tarjetas de la vista `vista` de la bóveda (None = la de arriba).
 pub(crate) fn tarjetas_boveda(boveda: &boveda::Boveda, vista: Option<usize>) -> Vec<ItemBoveda> {
     let texto = |t: &boveda::Texto| ItemBoveda {
@@ -115,26 +136,12 @@ impl Ctx {
             e.entrada_boveda = EntradaBoveda::Texto;
         }
         let vista = e.grupo_boveda;
-        let mut tarjetas = tarjetas_boveda(&e.config.boveda, vista);
-        // Los archivos van detrás de los textos, en la vista de arriba. Solo se miran con la bóveda
-        // abierta: leer sus miniaturas la primera vez cuesta.
-        if vista.is_none() && e.modo == Modo::Boveda {
-            let coma = idioma::codigo_actual() == "es";
-            for archivo in self.enlace.archivos() {
-                let foto = if archivo.foto { self.enlace.foto(&archivo.id) } else { None };
-                let es_foto = foto.is_some();
-                let icono = || icono_de_tipo(&mut e.iconos, &archivo.nombre, lado_icono(LADO_ICONO_ARCHIVO));
-                tarjetas.push(ItemBoveda {
-                    titulo: archivo.nombre.as_str().into(),
-                    detalle: tamano_visible(archivo.tamano, coma).into(),
-                    es_archivo: true,
-                    es_foto,
-                    miniatura: foto.or_else(icono).unwrap_or_default(),
-                    ..Default::default()
-                });
-            }
-        }
+        let tarjetas = tarjetas_boveda(&e.config.boveda, vista);
         let largo = tarjetas.len();
+        // Las imágenes y los archivos solo se miran con la bóveda abierta.
+        if e.modo == Modo::Boveda {
+            self.refrescar_archivos_boveda(ui, e);
+        }
         ui.set_boveda(modelo(tarjetas));
         ui.set_en_grupo_boveda(vista.is_some());
         ui.set_nombre_grupo_boveda(vista.and_then(|g| e.config.boveda.grupo(g)).map_or(String::new(), |g| g.nombre.clone()).into());
@@ -155,6 +162,7 @@ impl Ctx {
         };
         ui.set_entrada_boveda(entrada);
         ui.set_pista_entrada_boveda(pista.into());
+        ui.set_aviso_boveda(e.aviso_boveda.clone().unwrap_or_default().into());
         let ultimo = largo.saturating_sub(1) as i32;
         if ui.get_seleccion_boveda() > ultimo {
             ui.set_seleccion_boveda(ultimo);
@@ -183,6 +191,81 @@ impl Ctx {
         ui.set_movil_error(e.error_movil.as_str().into());
     }
 
+    /// Pasa a la interfaz las listas de imágenes y de archivos (nook Pro) y la vista previa de la
+    /// imagen elegida. Si llegó lo que se acaba de añadir, se pasa a verlo.
+    fn refrescar_archivos_boveda(&self, ui: &Barra, e: &mut Estado) {
+        let archivos = self.enlace.archivos();
+        if let Some(antes) = &e.espera_boveda
+            && let Some(nuevo) = archivos.first()
+            && Some(&nuevo.id) != antes.as_ref()
+        {
+            if nuevo.foto {
+                ui.set_seccion_boveda(SECCION_IMAGENES);
+                ui.set_seleccion_imagen(0);
+            } else {
+                ui.set_seccion_boveda(SECCION_ARCHIVOS);
+                ui.set_seleccion_archivo(0);
+            }
+            e.espera_boveda = None;
+            // El foco pasa a la lista de la sección.
+            let c = self.clone();
+            Timer::single_shot(Duration::ZERO, move || c.enfocar());
+        }
+        let coma = idioma::codigo_actual() == "es";
+        let (lado, grande) = (lado_icono(LADO_ICONO_FILA), lado_icono(LADO_ICONO_GRANDE));
+        let (mut imagenes, mut otros) = (Vec::new(), Vec::new());
+        for archivo in &archivos {
+            let fila = ArchivoBoveda {
+                id: archivo.id.as_str().into(),
+                nombre: archivo.nombre.as_str().into(),
+                detalle: tamano_visible(archivo.tamano, coma).into(),
+                icono: icono_de_tipo(&mut e.iconos, &archivo.nombre, lado).unwrap_or_default(),
+                icono_grande: icono_de_tipo(&mut e.iconos, &archivo.nombre, grande).unwrap_or_default(),
+            };
+            if archivo.foto { imagenes.push(fila) } else { otros.push(fila) }
+        }
+        let ultima = |lista: &Vec<ArchivoBoveda>| lista.len().saturating_sub(1) as i32;
+        if ui.get_seleccion_imagen() > ultima(&imagenes) {
+            ui.set_seleccion_imagen(ultima(&imagenes));
+        }
+        if ui.get_seleccion_archivo() > ultima(&otros) {
+            ui.set_seleccion_archivo(ultima(&otros));
+        }
+        ui.set_imagenes_boveda(modelo(imagenes));
+        ui.set_archivos_boveda(modelo(otros));
+        self.poner_vista_imagen(ui);
+    }
+
+    /// Pone la vista previa de la imagen elegida, si se ve su sección. Si aún no está hecha, se
+    /// pide (al terminar, el enlace avisa y se vuelve a poner).
+    fn poner_vista_imagen(&self, ui: &Barra) {
+        if ui.get_seccion_boveda() != SECCION_IMAGENES {
+            return;
+        }
+        let Some(fila) = ui.get_imagenes_boveda().row_data(ui.get_seleccion_imagen().max(0) as usize) else { return };
+        if ui.get_vista_imagen().id == fila.id && ui.get_vista_imagen().estado != 0 {
+            return;
+        }
+        let escala = plataforma::escala();
+        let caja = ((VISTA_PREVIA.0 * escala).round() as u32, (VISTA_PREVIA.1 * escala).round() as u32);
+        let id = fila.id.clone();
+        ui.set_vista_imagen(match self.enlace.vista_previa(&fila.id, caja) {
+            enlace::Previa::Cargando => VistaImagen { id, estado: 0, ..Default::default() },
+            enlace::Previa::Lista(imagen, (ancho, alto)) => VistaImagen { id, imagen, medidas: format!("{ancho} × {alto}").into(), estado: 1 },
+            enlace::Previa::Ninguna => VistaImagen { id, estado: 2, ..Default::default() },
+        });
+    }
+
+    /// Cambió la sección de la bóveda o la imagen elegida.
+    pub(crate) fn ver_en_boveda(&self) {
+        if self.estado.borrow().modo != Modo::Boveda {
+            return;
+        }
+        if let Some(ui) = self.ui.upgrade() {
+            self.poner_vista_imagen(&ui);
+        }
+    }
+
     /// Activa o desactiva la bóveda: su botón en la tira y su atajo.
     pub(crate) fn alternar_usar_boveda(&self) {
         self.modificar_ajustes(|a| a.usar_boveda = !a.usar_boveda);
@@ -204,10 +287,11 @@ impl Ctx {
             e.grupo_boveda = None;
             e.entrada_boveda = EntradaBoveda::Texto;
             e.aviso_boveda = None;
+            e.espera_boveda = None;
         }
         self.limpiar_campo_boveda(0);
         if let Some(ui) = self.ui.upgrade() {
-            ui.set_copiado_boveda(-1);
+            limpiar_copiado(&ui);
         }
         self.poner_modo(Modo::Boveda);
         // Por si se cambió en otro ordenador.
@@ -282,9 +366,16 @@ impl Ctx {
         }
     }
 
+    /// Lo que se añade a la bóveda se pasa a ver cuando llegue (ver `espera_boveda`).
+    fn esperar_en_boveda(&self) {
+        let mut e = self.estado.borrow_mut();
+        e.aviso_boveda = None;
+        e.espera_boveda = Some(self.enlace.archivos().first().map(|a| a.id.clone()));
+    }
+
     /// Guarda en la bóveda una copia de estos archivos (soltados en la barra con la bóveda abierta).
     pub(crate) fn guardar_archivos_en_boveda(&self, rutas: Vec<PathBuf>) {
-        self.estado.borrow_mut().aviso_boveda = None;
+        self.esperar_en_boveda();
         self.enlace.agregar(rutas);
         // Se ven en la vista de arriba.
         if self.estado.borrow().grupo_boveda.is_some() {
@@ -295,81 +386,91 @@ impl Ctx {
     /// Ctrl+V en la bóveda: guarda los archivos o la imagen que se copiaron, si no es un texto.
     pub(crate) fn pegar_en_boveda(&self) -> bool {
         let nombre = format!("{} {}.png", tr("Imagen"), Local::now().format("%Y-%m-%d %H.%M.%S"));
+        let antes = self.enlace.archivos().first().map(|a| a.id.clone());
         if !self.enlace.pegar(nombre) {
             return false;
         }
-        self.estado.borrow_mut().aviso_boveda = None;
+        {
+            let mut e = self.estado.borrow_mut();
+            e.aviso_boveda = None;
+            e.espera_boveda = Some(antes);
+        }
         if self.estado.borrow().grupo_boveda.is_some() {
             self.ver_grupo_boveda(None);
         }
         true
     }
 
-    /// El archivo de la tarjeta `i` de la vista, si es un archivo (van detrás de los textos de la
-    /// vista de arriba).
-    fn archivo_de_boveda(&self, i: usize) -> Option<enlace::Archivo> {
-        let e = self.estado.borrow();
-        if e.grupo_boveda.is_some() {
-            return None;
-        }
-        let j = i.checked_sub(e.config.boveda.largo(None))?;
-        self.enlace.archivos().into_iter().nth(j)
+    fn archivo_de_boveda(&self, id: &str) -> Option<enlace::Archivo> {
+        self.enlace.archivos().into_iter().find(|a| a.id == id)
     }
 
-    /// Copia el archivo de la tarjeta `i` para pegarlo y, como con los textos, lo marca, cierra la
+    /// Copia una imagen o un archivo para pegarlo y, como con los textos, lo marca, cierra la
     /// barra y devuelve el foco a la ventana en la que se estaba.
-    fn copiar_archivo(&self, i: usize, id: &str) {
+    pub(crate) fn copiar_archivo(&self, id: &str) {
         if !self.enlace.copiar(id) {
             eprintln!("No se pudo copiar el archivo: otro programa está usando el portapapeles");
             return;
         }
-        self.tras_copiar(i);
+        self.tras_copiar(Copiado::Archivo(id.into()));
     }
 
-    /// Marca como copiada la tarjeta `i` y, al rato (lo que tarda en verse la marca), cierra la
-    /// barra y devuelve el foco a la ventana en la que se estaba, para pegar lo copiado.
-    fn tras_copiar(&self, i: usize) {
+    /// Abre una imagen o un archivo con su programa.
+    pub(crate) fn abrir_archivo(&self, id: &str) {
+        let Some(archivo) = self.archivo_de_boveda(id) else { return };
+        if let Err(e) = sistema::lanzar(&archivo.ruta.to_string_lossy()) {
+            eprintln!("{e}");
+        }
+    }
+
+    /// Marca lo que se copió y, al rato (lo que tarda en verse la marca), cierra la barra y
+    /// devuelve el foco a la ventana en la que se estaba, para pegarlo.
+    fn tras_copiar(&self, copiado: Copiado) {
         let Some(ui) = self.ui.upgrade() else { return };
-        ui.set_copiado_boveda(i as i32);
+        match &copiado {
+            Copiado::Texto(i) => ui.set_copiado_boveda(*i as i32),
+            Copiado::Archivo(id) => ui.set_archivo_copiado(id.as_str().into()),
+        }
         let c = self.clone();
         Timer::single_shot(ESPERA_COPIADO, move || {
             let Some(ui) = c.ui.upgrade() else { return };
             // Si mientras tanto se cerró o se copió otra cosa, ya no toca.
-            if c.estado.borrow().modo != Modo::Boveda || ui.get_copiado_boveda() != i as i32 {
+            let sigue = match &copiado {
+                Copiado::Texto(i) => ui.get_copiado_boveda() == *i as i32,
+                Copiado::Archivo(id) => ui.get_archivo_copiado() == id.as_str(),
+            };
+            if c.estado.borrow().modo != Modo::Boveda || !sigue {
                 return;
             }
             c.cerrar();
-            ui.set_copiado_boveda(-1);
+            limpiar_copiado(&ui);
             if let Some(ventana) = c.ventana_previa.take() {
                 ventana::activar(ventana);
             }
         });
     }
 
-    fn quitar_archivo(&self, id: &str) {
+    pub(crate) fn quitar_archivo(&self, id: &str) {
         self.enlace.quitar(id);
         self.refrescar();
     }
 
-    /// Clic derecho en la tarjeta de un archivo.
-    fn menu_archivo(&self, i: usize, archivo: enlace::Archivo) {
+    /// Clic derecho en una imagen o un archivo.
+    pub(crate) fn menu_archivo(&self, id: &str) {
         const COPIAR: u32 = 1;
         const ABRIR: u32 = 2;
         const ELIMINAR: u32 = 3;
+        let id = id.to_string();
         let opciones = [
-            Opcion::Normal(COPIAR, tr("Copiar")),
-            Opcion::Normal(ABRIR, tr("Abrir")),
+            Opcion::Normal(COPIAR, tr("Copiar archivo")),
+            Opcion::Normal(ABRIR, tr("Abrir archivo")),
             Opcion::Separador,
             Opcion::Normal(ELIMINAR, tr("Eliminar")),
         ];
-        self.mostrar_menu(&opciones, move |c, id| match id {
-            COPIAR => c.copiar_archivo(i, &archivo.id),
-            ABRIR => {
-                if let Err(e) = sistema::lanzar(&archivo.ruta.to_string_lossy()) {
-                    eprintln!("{e}");
-                }
-            }
-            ELIMINAR => c.quitar_archivo(&archivo.id),
+        self.mostrar_menu(&opciones, move |c, opcion| match opcion {
+            COPIAR => c.copiar_archivo(&id),
+            ABRIR => c.abrir_archivo(&id),
+            ELIMINAR => c.quitar_archivo(&id),
             _ => {}
         });
     }
@@ -430,11 +531,8 @@ impl Ctx {
         }
     }
 
-    /// Clic (o Intro) en una tarjeta: un texto o un archivo se copia; en un grupo se entra.
+    /// Clic (o Intro) en una tarjeta: un texto se copia; en un grupo se entra.
     pub(crate) fn elegir_en_boveda(&self, i: usize) {
-        if let Some(archivo) = self.archivo_de_boveda(i) {
-            return self.copiar_archivo(i, &archivo.id);
-        }
         let (vista, es_grupo) = {
             let e = self.estado.borrow();
             let vista = e.grupo_boveda;
@@ -473,7 +571,7 @@ impl Ctx {
             eprintln!("No se pudo copiar el texto: otro programa está usando el portapapeles");
             return;
         }
-        self.tras_copiar(i);
+        self.tras_copiar(Copiado::Texto(i));
     }
 
     /// Intro en el campo de arriba: guarda el texto nuevo, la etiqueta o el nombre del grupo.
@@ -533,9 +631,6 @@ impl Ctx {
     }
 
     pub(crate) fn quitar_de_boveda(&self, i: usize) {
-        if let Some(archivo) = self.archivo_de_boveda(i) {
-            return self.quitar_archivo(&archivo.id);
-        }
         self.modificar_boveda(|b, vista| b.quitar(vista, i));
     }
 
@@ -569,9 +664,6 @@ impl Ctx {
         const ABRIR: u32 = 6;
         const RENOMBRAR: u32 = 7;
         const DESHACER: u32 = 8;
-        if let Some(archivo) = self.archivo_de_boveda(i) {
-            return self.menu_archivo(i, archivo);
-        }
         let (vista, es_grupo, tiene_etiqueta) = {
             let e = self.estado.borrow();
             let vista = e.grupo_boveda;
@@ -638,6 +730,19 @@ pub(crate) fn conectar(ui: &Barra, ctx: &Ctx) {
     ui.on_pegar_en_boveda(move || c.pegar_en_boveda());
     let c = ctx.clone();
     ui.on_abrir_carpeta_boveda(move || c.abrir_carpeta_boveda());
+    let c = ctx.clone();
+    ui.on_copiar_archivo_boveda(move |id| c.copiar_archivo(&id));
+    let c = ctx.clone();
+    ui.on_abrir_archivo_boveda(move |id| c.abrir_archivo(&id));
+    let c = ctx.clone();
+    ui.on_quitar_archivo_boveda(move |id| c.quitar_archivo(&id));
+    let c = ctx.clone();
+    ui.on_menu_archivo_boveda(move |id| {
+        let c = c.clone();
+        Timer::single_shot(Duration::ZERO, move || c.menu_archivo(&id));
+    });
+    let c = ctx.clone();
+    ui.on_ver_en_boveda(move || c.ver_en_boveda());
     let c = ctx.clone();
     ui.on_boton_cuenta(move || c.boton_cuenta());
     let c = ctx.clone();

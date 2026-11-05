@@ -862,3 +862,24 @@ msgstr "another device tried to link at the same time"
 
 msgid "Copiado"
 msgstr "Copied"
+
+msgid "Textos"
+msgstr "Texts"
+
+msgid "Imágenes"
+msgstr "Images"
+
+msgid "Archivos"
+msgstr "Files"
+
+msgid "Copiar archivo"
+msgstr "Copy file"
+
+msgid "Abrir archivo"
+msgstr "Open file"
+
+msgid "No hay imágenes guardadas.\nArrástralas aquí o pégalas con Ctrl+V."
+msgstr "No saved images.\nDrag them here or paste them with Ctrl+V."
+
+msgid "No hay archivos guardados.\nArrástralos aquí o pégalos con Ctrl+V."
+msgstr "No saved files.\nDrag them here or paste them with Ctrl+V."

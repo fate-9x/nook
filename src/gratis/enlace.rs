@@ -11,8 +11,17 @@ pub struct Archivo {
     pub nombre: String,
     pub tamano: u64,
     pub ruta: PathBuf,
-    /// Si es una imagen (tiene miniatura, ver `Enlace::foto`).
+    /// Si es una imagen (ver `boveda::es_imagen`).
     pub foto: bool,
+}
+
+/// La vista previa de una imagen de la bóveda: se está preparando, la imagen con lo que mide la
+/// original, o no se pudo leer.
+#[allow(dead_code)] // solo las crea la versión Pro
+pub enum Previa {
+    Cargando,
+    Lista(Image, (u32, u32)),
+    Ninguna,
 }
 
 /// En qué está el vínculo con el móvil.
@@ -81,8 +90,8 @@ impl Enlace {
         false
     }
 
-    pub fn foto(&self, _id: &str) -> Option<Image> {
-        None
+    pub fn vista_previa(&self, _id: &str, _caja: (u32, u32)) -> Previa {
+        Previa::Ninguna
     }
 
     pub fn eventos(&self) -> Vec<Evento> {

@@ -2,7 +2,7 @@
 // que toca (cada uno en su archivo de ui/). Aquí se personaliza lo visual: colores, tamaños, qué
 // elementos aparecen y en qué orden. Cada vez que guardes y hagas `cargo run` verás los cambios.
 
-import { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme, MensajeClaude } from "tema.slint";
+import { Tema, ElementoItem, ItemBoveda, ArchivoBoveda, VistaImagen, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, Fondo, IconoBandejaItem, BotonAddonItem, AddonFila, Pieza, Empalme, MensajeClaude } from "tema.slint";
 import { IconoApp, IconoPersonaje, IconoTarjetas, IconoMas, IconoMusica, IconoNota } from "iconos.slint";
 import { IconoSonido, IconoMicrofono, IconoFlecha, IconoLupa, IconoEnergia, IconoBateria, IconoClaude } from "iconos.slint";
 import { Boton } from "controles.slint";
@@ -15,7 +15,7 @@ import { PanelSonido } from "sonido.slint";
 import { PanelClaude } from "claude.slint";
 
 // Lo que usa Rust (src/main.rs y src/barra/): los colores, los datos de las listas y las dos ventanas.
-export { Tema, ElementoItem, ItemBoveda, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza, MensajeClaude }
+export { Tema, ElementoItem, ItemBoveda, ArchivoBoveda, VistaImagen, AccesorioItem, ColorAccesorio, PresetItem, AppItem, OpcionMenu, IconoBandejaItem, Pieza, MensajeClaude }
 export { Emergente } from "emergente.slint";
 
 export component Barra inherits Window {
@@ -106,6 +106,17 @@ export component Barra inherits Window {
     in-out property <int> seleccion-boveda; // tarjeta marcada (se copia o abre con Intro o con el atajo)
     in-out property <string> texto-boveda;  // lo que se está escribiendo en el campo
     in property <int> copiado-boveda: -1;   // tarjeta que se acaba de copiar (se marca hasta cerrar)
+    // Nookly Pro: la sección de la bóveda que se ve (0 textos, 1 imágenes, 2 archivos), sus listas,
+    // lo elegido en cada una, la vista previa de la imagen elegida, el archivo que se acaba de
+    // copiar y por qué no se pudo guardar algo.
+    in-out property <int> seccion-boveda;
+    in property <[ArchivoBoveda]> imagenes-boveda;
+    in property <[ArchivoBoveda]> archivos-boveda;
+    in-out property <int> seleccion-imagen;
+    in-out property <int> seleccion-archivo;
+    in property <VistaImagen> vista-imagen;
+    in property <string> archivo-copiado;
+    in property <string> aviso-boveda;
     // Para qué es el campo: 0 guardar un texto nuevo, 1 la etiqueta de un texto, 2 el nombre de
     // un grupo. Con 1 y 2, Intro guarda aunque esté vacío y Esc cancela.
     in property <int> entrada-boveda;
@@ -278,6 +289,11 @@ export component Barra inherits Window {
     callback cancelar-entrada-boveda();
     callback pegar-en-boveda() -> bool;     // Ctrl+V: guarda los archivos o la imagen que se copió
     callback abrir-carpeta-boveda();        // abre la carpeta de las imágenes y los archivos (nook Pro)
+    callback copiar-archivo-boveda(string); // las imágenes y los archivos van por su id (nook Pro)
+    callback abrir-archivo-boveda(string);
+    callback quitar-archivo-boveda(string);
+    callback menu-archivo-boveda(string);
+    callback ver-en-boveda();               // cambió la sección o la imagen elegida
     callback elegir-figura(int);
     callback elegir-expresion(int);
     callback nuevo-personaje();             // crea uno a partir de Nook y abre su carpeta
@@ -524,13 +540,17 @@ export component Barra inherits Window {
     property <length> fila-busqueda: 40px;
     property <length> ancho-buscar: 440px;
     property <length> alto-buscar: 14px + 36px + 8px + root.filas-busqueda * root.fila-busqueda + 10px;
-    // Bóveda (ver ui/boveda.slint): lo que hay bajo el campo (la cabecera de un grupo y las
-    // tarjetas, en 3 columnas de 76 px de alto) mide lo que ocupan sus tarjetas, de 2 filas (o el
-    // aviso de que no hay) hasta 280 px; con más, se desplazan.
+    // Bóveda (ver ui/boveda.slint): en los textos, lo que hay bajo el campo (la cabecera de un
+    // grupo y las tarjetas, en 3 columnas de 76 px de alto) mide lo que ocupan sus tarjetas, de 2
+    // filas (o el aviso de que no hay) hasta 280 px; con más, se desplazan. En nook Pro va más
+    // ancha, con las pestañas de las secciones arriba; en las imágenes y los archivos, la lista y
+    // la vista previa tienen siempre el mismo alto.
+    property <length> ancho-boveda: Tema.pro ? 600px : root.ancho-buscar;
     property <length> cabecera-boveda: root.en-grupo-boveda ? 34px : 0px;
-    property <length> zona-boveda: root.cabecera-boveda
+    property <length> zona-boveda: root.seccion-boveda != 0 ? 320px : root.cabecera-boveda
         + min(280px - root.cabecera-boveda, max(2 * 76px, ceil(root.boveda.length / 3) * (76px + 8px) - 8px));
-    property <length> alto-boveda: 14px + 36px + 8px + root.zona-boveda + 12px;
+    property <length> alto-boveda: 14px + (Tema.pro ? 32px + 10px : 0px) + (root.seccion-boveda == 0 ? 36px + 8px : 0px)
+        + root.zona-boveda + 12px;
     // Reproductor: la portada a la izquierda, con el título y los botones a su lado, y el
     // volumen debajo.
     property <length> lado-portada: 72px;
@@ -557,7 +577,7 @@ export component Barra inherits Window {
         : root.posicion == 2 ? root.width - root.ancho-oculta : 0px;
     property <length> oculta-y: root.posicion == 3 ? root.height - root.alto-oculta : root.caja-y-oculta;
     property <length> ancho-contenido: root.modo == 2 ? root.ancho-grupo : root.modo == 3 ? root.ancho-config
-        : root.modo == 4 || root.modo == 5 ? root.ancho-buscar : root.modo == 6 ? root.ancho-musica
+        : root.modo == 4 ? root.ancho-buscar : root.modo == 5 ? root.ancho-boveda : root.modo == 6 ? root.ancho-musica
         : root.modo == 7 ? root.ancho-sonido : root.modo == 8 ? root.ancho-addon : root.modo == 9 ? root.ancho-claude : 0px;
     property <length> alto-contenido: root.modo == 2 ? root.alto-grupo : root.modo == 3 ? root.alto-config
         : root.modo == 4 ? root.alto-buscar : root.modo == 5 ? root.alto-boveda : root.modo == 6 ? root.alto-musica
@@ -816,9 +836,9 @@ export component Barra inherits Window {
     // parpadeos). Lo visible es la "caja" (ancho × alto) dentro de ella, dibujada como un
     // contorno redondeado que Slint anima. La caja se ancla para que la tira de iconos quede
     // siempre en el mismo sitio de la pantalla.
-    property <length> ancho-maximo: max(max(max(root.ancho-grupo, root.ancho-musica), root.ancho-sonido), max(root.ancho-config, root.ancho-buscar));
+    property <length> ancho-maximo: max(max(max(root.ancho-grupo, root.ancho-musica), root.ancho-sonido), max(root.ancho-config, max(root.ancho-buscar, root.ancho-boveda)));
     // La bóveda y el buscador, con su alto máximo (cambia según lo que muestran).
-    property <length> alto-maximo: max(max(max(root.alto-grupo, 14px + 36px + 8px + 280px + 12px), max(root.alto-musica, root.alto-sonido)),
+    property <length> alto-maximo: max(max(max(root.alto-grupo, 14px + (Tema.pro ? 32px + 10px : 0px) + 36px + 8px + 280px + 12px), max(root.alto-musica, root.alto-sonido)),
         max(root.alto-config, 14px + 36px + 8px + 8 * root.fila-busqueda + 10px));
     // El lienzo reserva ya el hueco del "+": si creciera al abrirse, la ventana iría un instante
     // por detrás del borde y la hora se vería cortada.
@@ -1812,7 +1832,7 @@ export component Barra inherits Window {
         visible: root.modo == 5;
         x: root.contenido-x;
         y: root.contenido-y;
-        width: root.ancho-buscar;
+        width: root.ancho-boveda;
         height: root.alto-boveda;
         zona-boveda: root.zona-boveda;
         boveda: root.boveda;
@@ -1824,6 +1844,19 @@ export component Barra inherits Window {
         texto-boveda <=> root.texto-boveda;
         copiado-boveda: root.copiado-boveda;
         animaciones: root.animaciones;
+        seccion-boveda <=> root.seccion-boveda;
+        imagenes-boveda: root.imagenes-boveda;
+        archivos-boveda: root.archivos-boveda;
+        seleccion-imagen <=> root.seleccion-imagen;
+        seleccion-archivo <=> root.seleccion-archivo;
+        vista-imagen: root.vista-imagen;
+        archivo-copiado: root.archivo-copiado;
+        aviso-boveda: root.aviso-boveda;
+        copiar-archivo-boveda(a) => { root.copiar-archivo-boveda(a); }
+        abrir-archivo-boveda(a) => { root.abrir-archivo-boveda(a); }
+        quitar-archivo-boveda(a) => { root.quitar-archivo-boveda(a); }
+        menu-archivo-boveda(a) => { root.menu-archivo-boveda(a); }
+        ver-en-boveda => { root.ver-en-boveda(); }
         guardar-en-boveda(a) => { root.guardar-en-boveda(a); }
         elegir-en-boveda(a) => { root.elegir-en-boveda(a); }
         quitar-de-boveda(a) => { root.quitar-de-boveda(a); }
