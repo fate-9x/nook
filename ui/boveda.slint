@@ -363,9 +363,12 @@ component SeccionArchivos inherits Rectangle {
             width: parent.width - 28px;
             height: nombre.y - 12px - self.y;
 
+            // A su tamaño (ya viene reducida para que quepa): una imagen pequeña no se agranda.
             if root.imagenes && root.vista-al-dia && root.vista.estado == 1 : Image {
-                width: parent.width;
-                height: parent.height;
+                width: min(parent.width, root.vista.imagen.width * 1px / Tema.escala);
+                height: min(parent.height, root.vista.imagen.height * 1px / Tema.escala);
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
                 source: root.vista.imagen;
                 image-fit: contain;
             }
